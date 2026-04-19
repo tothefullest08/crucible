@@ -288,7 +288,7 @@ flowchart TD
   - 공수: 4h
   - 검증: Markdown+YAML 하이브리드 포맷 linter 통과 3/3
 
-- [ ] **T-W3-09** docs: /plan 사용 예제 한·영
+- [x] **T-W3-09** docs: /plan 사용 예제 한·영
   - 의존성: T-W3-08
   - 공수: 4h
   - 검증: README에 예제 포함
