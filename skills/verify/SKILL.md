@@ -46,7 +46,74 @@ validate_prompt: |
 
 ### Phase 4: Ralph Loop (retry branch)
 
-(T-W4-04에서 확장 예정 — 회색지대 자동 재시도 · non-blocking + level-based polling · 상한 3회 · v3.2 §2.2 Dec 11 MVP는 수동 승격 fallback)
+**목표**: qa-judge `verdict: "retry"` (0.40 < score < 0.80 회색지대)에 대해 최대 3회 자동 재시도. 3회 모두 실패 시 수동 승격 fallback으로 에스컬레이션 (v3.2 §2.2 Dec 11).
+**입력**: Phase 3 JSON 리포트 + `artifact_path` + `retry_budget`(기본 3)
+**동작**: 아래 의사코드를 따라 non-blocking + level-based polling으로 재시도를 수행한다 (ouroboros 포팅 자산 #2 — `references/ouroboros/skills/ralph/SKILL.md:50-99` 커버리지 ≥ 80%).
+
+```
+# Ralph Loop pseudocode — ported from ouroboros, adapted to bash+jq harness
+iteration = 0
+max_iterations = 3
+verification_history = []
+session_id = uuidgen
+
+while iteration < max_iterations:
+
+    # 1) Kick off a fresh regeneration in background — returns job_id immediately
+    job = start_evolve_step(
+        lineage_id   = session_id,
+        seed_content = artifact_path,
+        execute      = true
+    )
+    job_id, cursor = job.meta.job_id, job.meta.cursor
+
+    # 2) Level-based polling — wait up to 120s per level, only report on AC advance
+    prev_completed = 0
+    terminal = false
+    while not terminal:
+        wait_result = job_wait(job_id, cursor, timeout_seconds=120)
+        cursor      = wait_result.meta.cursor
+        status      = wait_result.meta.status
+        current_completed = parse_ac_completed(wait_result)
+        if current_completed > prev_completed:
+            emit("[Level complete] AC: {current_completed}/{total} | phase: {phase}")
+            prev_completed = current_completed
+        terminal = status in ("completed", "failed", "cancelled")
+
+    # 3) Fetch final artifact + re-run qa-judge in a FRESH evaluator context
+    result  = job_result(job_id)
+    verdict = qa_judge(result.artifact)          # re-score this iteration
+    verification_history.append({
+        "iteration": iteration,
+        "score":     verdict.score,
+        "verdict":   verdict.verdict             # promote | retry | reject
+    })
+
+    # 4) Branch on verdict
+    if verdict.verdict == "promote":
+        return { status: "promoted", history: verification_history }
+    if verdict.verdict == "reject":
+        return { status: "rejected", history: verification_history }
+
+    iteration = iteration + 1   # retry grey-zone
+
+# 5) Exhausted retries — MVP fallback is MANUAL promotion, not auto-Consensus (v3.2 §2.2 Dec 11)
+return {
+    status:    "escalate_manual",
+    reason:    "retry_budget_exhausted",
+    history:   verification_history,
+    next_step: "user decides promote / reject; auto-Consensus defers to 2차 릴리스"
+}
+```
+
+**출력**: 위 블록 중 하나의 JSON (`promoted` / `rejected` / `escalate_manual`)을 Phase 5로 전달.
+**실패 시 fallback**: `escalate_manual`로 수렴되면 사용자 확인 후 수동으로 promote 또는 reject. 자동 Consensus 회색지대 해소는 2차 릴리스 범위 (v3.2 §2.2 Dec 11).
+
+**키 불변식**:
+- 재시도 상한 3회 (하드 캡).
+- 각 iteration의 Evaluator는 Generator와 **다른 context / fresh session** — 자기검증 편향 제거 (§2.1 #5).
+- `verification_history`는 모든 iteration의 score·verdict를 남겨 승격 게이트(§11-3) 판정에 활용.
+- polling은 level-based (AC 완료 개수 변화 시에만 보고) — 컨텍스트 소비 최소화.
 
 ### Phase 5: Report & Promote
 
