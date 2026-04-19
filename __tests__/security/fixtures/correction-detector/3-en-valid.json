@@ -1,0 +1,9 @@
+{
+  "hook_event_name": "PostToolUse",
+  "tool_name": "Task",
+  "tool_response": {
+    "user_utterance": "Your statement about React useEffect is wrong. It can return a cleanup function.",
+    "prior_assistant_turn": "In React, useEffect is a hook that runs after every render. It cannot return anything meaningful from the callback."
+  },
+  "_expected": {"detected": true, "note": "EN keyword + shared noun React/useEffect"}
+}
