@@ -423,7 +423,7 @@ flowchart TD
 
 ### W6 — `/compound` 트리거 3종 (5일 / 40h)
 
-- [ ] **T-W6-01** `skills/compound/SKILL.md` 구조 + frontmatter
+- [x] **T-W6-01** `skills/compound/SKILL.md` 구조 + frontmatter
   - 의존성: T-W5-08
   - 공수: 4h
 
