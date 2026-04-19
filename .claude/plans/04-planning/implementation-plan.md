@@ -244,7 +244,7 @@ flowchart TD
 
 ### W3 — `/plan` 하이브리드 포맷 (5일 / 40h)
 
-- [ ] **T-W3-01** `skills/plan/SKILL.md` 구조 + frontmatter
+- [x] **T-W3-01** `skills/plan/SKILL.md` 구조 + frontmatter
   - 의존성: T-W2-10
   - 공수: 4h
   - 검증: frontmatter lint 통과
