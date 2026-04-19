@@ -1,0 +1,9 @@
+{
+  "ku_id": "KU-3",
+  "sample_id": "ku3-v-07",
+  "ground_truth": "valid",
+  "category": "preference",
+  "title": "bash + jq + yq 만 허용, Python 금지 (v3.3 §4.1)",
+  "content": "의존성 0 규칙. Python 포함 시 설치 복잡도·승격 게이트 공격 표면 증가.",
+  "evidence": "final-spec §4.1"
+}

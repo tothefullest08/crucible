@@ -1,0 +1,9 @@
+{
+  "ku_id": "KU-3",
+  "sample_id": "ku3-v-02",
+  "ground_truth": "valid",
+  "category": "tacit",
+  "title": "JSONL 파서는 상류 스키마 변경에 3단 fallback",
+  "content": "W1 smoke test 72h 운영 중 2회 스키마 변동 관찰. fallback 없을 시 파서 전체 정지.",
+  "evidence": "logs/smoke-2026-04-15.log"
+}

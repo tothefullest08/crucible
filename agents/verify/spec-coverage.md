@@ -57,4 +57,25 @@ For the given sub-requirement, decide if the diff semantically satisfies its Giv
 2. A citation must be in the diff under review, not merely in the pre-existing codebase.
 3. Do NOT judge code quality — that is code-reviewer's job.
 4. Read-only.
-5. W4 MVP stub: textual citation only. Static-analysis-backed verification lands in W7.5 hardening.
+5. Cite the narrowest line range that proves the clause; do not cite whole files.
+6. If the clause is satisfied by deletion (e.g., `then: "no orphaned migrations"` proven by removal), cite the pre-image line and mark `notes: "proven by deletion"`.
+7. If the diff is empty but the clause is already satisfied by pre-existing code, FAIL with `notes: "diff adds no coverage"` — verification tracks what this change proves, not ambient state.
+
+## Semantic-Match Heuristics (W7.5 hardened)
+
+| Clause | Evidence signal | Typical citation |
+|--------|-----------------|------------------|
+| `given` | preconditions, setup, fixtures, auth guards | middleware.ts, before(), fixture files |
+| `when`  | the triggering action — route handler, event dispatch, CLI entry | handler body, action function |
+| `then`  | observable effect — response shape, DB mutation, log line, test assertion | assertion or side-effect line |
+
+## Evaluator Response Schema (Reference)
+
+The `VerifyResult` above is scored by `agents/evaluator/qa-judge.md`. The judge treats:
+- 3/3 citations present + diff-local → `dimensions.correctness >= 0.85`
+- any missing citation → `dimensions.correctness = 0.0`, `verdict = "reject"` regardless of code quality.
+
+## Anti-Gaming
+
+- Do not accept comments or docstrings as citations — only executable code satisfies the contract.
+- Test-only coverage (assertion present, implementation absent) → FAIL with `notes: "test without implementation"`.

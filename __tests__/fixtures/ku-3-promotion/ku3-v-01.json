@@ -1,0 +1,9 @@
+{
+  "ku_id": "KU-3",
+  "sample_id": "ku3-v-01",
+  "ground_truth": "valid",
+  "category": "correction",
+  "title": "Jest mocks 금지 — 실 DB 통합 테스트 유지",
+  "content": "사용자가 '실제 Postgres 쓰자'고 정정함. 지난 분기 mock 통과 후 prod 마이그레이션 실패 기억 근거.",
+  "evidence": "session:2026-04-10 turn:7"
+}

@@ -1,0 +1,8 @@
+{
+  "ku_id": "OSC",
+  "sample_id": "osc-3",
+  "ground_truth_block": true,
+  "gen": 5,
+  "category": "oscillation",
+  "content": "승격 게이트 기본 auto-approve 로 변경하여 UX 마찰 완화. consent fatigue 우려."
+}

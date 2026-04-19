@@ -1,0 +1,8 @@
+{
+  "ku_id": "OSC",
+  "sample_id": "osc-1",
+  "ground_truth_block": true,
+  "gen": 5,
+  "category": "oscillation",
+  "content": "Jest mock 사용 금지 — 대신 실제 DB 통합 테스트 유지. mock 통과 후 prod 마이그레이션 실패 기억."
+}

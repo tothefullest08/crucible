@@ -1,0 +1,6 @@
+id: rej-A
+gen: 3
+rejected_at: 2026-03-15
+content: |
+  Jest mock 사용 금지 — 대신 실제 DB 통합 테스트 유지. mock 통과 후 prod 마이그레이션 실패 기억.
+evidence: session 2026-03-10

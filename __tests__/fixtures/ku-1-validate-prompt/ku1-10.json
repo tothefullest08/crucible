@@ -1,0 +1,11 @@
+{
+  "ku_id": "KU-1",
+  "sample_id": "ku1-10",
+  "skill": "plan",
+  "prompt": "utterance #5 for /plan",
+  "expected_validate_fire": true,
+  "expected_response_pattern": "gap|ambiguity|ac-exec|태스크|계획|plan",
+  "actual_fire": true,
+  "actual_response": "self-check for /plan: gap present.",
+  "initial_match": true
+}

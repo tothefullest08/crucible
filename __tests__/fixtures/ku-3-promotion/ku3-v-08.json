@@ -1,0 +1,9 @@
+{
+  "ku_id": "KU-3",
+  "sample_id": "ku3-v-08",
+  "ground_truth": "valid",
+  "category": "tacit",
+  "title": "KU-1 validate_prompt 훅은 스킬당 5 샘플 × 4 = 20 샘플",
+  "content": "CI 95% 폭 n=20 → ±22%p. MVP 실행 가능성·통계 유의성 타협점.",
+  "evidence": "user-decisions-5 §2"
+}

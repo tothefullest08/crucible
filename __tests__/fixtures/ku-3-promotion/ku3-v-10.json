@@ -1,0 +1,9 @@
+{
+  "ku_id": "KU-3",
+  "sample_id": "ku3-v-10",
+  "ground_truth": "valid",
+  "category": "preference",
+  "title": "승격 게이트 y/N/e/s UX 유지 (기본 거부)",
+  "content": "Consent fatigue 완화 + 오승격 차단 동시 달성. AC-5 false positive < 20%.",
+  "evidence": "final-spec §3.4"
+}

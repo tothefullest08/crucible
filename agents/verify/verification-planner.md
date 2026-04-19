@@ -51,4 +51,29 @@ A `verify_plan` JSON array. Each entry:
 - Prefer the lowest gate that still gives confidence. Do not over-verify.
 - Every AC must map to exactly one entry.
 - Read-only.
-- W4 MVP stub: returns a gate=1 command-shaped entry for each AC. Full 4-gate routing lands in W7.5 hardening.
+- Do not invent ACs or merge two ACs into one entry; 1:1 mapping is load-bearing for scoring.
+- When the AC text is ambiguous, escalate with `method: instruction` + `gate: 4` rather than guessing a lower gate.
+- Prefer `assertion` over `command` when the signal is file-shape (exists, field present) because it is deterministic in CI.
+- For security-sensitive ACs (auth, input validation, secret handling) always pin to `gate: 3` at minimum — machine checks alone are not trustworthy.
+
+## Gate Routing Heuristics (W7.5 hardened)
+
+| AC shape | Default gate | Why |
+|----------|--------------|-----|
+| "command exits 0" / "file exists" / "N ≤ X" | 1 (machine) | deterministic, cheap |
+| "diff implements spec Y" / "GWT contract Z" | 2 (agent-semantic) | needs spec-coverage judgment |
+| "user can complete flow F" / "E2E regression" | 3 (agent-e2e) | needs qa-verifier full flow |
+| "design looks right" / "copy sounds right" / "policy approved" | 4 (human) | subjective, irreducible |
+
+## Evaluator Response Schema (Reference)
+
+The `verify_plan` array is consumed by `scripts/session-wrap-pipeline.sh` and routed to:
+- gate 1 → bash runner
+- gate 2 → `spec-coverage` agent
+- gate 3 → `qa-verifier` agent
+- gate 4 → `promotion-gate.sh` y/N/e/s prompt
+
+## Anti-Patterns
+
+- Stacking multiple gates on one AC (gate=1 AND gate=3) — pick the minimum that gives confidence.
+- Choosing gate=1 for behavioral assertions just because grep works — behavior needs gate ≥ 2.

@@ -1,0 +1,9 @@
+{
+  "ku_id": "KU-3",
+  "sample_id": "ku3-v-06",
+  "ground_truth": "valid",
+  "category": "correction",
+  "title": "oscillation 과적합은 2 generation 이전 거부 이력과 교차 검사",
+  "content": "W6 rejection log 분석 시 동일 후보 재등장 3회 관찰. 재승격 허용 시 과적합.",
+  "evidence": ".claude/memory/corrections/_rejected/"
+}

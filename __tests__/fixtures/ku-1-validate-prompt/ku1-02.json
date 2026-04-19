@@ -1,0 +1,11 @@
+{
+  "ku_id": "KU-1",
+  "sample_id": "ku1-02",
+  "skill": "brainstorm",
+  "prompt": "utterance #2 for /brainstorm",
+  "expected_validate_fire": true,
+  "expected_response_pattern": "clarify|vague|unknown|metamedium|ambiguity|브레인스토밍",
+  "actual_fire": true,
+  "actual_response": "self-check for /brainstorm: clarify present.",
+  "initial_match": true
+}
