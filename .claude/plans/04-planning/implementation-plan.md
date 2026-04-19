@@ -140,13 +140,13 @@ flowchart TD
   - 검증: Claude Code 실 세션 로그에 4이벤트 훅 모두 발화
   - 관련 자산: hoyeon 훅 패턴
 
-- [ ] **T-W1-04** `hooks/session-start` 스크립트 — using-harness.md 주입 + 해시 검증 placeholder 🚨 P0-8
+- [x] **T-W1-04** `hooks/session-start` 스크립트 — using-harness.md 주입 + 해시 검증 placeholder 🚨 P0-8
   - 의존성: T-W1-03
   - 공수: 4h
   - 검증: `"$var"` 쌍따옴표 + 화이트리스트 slug + `eval` 금지 정적 lint 통과
   - 관련 자산: **#6**
 
-- [ ] **T-W1-05** `skills/using-harness/SKILL.md` — SessionStart 페이로드
+- [x] **T-W1-05** `skills/using-harness/SKILL.md` — SessionStart 페이로드
   - 의존성: T-W1-04
   - 공수: 4h
   - 검증: superpowers 패턴 체크리스트 7항 전부 충족
