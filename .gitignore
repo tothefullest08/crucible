@@ -24,3 +24,5 @@ lecture/*.pdf
 .env
 .env.local
 .claude/*.lock
+.claude/state/promotion_queue/
+.claude/state/*.lock
