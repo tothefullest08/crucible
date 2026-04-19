@@ -1,6 +1,9 @@
 ---
 name: brainstorm
-description: "요구사항 브레인스토밍 / Feature brainstorming — clarify 3-lens 내장"
+description: |
+  Feature brainstorming with embedded clarify 3-lens (vague · unknown · metamedium).
+  Use when requirements are ambiguous, hidden assumptions need surfacing, or content-vs-form reframing is needed — turns a vague topic into a file-backed requirements document at `.claude/plans/YYYY-MM-DD-{slug}-requirements.md`.
+  트리거: "브레인스토밍", "요구사항 정리", "요구사항 명확히", "뭘 만들지 모르겠어", "아이디어 정리", "전략 점검", "내용 vs 형식", "spec this out", "scope this".
 when_to_use: "모호한 요구사항을 구체 스펙으로 정제할 때. 'brainstorm', '브레인스토밍', '요구사항 정리', 'spec this out' 등"
 input: "주제 (자유 발화)"
 output: ".claude/plans/YYYY-MM-DD-{slug}-requirements.md (slug 화이트리스트: [a-zA-Z0-9_-])"
@@ -47,6 +50,13 @@ Capture the topic verbatim. Do not paraphrase yet.
 If the topic is a single keyword with no surrounding context, proceed to Phase 2 with a deliberately rough framing — Round 1 questions exist to correct it.
 
 ---
+
+<!-- HARD-GATE: intake-to-clarify -->
+> ⛔ **HARD-GATE (Phase 1 → Phase 2, Structure axis)**: Do NOT begin clarifying questions until all conditions below are satisfied. Skipping produces premature questioning on a misread topic and wastes the 7–10 question cap.
+> - ✅ 주제가 사용자 발화 그대로 한 줄 따옴표로 에코되어 프레이밍이 확정되었다
+> - ✅ unit / mode / known-constraints 세 축이 명시적으로 식별되었다 (≤3 bullets)
+> - ✅ 3-lens(vague / unknown / metamedium) 중 하나가 자동 선택되었거나, 매치가 모호하면 단일 `AskUserQuestion` 호출로 사용자에게 lens 확정을 받았다
+<!-- /HARD-GATE -->
 
 ### Phase 2: Clarify (3-lens)
 
@@ -232,6 +242,13 @@ The exact body templates live in `templates/requirements-template.md` (panel B /
 
 ---
 
+<!-- HARD-GATE: clarify-to-synthesize -->
+> ⛔ **HARD-GATE (Phase 2 → Phase 3, Context axis)**: Do NOT proceed to Before/After synthesis until all conditions below are met. Partial clarification yields ambiguity-laden requirements that break the downstream `/plan` gate.
+> - ✅ 3-Round depth pattern(R1 → R2, 필요 시 R3)이 단일 lens 내에서 수행되었다 (두 lens 병렬 금지)
+> - ✅ 총 질문 수가 **7–10 상한**을 넘지 않았으며, 초과 항목은 `open_questions` 배열로 이월되었다
+> - ✅ Critical ambiguity(scope / behavior / data / constraints 상위 항목)가 전부 결정되었거나, 결정 불가 시 명시적으로 "Other"로 기록되었다
+<!-- /HARD-GATE -->
+
 ### Phase 3: Synthesize
 
 After Phase 2 finishes, draft a **Before / After** summary in plain Markdown for the user to review *before* writing to disk.
@@ -254,6 +271,13 @@ If the user pushes back on the framing, re-run the smallest applicable subset of
 
 ---
 
+<!-- HARD-GATE: synthesize-to-save -->
+> ⛔ **HARD-GATE (Phase 3 → Phase 4, Context → Plan)**: Do NOT write the requirements file until all conditions below are satisfied. Writing a half-synthesized artifact corrupts the canonical `/plan` input.
+> - ✅ Before / After 요약이 사용자에게 제시되고, 재-clarify 필요 여부가 확정되었다
+> - ✅ `decisions` 배열이 최소 1개 이상 채워졌다 (lens=vague: Decisions Made 표, lens=unknown: 4-quadrant 결정, lens=metamedium: content/form 선택)
+> - ✅ lens 특화 필수 산출물이 존재한다 — **unknown**이면 `stop_doing` 비어있지 않음, **metamedium**이면 Form Opportunity 또는 Alternative Forms 명시, **vague**이면 Before / After 두 섹션 모두 존재
+<!-- /HARD-GATE -->
+
 ### Phase 4: Save Requirements
 
 1. Compute `slug` from the user-confirmed goal: lowercase, spaces → `-`, strip non-`[a-zA-Z0-9_-]`.
@@ -266,6 +290,13 @@ If the user pushes back on the framing, re-run the smallest applicable subset of
 If the file already exists, prompt the user to choose: overwrite, append a `-v2` suffix, or abort. Never silently overwrite.
 
 ---
+
+<!-- HARD-GATE: save-to-plan -->
+> ⛔ **HARD-GATE (Phase 4 → `/plan` 연결, Plan axis handoff)**: Do NOT hand off to `/plan` until all conditions below are satisfied. A malformed handoff breaks the W3 Ambiguity Score gate and regresses KU-2 trigger accuracy.
+> - ✅ 산출 파일이 `templates/requirements-template.md` 스키마(`lens` / `topic` / `date` / `decisions` / `stop_doing` / `open_questions`)와 일치한다
+> - ✅ slug이 `[a-zA-Z0-9_-]` 화이트리스트(`templates/slug-validator.sh`)를 통과했고, 파일명이 `YYYY-MM-DD-{slug}-requirements.md` 규약을 따른다
+> - ✅ 최종 응답 마지막 줄에 절대 경로가 에코되었고, 다음 단계로 `/plan` 호출이 명시적으로 제안되었다
+<!-- /HARD-GATE -->
 
 ## Integration Points
 

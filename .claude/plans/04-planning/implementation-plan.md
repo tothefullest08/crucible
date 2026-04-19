@@ -195,7 +195,7 @@ flowchart TD
   - 검증: 3-lens 각각 트리거 키워드 리스트 + 3-Round depth pattern 재현
   - 관련 자산: **#14**
 
-- [ ] **T-W2-03** description 한·영 병기 작성 (KU-2 준비)
+- [x] **T-W2-03** description 한·영 병기 작성 (KU-2 준비)
   - 의존성: T-W2-01
   - 공수: 2h
   - 검증: 한국어 트리거 5~6개 + 영어 "Use when ..." 문장 병기
@@ -232,7 +232,7 @@ flowchart TD
   - 공수: 4h
   - 검증: README 각 언어에 최소 2개 예제
 
-- [ ] **T-W2-10** HARD-GATE 태그 배치 (구조→맥락→계획 전환점)
+- [x] **T-W2-10** HARD-GATE 태그 배치 (구조→맥락→계획 전환점)
   - 의존성: T-W2-01
   - 공수: 2h
   - 검증: 6축 전환 지점 각각에 HARD-GATE 블록 삽입
