@@ -163,7 +163,7 @@ flowchart TD
   - 공수: 4h
   - 검증: 3개 버전 JSONL 샘플에서 모두 적절한 adapter 함수 dispatch
 
-- [ ] **T-W1-08** CI — JSONL 72h smoke test 셋업 (GitHub Actions cron) 🚨 P0-2
+- [x] **T-W1-08** CI — JSONL 72h smoke test 셋업 (GitHub Actions cron) 🚨 P0-2
   - 의존성: T-W1-07
   - 공수: 4h
   - 검증: cron 3회 연속 성공 + 스키마 변화 감지 시 알림 이벤트 발화
