@@ -7,6 +7,14 @@ description: |
 when_to_use: "요구사항 문서에서 구현 태스크 · 평가 원칙 · exit 조건을 정리할 때"
 input: "요구사항 문서 (.claude/plans/YYYY-MM-DD-{slug}-requirements.md 혹은 임의 경로)"
 output: ".claude/plans/YYYY-MM-DD-{slug}-plan.md (Markdown 본문 + YAML frontmatter)"
+validate_prompt: |
+  /plan 산출물 자기검증 (계획 축):
+  1. goal이 한 줄(≤ 120자)로 명확하게 기술되어 있는가?
+  2. evaluation_principles weight 합이 1.0 ± 0.01 인가? (validate-weights.sh 통과)
+  3. AC.hard 기준이 측정 가능한 형태로 기술되어 있는가?
+  4. exit_conditions 의 success / failure / timeout 3개 필드가 모두 채워져 있는가?
+  5. Phase 1~5 본문이 각각 "목표 / 입력 / 동작 / 출력 / 실패 시 fallback" 5개 섹션을 포함하는가?
+  6. parent_seed_id 가 null 이 아니면 해당 상위 plan 파일이 실제 디스크에 존재하는가?
 ---
 
 # Plan

@@ -249,36 +249,36 @@ flowchart TD
   - 공수: 4h
   - 검증: frontmatter lint 통과
 
-- [ ] **T-W3-02** Markdown 본문 템플릿 (CE ce-plan 5-Phase 차용)
+- [x] **T-W3-02** Markdown 본문 템플릿 (CE ce-plan 5-Phase 차용)
   - 의존성: T-W3-01
   - 공수: 6h
   - 검증: 5-Phase 각 섹션 키워드 매칭
   - 관련 자산: **#15 (Model Tiering)**
 
-- [ ] **T-W3-03** YAML frontmatter 스키마 (goal / constraints / AC / evaluation_principles+weight / exit_conditions / parent_seed_id)
+- [x] **T-W3-03** YAML frontmatter 스키마 (goal / constraints / AC / evaluation_principles+weight / exit_conditions / parent_seed_id)
   - 의존성: T-W3-01
   - 공수: 6h
   - 검증: JSON schema validator + weight 합 1.0 assertion
   - 관련 자산: **#21**
 
-- [ ] **T-W3-04** gap-analyzer 호출 레이어 (스텁 단계)
+- [x] **T-W3-04** gap-analyzer 호출 레이어 (스텁 단계)
   - 의존성: T-W3-02
   - 공수: 8h
   - 검증: 3개 요구사항 문서에서 gap 항목 ≥ 1개 추출
   - 관련 자산: hoyeon gap-analyzer
 
-- [ ] **T-W3-05** Ambiguity Score Gate (0.2 임계) — /plan 시작 시 게이트
+- [x] **T-W3-05** Ambiguity Score Gate (0.2 임계) — /plan 시작 시 게이트
   - 의존성: T-W3-04
   - 공수: 4h
   - 검증: 점수 0.15/0.25 샘플에서 각각 reject/pass
   - 관련 자산: **#20**
 
-- [ ] **T-W3-06** output 저장 훅 (description 기반 slug 파일명) 🚨 P0-8
+- [x] **T-W3-06** output 저장 훅 (description 기반 slug 파일명) 🚨 P0-8
   - 의존성: T-W3-01
   - 공수: 2h
   - 검증: T-W2-04와 동일 slug linter 재사용
 
-- [ ] **T-W3-07** `validate_prompt` 필드 (계획 축 자기검증)
+- [x] **T-W3-07** `validate_prompt` 필드 (계획 축 자기검증)
   - 의존성: T-W3-01
   - 공수: 2h
   - 검증: W2-05와 동일 패턴 재현
