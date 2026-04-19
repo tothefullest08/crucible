@@ -1,0 +1,11 @@
+candidate_id: 11111111-1111-4111-8111-111111111111
+trigger_source: user_correction
+content: |
+  React useEffect dependency array - 모든 참조 값을 의존성 배열에 포함해야 함
+context:
+  session_id: sess_20260419_120000
+  turn_range: 10-12
+  related_files:
+    - src/hooks/useUser.ts
+detected_at: 2026-04-19T12:00:00Z
+suggested_slug: react-useeffect-deps

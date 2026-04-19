@@ -1,0 +1,15 @@
+candidate_id: 01000000-0000-4000-8000-000000000001
+trigger_source: user_correction
+problem: |
+  React useEffect hook dependency array missing reference values causes stale closure bug
+cause: |
+  useEffect dependency array does not include all referenced values leading to stale closure capture
+solution: |
+  Add all referenced values to useEffect dependency array including props state callbacks
+prevention: |
+  Enable eslint-plugin-react-hooks exhaustive-deps rule to catch missing dependencies
+context:
+  related_files:
+    - src/hooks/useFetch.ts
+    - src/components/UserProfile.tsx
+detected_at: 2026-04-19T10:00:00Z

@@ -1,0 +1,11 @@
+candidate_id: dddddddd-dddd-4ddd-8ddd-dddddddddddd
+trigger_source: pattern_repeat
+content: |
+  Deferred pattern body for skip test
+context:
+  session_id: sess_20260419_150004
+  turn_range: 16-20
+  related_files:
+    - src/deferred.ts
+detected_at: 2026-04-19T15:00:04Z
+suggested_slug: skip-sample

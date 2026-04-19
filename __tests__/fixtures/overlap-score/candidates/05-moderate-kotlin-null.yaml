@@ -1,0 +1,15 @@
+candidate_id: 05000000-0000-4000-8000-000000000005
+trigger_source: user_correction
+problem: |
+  Kotlin platform types from Java interop cause unexpected NullPointerException at runtime
+cause: |
+  Java types cross the Kotlin boundary as platform types which bypass null safety compile time checks
+solution: |
+  Annotate Java APIs with Nullable or NotNull or explicitly assert nullability on Kotlin side
+prevention: |
+  Attach CoroutineScope to lifecycle owner so coroutines cancel when owner is destroyed
+context:
+  related_files:
+    - app/src/main/kotlin/MainActivity.kt
+    - app/src/main/kotlin/LegacyBridge.kt
+detected_at: 2026-04-19T14:00:00Z

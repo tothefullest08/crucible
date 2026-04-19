@@ -1,0 +1,11 @@
+candidate_id: aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa
+trigger_source: pattern_repeat
+content: |
+  Pattern approve sample content body for promotion gate test
+context:
+  session_id: sess_20260419_150001
+  turn_range: 1-5
+  related_files:
+    - src/sample.ts
+detected_at: 2026-04-19T15:00:01Z
+suggested_slug: approve-sample

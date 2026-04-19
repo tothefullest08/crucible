@@ -1,0 +1,15 @@
+candidate_id: 10000000-0000-4000-8000-000000000010
+trigger_source: user_correction
+problem: |
+  Kotlin data class copy does not deep clone nested collections causing shared mutation bugs
+cause: |
+  Data class copy is shallow so nested list or map references are shared between original and copy
+solution: |
+  Explicit deep copy helper function or use immutable collections like persistent list from kotlinx
+prevention: |
+  Prefer immutable collections in data class fields and code review for shared nested references
+context:
+  related_files:
+    - app/src/main/kotlin/model/User.kt
+    - app/src/main/kotlin/model/Address.kt
+detected_at: 2026-04-19T19:00:00Z

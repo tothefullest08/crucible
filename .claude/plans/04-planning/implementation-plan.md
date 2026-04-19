@@ -376,31 +376,31 @@ flowchart TD
   - 공수: 2h
   - 검증: 3 type (user/feedback/project/reference) 각각 샘플 파일 lint 통과
 
-- [ ] **T-W5-04** Bug track vs Knowledge track 분기
+- [x] **T-W5-04** Bug track vs Knowledge track 분기
   - 의존성: T-W5-03
   - 공수: 4h
   - 검증: `corrections/` → Bug track, `tacit/` → Knowledge track 자동 분류 3/3
   - 관련 자산: **#24**
 
-- [ ] **T-W5-05** 5-dimension overlap scoring (problem / cause / solution / files / prevention)
+- [x] **T-W5-05** 5-dimension overlap scoring (problem / cause / solution / files / prevention)
   - 의존성: T-W5-03
   - 공수: 8h
   - 검증: High(4-5) / Moderate(2-3) / Low(0-1) 분류 10샘플 정확도 ≥ 80%
   - 관련 자산: **#18**
 
-- [ ] **T-W5-06** 승격 게이트 UX: AskUserQuestion y/N/e/s UI
+- [x] **T-W5-06** 승격 게이트 UX: AskUserQuestion y/N/e/s UI
   - 의존성: T-W5-PRE-01, T-W5-05
   - 공수: 6h
   - 검증: 4 분기 각각 유저 응답별 저장/거부/편집/스킵 동작 실측
   - 관련 자산: §11-3
 
-- [ ] **T-W5-07** Stop hook 일괄 제시 + 3회 연속 거부 detector 임시 비활성화
+- [x] **T-W5-07** Stop hook 일괄 제시 + 3회 연속 거부 detector 임시 비활성화
   - 의존성: T-W5-06
   - 공수: 4h
   - 검증: 3회 reject 시 다음 세션까지 detector off
   - 관련 자산: §11-3
 
-- [ ] **T-W5-08** 거부 이력 저장 로직 (`corrections/_rejections.log`)
+- [x] **T-W5-08** 거부 이력 저장 로직 (`corrections/_rejections.log`)
   - 의존성: T-W5-07
   - 공수: 4h
   - 검증: 거부 3건 후 로그 파일에 timestamp+pattern 기록

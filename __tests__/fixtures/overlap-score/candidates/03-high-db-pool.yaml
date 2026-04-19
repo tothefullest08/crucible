@@ -1,0 +1,15 @@
+candidate_id: 03000000-0000-4000-8000-000000000003
+trigger_source: session_wrap
+problem: |
+  Database connection pool exhaustion under high concurrent load causes request timeouts
+cause: |
+  Connection pool max size too small for concurrent request volume plus leaked connections
+solution: |
+  Increase pool max size tune idle timeout and ensure connections are released in finally blocks
+prevention: |
+  Add connection pool metrics monitoring and load test pool capacity before production deploy
+context:
+  related_files:
+    - src/db/pool.ts
+    - src/db/index.ts
+detected_at: 2026-04-19T12:00:00Z

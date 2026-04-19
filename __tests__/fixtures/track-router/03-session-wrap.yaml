@@ -1,0 +1,11 @@
+candidate_id: 33333333-3333-4333-8333-333333333333
+trigger_source: session_wrap
+content: |
+  Conventional commits + 한국어 본문 규칙 - 프로젝트 규약
+context:
+  session_id: sess_20260419_140000
+  turn_range: 120-127
+  related_files:
+    - .gitmessage
+detected_at: 2026-04-19T14:00:00Z
+suggested_slug: commit-message-style
