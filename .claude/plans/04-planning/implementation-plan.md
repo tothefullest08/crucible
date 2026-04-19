@@ -405,13 +405,13 @@ flowchart TD
   - 공수: 4h
   - 검증: 거부 3건 후 로그 파일에 timestamp+pattern 기록
 
-- [ ] **T-W5-09** correction-detector 문자열 매칭 + 직전 assistant 턴 부정 문맥 확인
+- [x] **T-W5-09** correction-detector 문자열 매칭 + 직전 assistant 턴 부정 문맥 확인
   - 의존성: T-W4-PRE-01
   - 공수: 2h
   - 검증: P1-7 부정 문맥 5샘플 정확도 ≥ 4/5
   - 관련 자산: §11-2 (P1-7)
 
-- [ ] **T-W5-10** `[Stretch]` 글로벌 `~/.claude/memory/` 프로젝트 ID 태그 옵션 → **AC-Stretch-2**
+- [x] **T-W5-10** `[Stretch]` 글로벌 `~/.claude/memory/` 프로젝트 ID 태그 옵션 → **AC-Stretch-2**
   - 의존성: T-W5-01
   - 공수: 4h (Stretch)
   - 검증: 글로벌 모드 활성화 시 파일명에 `project_id=` 태그 필수

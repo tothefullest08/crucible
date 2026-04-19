@@ -1,0 +1,14 @@
+---
+name: proj-a-example
+description: Fixture memory file belonging to project A (project_id aaaaaaaa).
+type: tacit
+project_id: aaaaaaaa
+candidate_id: 00000000-0000-4000-8000-00000000a0a0
+promoted_at: 2026-04-19T00:00:00Z
+evaluator_score: 0.82
+source_turn: session-a:1-3
+domain: kotlin
+confidence: high
+---
+
+프로젝트 A의 메모리 예시. project_id 필터로 프로젝트 B 세션에서는 숨겨져야 함.

@@ -1,0 +1,13 @@
+---
+name: untagged-example
+description: Fixture without project_id — must be rejected when global mode is active.
+type: tacit
+candidate_id: 00000000-0000-4000-8000-00000000ffff
+promoted_at: 2026-04-19T00:00:00Z
+evaluator_score: 0.70
+source_turn: session-x:1-1
+domain: misc
+confidence: moderate
+---
+
+project_id 필드 누락 샘플. validate 시 거부되어야 한다.

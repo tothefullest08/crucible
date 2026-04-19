@@ -1,0 +1,14 @@
+---
+name: proj-b-example
+description: Fixture memory file belonging to project B (project_id bbbbbbbb).
+type: tacit
+project_id: bbbbbbbb
+candidate_id: 00000000-0000-4000-8000-00000000b0b0
+promoted_at: 2026-04-19T00:00:00Z
+evaluator_score: 0.76
+source_turn: session-b:4-6
+domain: react
+confidence: moderate
+---
+
+프로젝트 B의 메모리 예시. project_id 필터로 프로젝트 A 세션에서는 숨겨져야 함.

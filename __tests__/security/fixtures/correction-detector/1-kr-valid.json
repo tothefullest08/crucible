@@ -1,0 +1,9 @@
+{
+  "hook_event_name": "PostToolUse",
+  "tool_name": "Task",
+  "tool_response": {
+    "user_utterance": "Python의 GIL 설명이 틀렸다. 멀티프로세싱 환경에서는 영향이 없다.",
+    "prior_assistant_turn": "Python의 GIL은 멀티스레딩에서 순수 연산의 병렬 실행을 막습니다. 따라서 CPU-bound 작업은 스레드로 병렬화할 수 없습니다."
+  },
+  "_expected": {"detected": true, "note": "KR keyword + shared noun Python/GIL"}
+}
