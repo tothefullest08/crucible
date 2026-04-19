@@ -355,23 +355,23 @@ flowchart TD
 
 ### W5 — 메모리 + 승격 게이트 UX (5일 / 40h)
 
-- [ ] **T-W5-PRE-01** ⛳ §11-3 승격 — 승격 게이트 UX 전체 사양 정식화
+- [x] **T-W5-PRE-01** ⛳ §11-3 승격 — 승격 게이트 UX 전체 사양 정식화
   - 의존성: T-W4-08
   - 공수: 6h
   - 검증: v2 §3.4 신규 섹션 작성 — 단계 (후보 → 점수 → 자동 판정 → y/N/e/s UX → 저장 → 이력) 전부 명세 + Consent fatigue 완화 (Stop hook 일괄 · 3회 거부 detector 임시 비활성화) 포함
   - §11: **§11-3 승격 완료**
 
-- [ ] **T-W5-01** `.claude/memory/` 초기 구조 (MEMORY.md + tacit/ + corrections/ + preferences/)
+- [x] **T-W5-01** `.claude/memory/` 초기 구조 (MEMORY.md + tacit/ + corrections/ + preferences/)
   - 의존성: T-W5-PRE-01
   - 공수: 2h
   - 검증: 디렉토리 트리 생성 + MEMORY.md 빈 인덱스 포함
 
-- [ ] **T-W5-02** MEMORY.md 1줄 포인터 인덱스 포맷 규약
+- [x] **T-W5-02** MEMORY.md 1줄 포인터 인덱스 포맷 규약
   - 의존성: T-W5-01
   - 공수: 2h
   - 검증: `- [Title](file.md) — hook` 포맷 regex 매칭
 
-- [ ] **T-W5-03** 메모리 파일 frontmatter 스키마 (name / description / type)
+- [x] **T-W5-03** 메모리 파일 frontmatter 스키마 (name / description / type)
   - 의존성: T-W5-02
   - 공수: 2h
   - 검증: 3 type (user/feedback/project/reference) 각각 샘플 파일 lint 통과
