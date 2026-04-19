@@ -1,0 +1,6 @@
+{
+  "hook_event_name": "UserPromptSubmit",
+  "session_id": "sess_20260419_094502",
+  "prompt": "That's wrong, I disagree.",
+  "_expected": {"detected": false, "note": "no prior context → §4.3.7 negative-context #1 fails"}
+}

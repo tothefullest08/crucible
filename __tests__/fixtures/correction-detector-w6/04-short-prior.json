@@ -1,0 +1,9 @@
+{
+  "hook_event_name": "PostToolUse",
+  "tool_name": "Task",
+  "tool_response": {
+    "user_utterance": "That's wrong, the GIL does affect multiprocessing in some cases.",
+    "prior_assistant_turn": "Yes."
+  },
+  "_expected": {"detected": false, "note": "prior assistant turn length < 20 chars"}
+}

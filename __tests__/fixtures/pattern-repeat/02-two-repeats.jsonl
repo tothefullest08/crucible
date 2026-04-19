@@ -1,0 +1,6 @@
+{"type":"user-prompt","schema_version":"v0","prompt":"PostgreSQL autovacuum 튜닝 어떻게 할까?","timestamp":"2026-04-19T11:00:00Z","session_id":"sess-pr-002"}
+{"type":"assistant-turn","schema_version":"v0","message":{"content":[{"type":"text","text":"autovacuum_naptime 과 cost_limit 조정으로 시작하세요."}]},"timestamp":"2026-04-19T11:00:05Z"}
+{"type":"user-prompt","schema_version":"v0","prompt":"PostgreSQL 레플리카 지연은 어떻게 모니터링?","timestamp":"2026-04-19T11:01:00Z","session_id":"sess-pr-002"}
+{"type":"assistant-turn","schema_version":"v0","message":{"content":[{"type":"text","text":"pg_stat_replication 또는 lag metric 사용하세요."}]},"timestamp":"2026-04-19T11:01:05Z"}
+{"type":"user-prompt","schema_version":"v0","prompt":"Linux 커널 스케줄러 기본 정책이 CFS 맞지?","timestamp":"2026-04-19T11:02:00Z","session_id":"sess-pr-002"}
+{"type":"assistant-turn","schema_version":"v0","message":{"content":[{"type":"text","text":"네, 5.x 까지 CFS 이고 6.x 이후 EEVDF 로 기본값이 변경됐습니다."}]},"timestamp":"2026-04-19T11:02:05Z"}

@@ -1,0 +1,6 @@
+{"type":"user-prompt","schema_version":"v0","prompt":"Redis 캐시 TTL 설정이 어떻게 되지?","timestamp":"2026-04-19T10:00:00Z","session_id":"sess-pr-001"}
+{"type":"assistant-turn","schema_version":"v0","message":{"content":[{"type":"text","text":"EXPIRE 또는 PEXPIRE 명령으로 지정합니다."}]},"timestamp":"2026-04-19T10:00:05Z"}
+{"type":"user-prompt","schema_version":"v0","prompt":"Redis 클러스터에서도 동일한 TTL 이 유지돼?","timestamp":"2026-04-19T10:01:00Z","session_id":"sess-pr-001"}
+{"type":"assistant-turn","schema_version":"v0","message":{"content":[{"type":"text","text":"클러스터 노드 간 마이그레이션 시 TTL 은 전달됩니다."}]},"timestamp":"2026-04-19T10:01:05Z"}
+{"type":"user-prompt","schema_version":"v0","prompt":"좋아. Redis 에서 만료된 키는 즉시 삭제되나?","timestamp":"2026-04-19T10:02:00Z","session_id":"sess-pr-001"}
+{"type":"assistant-turn","schema_version":"v0","message":{"content":[{"type":"text","text":"lazy + active 혼합 방식으로 삭제됩니다."}]},"timestamp":"2026-04-19T10:02:05Z"}

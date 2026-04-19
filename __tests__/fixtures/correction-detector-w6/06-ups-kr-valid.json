@@ -1,0 +1,7 @@
+{
+  "hook_event_name": "UserPromptSubmit",
+  "session_id": "sess_20260419_094500",
+  "prompt": "아니 그 설명 잘못됐어. Redis TTL은 만료 시점까지 count해야 해.",
+  "prior_assistant_turn": "Redis 의 TTL은 키가 만료되면 자동 삭제되므로 애플리케이션 레벨에서 추가 count 는 필요 없습니다.",
+  "_expected": {"detected": true, "note": "KR 잘못 + shared Redis/TTL"}
+}

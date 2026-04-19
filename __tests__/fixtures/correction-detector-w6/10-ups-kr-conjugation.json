@@ -1,0 +1,7 @@
+{
+  "hook_event_name": "UserPromptSubmit",
+  "session_id": "sess_20260419_094504",
+  "prompt": "Kubernetes Pod lifecycle 설명이 틀렸습니다. readiness probe 실패는 pod 를 삭제하지 않습니다.",
+  "prior_assistant_turn": "Kubernetes Pod의 readiness probe가 연속 실패하면 해당 Pod를 자동으로 삭제하고 새 인스턴스로 대체합니다.",
+  "_expected": {"detected": true, "note": "KR 틀렸습니다 (conjugation) + shared kubernetes/pod/readiness"}
+}
