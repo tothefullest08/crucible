@@ -82,14 +82,14 @@ flowchart TD
 
 > v2 §7.1 기준. 게이트 기준: 전제 훼손 없음 → W1 진입 / 유사 framework 발견 → 재스코프 / differentiator 없음 → §11 재설계.
 
-- [ ] **T-W0-01** Anthropic Cookbook `harness` 패턴 검색
+- [x] **T-W0-01** Anthropic Cookbook `harness` 패턴 검색
   - 의존성: 없음
   - 공수: 2h
   - 검증: cookbook/*.ipynb grep 결과 요약 1쪽 산출 (발견 건수 · 유사도)
   - 관련 자산: —
   - §11: —
 
-- [ ] **T-W0-02** DSPy / Inspect-AI / LangGraph / AutoGen "meta-framework" 섹션 탐색
+- [x] **T-W0-02** DSPy / Inspect-AI / LangGraph / AutoGen "meta-framework" 섹션 탐색
   - 의존성: 없음
   - 공수: 2h
   - 검증: 4개 프레임워크 공식문서 2026-04 스냅샷에서 "6축 유사 레이어" 존재/부재 표 작성
@@ -105,7 +105,7 @@ flowchart TD
   - 공수: 2h
   - 검증: 6축별 "실제 통증" 증거표 (축 × 사례 매트릭스) 1쪽
 
-- [ ] **T-W0-05** W0 게이트 판정 → W1 착수 / 재스코프 / §11 재설계
+- [x] **T-W0-05** W0 게이트 판정 → W1 착수 / 재스코프 / §11 재설계
   - 의존성: T-W0-01 ~ T-W0-04
   - 공수: 1h
   - 검증: `.claude/plans/04-planning/w0-gate-decision.md` 작성 (TL;DR 유지 여부 판정)
@@ -116,25 +116,25 @@ flowchart TD
 
 ### W1 — 스캐폴드 + SessionStart + JSONL 72h smoke test (6일 / 48h)
 
-- [ ] **T-W1-PRE-01** ⛳ §11-1 승격 — JSONL 외부 스키마 안정성 정식화 🚨 P0-2
+- [x] **T-W1-PRE-01** ⛳ §11-1 승격 — JSONL 외부 스키마 안정성 정식화 🚨 P0-2
   - 의존성: T-W0-05 통과
   - 공수: 8h
   - 검증: v2 §4.2가 §11-1 초안 흡수 후 정식 섹션으로 승격된 diff. 어댑터 타입 시그니처 / UserPromptSubmit fallback 순서도 / 72h smoke 체크리스트 / degradation UX 4개 모두 확정.
   - §11: **§11-1 승격 완료**
 
-- [ ] **T-W1-01** `.claude-plugin/plugin.json` 5필드 minimal → **AC-1**
+- [x] **T-W1-01** `.claude-plugin/plugin.json` 5필드 minimal → **AC-1**
   - 의존성: T-W1-PRE-01
   - 공수: 2h
   - 검증: `plugin.json` validator 통과 + 외부 의존 0 확인
   - 관련 자산: **#28** (marketplace 구조 경유)
 
-- [ ] **T-W1-02** `.claude-plugin/marketplace.json` agent-council 구조 → **AC-1**
+- [x] **T-W1-02** `.claude-plugin/marketplace.json` agent-council 구조 → **AC-1**
   - 의존성: T-W1-01
   - 공수: 2h
   - 검증: marketplace manifest JSON schema 통과
   - 관련 자산: **#28**
 
-- [ ] **T-W1-03** `hooks/hooks.json` — SessionStart + UserPromptSubmit + PostToolUse + Stop 4이벤트 등록
+- [x] **T-W1-03** `hooks/hooks.json` — SessionStart + UserPromptSubmit + PostToolUse + Stop 4이벤트 등록
   - 의존성: T-W1-02
   - 공수: 2h
   - 검증: Claude Code 실 세션 로그에 4이벤트 훅 모두 발화

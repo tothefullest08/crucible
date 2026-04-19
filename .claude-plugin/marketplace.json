@@ -1,0 +1,14 @@
+{
+  "name": "harness",
+  "owner": {
+    "name": "ethan",
+    "email": "tothefullest08@gmail.com"
+  },
+  "plugins": [
+    {
+      "name": "harness",
+      "source": "./",
+      "strict": false
+    }
+  ]
+}

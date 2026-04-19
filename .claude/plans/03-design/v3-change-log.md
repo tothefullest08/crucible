@@ -1,9 +1,13 @@
-# final-spec v2 → v3 변경 요약
+# final-spec v2 → v3 · v3.1 변경 요약
 
 - **작성일**: 2026-04-19
-- **입력 소스**: `.claude/plans/03-design/user-decisions-5.md` (5건 결정, Recommended 전부 채택)
-- **승격 이터레이션**: `.claude/plans/prompts/v3-promotion-prompt.md` 지시서
-- **원칙**: user-decisions-5 결정문 재해석 금지 · 내용 추가만 · §11 해당 항목은 "이관 완료 → §N.Y 참조"로 축소 (완전 삭제 대신)
+- **입력 소스**:
+  - `.claude/plans/03-design/user-decisions-5.md` (v3 승격: 5건 결정, Recommended 전부 채택)
+  - `.claude/plans/prompts/w0-gate-and-s11-promotion-prompt.md` (v3.1 승격: §11-1 4항목)
+- **승격 이터레이션**:
+  - v2 → v3: `.claude/plans/prompts/v3-promotion-prompt.md` 지시서
+  - v3 → v3.1: W0 게이트 판정 후 T-W1-PRE-01 §11-1 승격
+- **원칙**: 결정문 재해석 금지 · 내용 추가만 · §11 해당 항목은 "이관 완료 → §N.Y 참조"로 축소 (완전 삭제 대신)
 
 ---
 
@@ -254,3 +258,113 @@
 ---
 
 *v2 → v3 승격 완료. user-decisions-5 5건 Recommended 전량 반영. 잔여 설계 미결은 §11 해당 주차 이전 승격 일정 유지.*
+
+---
+
+## 9. v3 → v3.1 W1 진입 승격 내역 (§11-1 JSONL 외부 스키마 안정성, T-W1-PRE-01)
+
+- **승격 일자**: 2026-04-19
+- **게이트**: T-W0-05 (`04-planning/w0-gate-decision.md`) — "TL;DR 유지 · 재스코프·§11 재설계 없이 W1 진입" 통과
+- **승격 범위**: §11-1 4항목 전부 → 정식 §4.2 재작성 + §11-1 한 줄 축소
+- **원칙**: final-spec.md만 수정 (implementation-plan.md · porting-matrix.md · user-decisions-5.md 불변 · 실제 구현 파일 불변)
+
+### 9.1 승격 매핑
+
+| §11-1 4항목 | v3.1 반영 위치 | §11-1 상태 |
+|-----------|---------------|----------|
+| (a) 스키마 어댑터 타입 시그니처 | **§4.2.1 신설** (입력·출력 계약 + 3종 dispatch 매핑 + unknown skip + bash+jq 제약) | 완전 이관 |
+| (b) UserPromptSubmit fallback 순서도 | **§4.2.2 신설** (3단 degradation 다이어그램 + 수치화 전환 조건 "최근 10세션 schema error > 30%" · "3세션 연속 live 캡처 미수신") | 완전 이관 |
+| (c) 72h smoke test 체크리스트 | **§4.2.3 신설** (cron `0 9 */3 * *` · 5개 체크 C-1~C-5 · C-1/C-4 red · C-2/C-3/C-5 yellow 분기) | 완전 이관 |
+| (d) Degradation UX | **§4.2.4 신설** (3채널 병행: SessionStart 배너 + `/compound` 에러 메시지 + `MEMORY.md` YAML 플래그 · consent fatigue 완화 14일 규칙) | 완전 이관 |
+
+### 9.2 §11-1 before/after
+
+#### Before (v3 §11-1)
+
+```
+### 11-1. JSONL 외부 스키마 안정성 구체안 (P0-2, W1 이전 완료)
+- 스키마 어댑터 레이어 정확한 타입 시그니처
+- UserPromptSubmit 훅 기반 라이브 캡처 fallback 구현 세부
+- CC 릴리스 72시간 smoke test 체크리스트 (CI 어떤 이벤트를 검증?)
+- 포맷 붕괴 시 degradation UX (사용자 알림 방식)
+```
+
+#### After (v3.1 §11-1)
+
+```
+### 11-1. JSONL 외부 스키마 안정성 구체안 (P0-2)
+**→ §4.2 참조. 승격 완료 2026-04-19 (T-W1-PRE-01). 4항목(어댑터 타입 시그니처 · fallback 3단
+ · 72h smoke 체크리스트 · degradation UX) 전부 §4.2.1~§4.2.4에 정식화. 본 항목 미결 해제.**
+```
+
+### 9.3 §4.2 before/after
+
+#### Before (v3 §4.2)
+
+```
+### 4.2 외부 스키마 안정성 (P0-2 대응 — §11에서 추후 구체화)
+
+- ~/.claude/projects/*.jsonl은 Anthropic 비공식 포맷. 본 플러그인은 이 포맷의 안정성을 전제하지 않는다.
+- 필수 방어 레이어 (§11-1에서 상세 설계):
+  1. 스키마 어댑터 (schema_version 감지)
+  2. 알 수 없는 type은 스킵 (defensive parser)
+  3. UserPromptSubmit 훅 기반 라이브 캡처를 2차 fallback으로 구현
+  4. Claude Code 릴리스 72시간 이내 smoke test (W1 CI 포함)
+- 포맷 붕괴 시 degradation: 컴파운딩 비활성화 (전체 실패 없음)
+```
+
+#### After (v3.1 §4.2)
+
+- **§4.2.0** 원칙 — 비공식 포맷 전제 금지 · defensive parser · 즉시 가시화 + 자동 비활성화
+- **§4.2.1** 스키마 어댑터 동작 명세 — stdin/stdout 계약 + 3종 dispatch 매핑 + unknown skip 규약 + bash+jq 재작성 제약
+- **§4.2.2** Fallback 3단 순서도 — Primary(JSONL 파서) → Secondary(UserPromptSubmit live 캡처) → Tertiary(자동 비활성화) · 수치화 전환 조건 · 수동 복구 경로
+- **§4.2.3** 72h smoke test 체크리스트 — GitHub Actions cron · 5개 체크 항목 · red/yellow 분기 · 베이스라인 관리
+- **§4.2.4** Degradation UX 3채널 — SessionStart 배너 · `/compound` 에러·`--status` 하위 명령 · `MEMORY.md` YAML 플래그 · 14일 이후 빈도 축소
+
+### 9.4 §11 구조 변화 (v3 → v3.1)
+
+| § | v3 상태 | v3.1 상태 | 표기 |
+|---|--------|----------|------|
+| §11-1 | ☐ 미결 (W1 이전 승격 예정) | ✅ **완전 이관** | "→ §4.2 참조. 승격 완료 2026-04-19" |
+| §11-2 | 🟡 부분 이관 | 🟡 부분 이관 (불변) | — |
+| §11-3 | ☐ 미결 | ☐ 미결 (불변) | — |
+| §11-4 | 🟡 부분 이관 | 🟡 부분 이관 (불변) | — |
+| §11-5 | ✅ 완전 이관 | ✅ 완전 이관 (불변) | — |
+| §11-6 | ✅ 완전 이관 | ✅ 완전 이관 (불변) | — |
+| §11-7 | 🟡 부분 이관 | 🟡 부분 이관 (불변) | — |
+
+### 9.5 부수 문서 업데이트 요약
+
+#### `04-planning/section11-promotion-tracker.md`
+
+- §0 요약 테이블: §11-1 상태 ☐ → ✅ 완료로 갱신
+- §1 §11-1: v3.1 승격 상태 블록 추가 (완전 완료) · Deadline "결정분 완료" · 승격 게이트 기준 4개 체크 완료 표기
+- §9 대시보드: W1 이전 블로커 해소
+
+#### `04-planning/w0-gate-decision.md` (신규)
+
+- T-W0-05 판정 메모 1쪽. TL;DR 유지 · 6축 메타 프리미스 전면 훼손 없음 · W1 진입 승격.
+- T-W0-03·04 스킵 결정 (W7.5 하드닝 시 필요하면 재개).
+
+#### `04-planning/implementation-plan.md`
+
+**수정 금지 원칙 준수** — 변경 없음 (T-W1-PRE-01 체크박스 닫기는 후속 세션의 태스크 관리 범위).
+
+#### `.claude-plugin/` · `hooks/` · `scripts/`
+
+**수정 금지 원칙 준수** — 실제 구현 파일 불변. §4.2는 설계 사양만 정식화.
+
+### 9.6 검증 체크리스트 (v3.1 승격 완료 기준)
+
+- [x] `final-spec.md` 상단 버전 v3 → v3.1 표기 + 변경 이력 "v3 → v3.1 (2026-04-19)" 추가
+- [x] §4.2 4개 항목(§4.2.1 타입 시그니처 / §4.2.2 fallback 순서도 / §4.2.3 72h smoke / §4.2.4 degradation UX) 전부 확정
+- [x] §11-1 한 줄 축소 "→ §4.2 참조, 승격 완료 2026-04-19" 반영 (삭제 금지 · 추적성 보존)
+- [x] `04-planning/w0-gate-decision.md` 1쪽 생성
+- [x] `04-planning/section11-promotion-tracker.md` §11-1 ✅ 완료로 갱신
+- [x] `v3-change-log.md` §9 "W1 진입 승격 내역" 섹션 추가 (본 섹션)
+- [x] `implementation-plan.md` · `porting-matrix.md` · `user-decisions-5.md` 수정 없음 (금지 원칙 준수)
+- [x] `.claude-plugin/` · `hooks/` · `scripts/` 실제 파일 생성 없음 (하단 패널 W1-06·07 범위)
+
+---
+
+*v3 → v3.1 승격 완료. T-W1-PRE-01 게이트 기준 4항목 전부 §4.2로 정식화. §11-1 미결 해제. W1 잔여 태스크(T-W1-01~10) 블로커 없음.*
