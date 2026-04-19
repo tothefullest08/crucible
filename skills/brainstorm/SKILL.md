@@ -7,6 +7,17 @@ description: |
 when_to_use: "모호한 요구사항을 구체 스펙으로 정제할 때. 'brainstorm', '브레인스토밍', '요구사항 정리', 'spec this out' 등"
 input: "주제 (자유 발화)"
 output: ".claude/plans/YYYY-MM-DD-{slug}-requirements.md (slug 화이트리스트: [a-zA-Z0-9_-])"
+validate_prompt: |
+  브레인스토밍 완료 시 자기검증 (Plan 3축):
+  1. 요구사항이 "구체 사용자 / 통증 / 결과" 3요소를 모두 포함하는가? (Scope / Pain / Outcome)
+  2. 스코프 경계가 "Included / Excluded" 형태로 명시되어 있는가?
+  3. 성공 기준(Success Criteria)이 측정 가능한 형태로 기술되어 있는가?
+  4. 선택한 lens(vague / unknown / metamedium)의 특성 산출물이 포함되었는가?
+     - vague → Decisions Made 표 + Before/After
+     - unknown → 4-quadrant matrix + Stop Doing
+     - metamedium → Classification + Form Opportunity (또는 Alternative Forms)
+  5. 출력 파일이 .claude/plans/YYYY-MM-DD-{slug}-requirements.md 경로 규약과 slug 화이트리스트([a-zA-Z0-9_-])를 만족하는가?
+  6. 다음 단계(/plan)로 넘길 수 있을 만큼 Open Questions가 정리되어 있는가?
 ---
 
 # Brainstorm

@@ -1,0 +1,10 @@
+{
+  "_note": "FAIL: missing item #5 — no slug/whitelist keyword in response.",
+  "expected": "advisory",
+  "tool_name": "Skill",
+  "tool_input": {
+    "skill": "brainstorm"
+  },
+  "cwd": "/Users/ethan/Desktop/personal/harness",
+  "tool_response": "## Brainstorm Summary\n\n구체 사용자 / 통증 / 결과: support agents / repetitive macros / automation.\n\n\"Included / Excluded\": Included = top-10 macros, Excluded = VIP escalations.\n\nSuccess Criteria: 60% deflection at week 4.\n\nLens chosen (vague / unknown / metamedium) = vague, Decisions Made table captured.\n\nFile written locally — path format follows the plans directory convention. Moving to /plan next."
+}

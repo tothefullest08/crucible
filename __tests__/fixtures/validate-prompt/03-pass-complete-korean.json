@@ -1,0 +1,10 @@
+{
+  "_note": "PASS: Korean-heavy full response covering all 6 checks.",
+  "expected": "none",
+  "tool_name": "Skill",
+  "tool_input": {
+    "skill": "brainstorm"
+  },
+  "cwd": "/Users/ethan/Desktop/personal/harness",
+  "tool_response": "## 브레인스토밍 요약\n\n주제: 주간 OKR 리뷰 자동화.\n구체 사용자 / 통증 / 결과 — 리더 3명이 매주 수기로 OKR 시트 취합하느라 3시간 소모.\n\nScope 경계: \"Included / Excluded\" — Included = OKR 시트 파싱 + Slack 요약, Excluded = 평가/승진 로직.\n\nSuccess Criteria: 수집 시간 3h → 20min, 시트 5개 이상 동시 처리.\n\n렌즈(vague / unknown / metamedium) = vague — Decisions Made 표 포함.\n\n출력: .claude/plans/2026-04-19-okr-review-bot-requirements.md — slug 화이트리스트: [a-zA-Z0-9_-] 검증 통과.\n\n다음 단계: /plan 으로 이관."
+}

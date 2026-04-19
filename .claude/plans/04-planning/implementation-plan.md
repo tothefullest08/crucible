@@ -205,19 +205,19 @@ flowchart TD
   - 공수: 2h
   - 검증: `[a-zA-Z0-9_-]` 외 문자 주입 시 reject
 
-- [ ] **T-W2-05** `validate_prompt` frontmatter 필드 채우기 (6축 해당 축 자기검증 질문)
+- [x] **T-W2-05** `validate_prompt` frontmatter 필드 채우기 (6축 해당 축 자기검증 질문)
   - 의존성: T-W2-01
   - 공수: 4h
   - 검증: hoyeon 원본 포맷 재현 + 답을 스킵했을 때 재주입 여부 판정 가능
   - 관련 자산: **#5**
 
-- [ ] **T-W2-06** `hooks/validate-output.sh` PostToolUse 훅 (bash+jq) 🚨 P0-1 🚨 P0-8
+- [x] **T-W2-06** `hooks/validate-output.sh` PostToolUse 훅 (bash+jq) 🚨 P0-1 🚨 P0-8
   - 의존성: T-W2-05
   - 공수: 8h
   - 검증: 10샘플 중 9개 이상에서 validate_prompt 재주입 실측 (KU-1 사전 리허설)
   - 관련 자산: **#5**
 
-- [ ] **T-W2-07** unit test: 10 샘플 발화로 /brainstorm 트리거 동작 확인 → **AC-2**
+- [x] **T-W2-07** unit test: 10 샘플 발화로 /brainstorm 트리거 동작 확인 → **AC-2**
   - 의존성: T-W2-06
   - 공수: 4h
   - 검증: 10개 중 9개 이상 정확 트리거
@@ -227,7 +227,7 @@ flowchart TD
   - 공수: 2h
   - 검증: injection payload 5종 모두 reject
 
-- [ ] **T-W2-09** docs: /brainstorm 사용 예제 README 초안 (영어 + 한국어)
+- [x] **T-W2-09** docs: /brainstorm 사용 예제 README 초안 (영어 + 한국어)
   - 의존성: T-W2-07
   - 공수: 4h
   - 검증: README 각 언어에 최소 2개 예제

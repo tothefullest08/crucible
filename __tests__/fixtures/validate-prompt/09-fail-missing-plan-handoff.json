@@ -1,0 +1,10 @@
+{
+  "_note": "FAIL: missing item #6 — no '/plan' handoff reference.",
+  "expected": "advisory",
+  "tool_name": "Skill",
+  "tool_input": {
+    "skill": "brainstorm"
+  },
+  "cwd": "/Users/ethan/Desktop/personal/harness",
+  "tool_response": "## Brainstorm Summary\n\n구체 사용자 / 통증 / 결과: finance ops / monthly close / 2-day close.\n\n\"Included / Excluded\": Included = AR reconciliation, Excluded = payroll.\n\nSuccess Criteria: close within 24h of month-end with zero manual journal entries.\n\nLens selection (vague / unknown / metamedium) = vague. Decisions table filled.\n\nFile saved under the requirements folder — filename uses slug 화이트리스트: [a-zA-Z0-9_-] validation."
+}
