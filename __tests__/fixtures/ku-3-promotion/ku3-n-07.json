@@ -1,0 +1,9 @@
+{
+  "ku_id": "KU-3",
+  "sample_id": "ku3-n-07",
+  "ground_truth": "noise",
+  "category": "correction",
+  "title": "undo",
+  "content": "undo",
+  "evidence": ""
+}

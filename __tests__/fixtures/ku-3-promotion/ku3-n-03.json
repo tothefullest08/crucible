@@ -1,0 +1,9 @@
+{
+  "ku_id": "KU-3",
+  "sample_id": "ku3-n-03",
+  "ground_truth": "noise",
+  "category": "preference",
+  "title": "test",
+  "content": "tested",
+  "evidence": "test"
+}

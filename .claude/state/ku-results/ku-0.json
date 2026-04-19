@@ -1,0 +1,31 @@
+{
+  "ku_id": "KU-0",
+  "ac": "AC-7",
+  "status": "GREEN",
+  "reason": "histogram 20 samples measured + thresholds rebased on quantiles",
+  "data_source": "synthetic",
+  "samples": 20,
+  "histogram": {
+    "count": 20,
+    "min": 0.10,
+    "max": 0.95,
+    "mean": 0.66,
+    "p10": 0.29,
+    "p25": 0.50,
+    "p50": 0.72,
+    "p75": 0.86,
+    "p90": 0.92
+  },
+  "old_thresholds": {
+    "accept": 0.80,
+    "retry": 0.40
+  },
+  "new_thresholds": {
+    "accept": 0.86,
+    "retry": 0.50
+  },
+  "diff": {
+    "accept_delta": 0.05999999999999994,
+    "retry_delta": 0.09999999999999998
+  }
+}

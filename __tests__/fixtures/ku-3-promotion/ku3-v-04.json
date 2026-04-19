@@ -1,0 +1,9 @@
+{
+  "ku_id": "KU-3",
+  "sample_id": "ku3-v-04",
+  "ground_truth": "valid",
+  "category": "correction",
+  "title": "description 영어만 버전 + 한·영 병기 버전 동시 평가 (양방향)",
+  "content": "사용자 P1-3: 단방향 비교로 양쪽 성능 숨김. A/B 모두 대칭 평가 필요.",
+  "evidence": "user-decisions-5 §2"
+}

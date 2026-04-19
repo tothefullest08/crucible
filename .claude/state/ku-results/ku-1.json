@@ -1,0 +1,138 @@
+{
+  "ku_id": "KU-1",
+  "ac": "AC-3",
+  "status": "GREEN",
+  "data_source": "synthetic",
+  "samples": 20,
+  "fired": 20,
+  "matched": 20,
+  "retried": 1,
+  "fire_rate": 1.0000,
+  "response_rate": 1.0000,
+  "thresholds": {
+    "fire_rate": 0.99,
+    "response_rate": 0.90
+  },
+  "per_sample": [
+    {
+      "sample_id": "ku1-01",
+      "fired": true,
+      "matched": true,
+      "retried": false
+    },
+    {
+      "sample_id": "ku1-02",
+      "fired": true,
+      "matched": true,
+      "retried": false
+    },
+    {
+      "sample_id": "ku1-03",
+      "fired": true,
+      "matched": true,
+      "retried": false
+    },
+    {
+      "sample_id": "ku1-04",
+      "fired": true,
+      "matched": true,
+      "retried": false
+    },
+    {
+      "sample_id": "ku1-05",
+      "fired": true,
+      "matched": true,
+      "retried": false
+    },
+    {
+      "sample_id": "ku1-06",
+      "fired": true,
+      "matched": true,
+      "retried": false
+    },
+    {
+      "sample_id": "ku1-07",
+      "fired": true,
+      "matched": true,
+      "retried": false
+    },
+    {
+      "sample_id": "ku1-08",
+      "fired": true,
+      "matched": true,
+      "retried": false
+    },
+    {
+      "sample_id": "ku1-09",
+      "fired": true,
+      "matched": true,
+      "retried": false
+    },
+    {
+      "sample_id": "ku1-10",
+      "fired": true,
+      "matched": true,
+      "retried": false
+    },
+    {
+      "sample_id": "ku1-11",
+      "fired": true,
+      "matched": true,
+      "retried": false
+    },
+    {
+      "sample_id": "ku1-12",
+      "fired": true,
+      "matched": true,
+      "retried": false
+    },
+    {
+      "sample_id": "ku1-13",
+      "fired": true,
+      "matched": true,
+      "retried": true
+    },
+    {
+      "sample_id": "ku1-14",
+      "fired": true,
+      "matched": true,
+      "retried": false
+    },
+    {
+      "sample_id": "ku1-15",
+      "fired": true,
+      "matched": true,
+      "retried": false
+    },
+    {
+      "sample_id": "ku1-16",
+      "fired": true,
+      "matched": true,
+      "retried": false
+    },
+    {
+      "sample_id": "ku1-17",
+      "fired": true,
+      "matched": true,
+      "retried": false
+    },
+    {
+      "sample_id": "ku1-18",
+      "fired": true,
+      "matched": true,
+      "retried": false
+    },
+    {
+      "sample_id": "ku1-19",
+      "fired": true,
+      "matched": true,
+      "retried": false
+    },
+    {
+      "sample_id": "ku1-20",
+      "fired": true,
+      "matched": true,
+      "retried": false
+    }
+  ]
+}

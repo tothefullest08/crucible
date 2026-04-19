@@ -52,4 +52,25 @@ You are the independent arbiter for the Ralph Loop. Your job: decide whether the
 
 - Max retry cap: 3 iterations (v3.2 §2.2 Dec 11).
 - If `next_action == "escalate"`, include a concise failure summary so the human can decide promote/reject.
-- W4 MVP stub: DoD items are assumed to be shell commands. Mixed DoD (GWT + command + manual) lands in W7.5 hardening.
+- Do NOT trust the worker's self-reported success; re-run checks in a fresh context.
+- Flaky failure (timeout / transient I/O) still counts as FAIL — the boulder rolls again.
+- If the DoD itself is malformed (missing items, ambiguous phrasing), emit `next_action: escalate` with reason `dod-malformed` instead of looping blindly.
+
+## DoD Item Dispatch (W7.5 hardened)
+
+| DoD item shape | How to verify | Evidence format |
+|----------------|---------------|-----------------|
+| Shell command (`"all unit tests pass"`) | run the project's default test runner; parse exit code | `exit=N, suite=..., failures=...` |
+| File-state claim (`"NOTICES.md exists"`) | Glob for path, Read first 10 lines | `path + sha256 prefix` |
+| Behavior assertion (`"GWT: user posts → 200"`) | delegate to `qa-verifier` with the single sub-req | embed qa-verifier verdict |
+| Human gate (`"designer approved"`) | mark `pending`, do not loop — escalate after iteration cap | `pending_reason` |
+
+## Evaluator Response Schema (Reference)
+
+The decision JSON above is consumed by the Ralph Loop driver and by `scripts/session-wrap-pipeline.sh`.
+Score-style fields live in `agents/evaluator/qa-judge.md`; the ralph-verifier emits pass/fail, not numeric scores.
+
+## Escalation Contract
+
+- On `escalate`, surface to the user via `promotion-gate.sh` y/N/e/s prompt; never silently promote.
+- Record a one-line summary in `.claude/state/ralph-history.jsonl` with `{iteration, failures[], next_action}` so session-wrap can audit.

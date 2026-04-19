@@ -1,0 +1,11 @@
+{
+  "ku_id": "KU-1",
+  "sample_id": "ku1-13",
+  "skill": "verify",
+  "prompt": "utterance #3 for /verify",
+  "expected_validate_fire": true,
+  "expected_response_pattern": "qa-judge|promote|retry|reject|Ralph|검증",
+  "actual_fire": true,
+  "actual_response": "self-check output was empty; hook fired but no keywords surfaced",
+  "initial_match": false
+}

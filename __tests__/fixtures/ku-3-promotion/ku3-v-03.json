@@ -1,0 +1,9 @@
+{
+  "ku_id": "KU-3",
+  "sample_id": "ku3-v-03",
+  "ground_truth": "valid",
+  "category": "preference",
+  "title": "커밋 메시지 bullet 형태 유지 — 산문 금지",
+  "content": "프로젝트 최근 20 커밋 bullet 일관. 산문 PR 리뷰에서 revert 요청됨.",
+  "evidence": "git log --oneline"
+}

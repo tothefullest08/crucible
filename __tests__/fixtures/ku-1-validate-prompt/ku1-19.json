@@ -1,0 +1,11 @@
+{
+  "ku_id": "KU-1",
+  "sample_id": "ku1-19",
+  "skill": "compound",
+  "prompt": "utterance #4 for /compound",
+  "expected_validate_fire": true,
+  "expected_response_pattern": "promotion|트리거|승격|pattern_repeat|correction|session_wrap",
+  "actual_fire": true,
+  "actual_response": "self-check for /compound: promotion present.",
+  "initial_match": true
+}

@@ -1,0 +1,137 @@
+{
+  "ku_id": "KU-3",
+  "ac": "AC-5",
+  "status": "GREEN",
+  "data_source": "synthetic",
+  "samples": 20,
+  "confusion": {
+    "true_positive": 10,
+    "false_positive": 0,
+    "true_negative": 10,
+    "false_negative": 0
+  },
+  "false_positive_rate": 0.0000,
+  "threshold": 0.20,
+  "per_sample": [
+    {
+      "sample_id": "ku3-n-01",
+      "ground_truth": "noise",
+      "decision": "reject",
+      "correct": true
+    },
+    {
+      "sample_id": "ku3-n-02",
+      "ground_truth": "noise",
+      "decision": "reject",
+      "correct": true
+    },
+    {
+      "sample_id": "ku3-n-03",
+      "ground_truth": "noise",
+      "decision": "reject",
+      "correct": true
+    },
+    {
+      "sample_id": "ku3-n-04",
+      "ground_truth": "noise",
+      "decision": "reject",
+      "correct": true
+    },
+    {
+      "sample_id": "ku3-n-05",
+      "ground_truth": "noise",
+      "decision": "reject",
+      "correct": true
+    },
+    {
+      "sample_id": "ku3-n-06",
+      "ground_truth": "noise",
+      "decision": "reject",
+      "correct": true
+    },
+    {
+      "sample_id": "ku3-n-07",
+      "ground_truth": "noise",
+      "decision": "reject",
+      "correct": true
+    },
+    {
+      "sample_id": "ku3-n-08",
+      "ground_truth": "noise",
+      "decision": "reject",
+      "correct": true
+    },
+    {
+      "sample_id": "ku3-n-09",
+      "ground_truth": "noise",
+      "decision": "reject",
+      "correct": true
+    },
+    {
+      "sample_id": "ku3-n-10",
+      "ground_truth": "noise",
+      "decision": "reject",
+      "correct": true
+    },
+    {
+      "sample_id": "ku3-v-01",
+      "ground_truth": "valid",
+      "decision": "promote",
+      "correct": true
+    },
+    {
+      "sample_id": "ku3-v-02",
+      "ground_truth": "valid",
+      "decision": "promote",
+      "correct": true
+    },
+    {
+      "sample_id": "ku3-v-03",
+      "ground_truth": "valid",
+      "decision": "promote",
+      "correct": true
+    },
+    {
+      "sample_id": "ku3-v-04",
+      "ground_truth": "valid",
+      "decision": "promote",
+      "correct": true
+    },
+    {
+      "sample_id": "ku3-v-05",
+      "ground_truth": "valid",
+      "decision": "promote",
+      "correct": true
+    },
+    {
+      "sample_id": "ku3-v-06",
+      "ground_truth": "valid",
+      "decision": "promote",
+      "correct": true
+    },
+    {
+      "sample_id": "ku3-v-07",
+      "ground_truth": "valid",
+      "decision": "promote",
+      "correct": true
+    },
+    {
+      "sample_id": "ku3-v-08",
+      "ground_truth": "valid",
+      "decision": "promote",
+      "correct": true
+    },
+    {
+      "sample_id": "ku3-v-09",
+      "ground_truth": "valid",
+      "decision": "promote",
+      "correct": true
+    },
+    {
+      "sample_id": "ku3-v-10",
+      "ground_truth": "valid",
+      "decision": "promote",
+      "correct": true
+    }
+  ]
+}

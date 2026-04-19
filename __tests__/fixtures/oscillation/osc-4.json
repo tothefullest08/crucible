@@ -1,0 +1,8 @@
+{
+  "ku_id": "OSC",
+  "sample_id": "osc-4",
+  "ground_truth_block": false,
+  "gen": 5,
+  "category": "valid_update",
+  "content": "Jest mock 사용 금지 — 실제 DB 통합 테스트 유지. 2026-04-15 smoke test 증거: mock 통과 후 파서 regression."
+}

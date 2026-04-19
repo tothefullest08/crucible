@@ -1,0 +1,8 @@
+{
+  "ku_id": "OSC",
+  "sample_id": "osc-5",
+  "ground_truth_block": false,
+  "gen": 5,
+  "category": "unrelated",
+  "content": "JSONL 파서 3단 fallback — 상류 스키마 변화 대응 W1 smoke 72h 경험."
+}

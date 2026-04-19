@@ -1,0 +1,9 @@
+{
+  "ku_id": "KU-3",
+  "sample_id": "ku3-v-05",
+  "ground_truth": "valid",
+  "category": "tacit",
+  "title": "§8.1 KU-0 histogram → p25/p75 임계값 자동 갱신",
+  "content": "qa-judge 원 임계값 0.40/0.80 은 추정치. 실측 분포 없이 고정하면 false reject 증가.",
+  "evidence": "KU-0 fixture + ku-0-run.sh"
+}

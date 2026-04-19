@@ -1,0 +1,7 @@
+{
+  "ku_id": "KU-2",
+  "sample_id": "ku2-en-15",
+  "lang": "en",
+  "expected_skill": "verify",
+  "utterance": "reject or retry"
+}

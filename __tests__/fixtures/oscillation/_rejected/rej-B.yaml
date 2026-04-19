@@ -1,0 +1,6 @@
+id: rej-B
+gen: 3
+rejected_at: 2026-03-20
+content: |
+  bash-only 원칙 완화하여 Python 유틸 허용. 설치 복잡도 증가 우려.
+evidence: porting-matrix §4

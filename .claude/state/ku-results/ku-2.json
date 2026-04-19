@@ -1,0 +1,345 @@
+{
+  "ku_id": "KU-2",
+  "ac": "AC-4",
+  "status": "GREEN",
+  "data_source": "synthetic",
+  "samples": 40,
+  "bilingual": {
+    "lang": "ko",
+    "total": 20,
+    "correct": 20,
+    "accuracy": 1.00
+  },
+  "english_only": {
+    "lang": "en",
+    "total": 20,
+    "correct": 20,
+    "accuracy": 1.00
+  },
+  "bilingual_accuracy": 1.00,
+  "english_only_accuracy": 1.00,
+  "delta_abs": 0.00,
+  "threshold": 0.05,
+  "per_sample": [
+    {
+      "sample_id": "ku2-en-01",
+      "variant": "english_only_en",
+      "expected": "brainstorm",
+      "predicted": "brainstorm",
+      "correct": true,
+      "utterance": "let's brainstorm"
+    },
+    {
+      "sample_id": "ku2-en-02",
+      "variant": "english_only_en",
+      "expected": "brainstorm",
+      "predicted": "brainstorm",
+      "correct": true,
+      "utterance": "scope this out"
+    },
+    {
+      "sample_id": "ku2-en-03",
+      "variant": "english_only_en",
+      "expected": "brainstorm",
+      "predicted": "brainstorm",
+      "correct": true,
+      "utterance": "clarify requirements"
+    },
+    {
+      "sample_id": "ku2-en-04",
+      "variant": "english_only_en",
+      "expected": "brainstorm",
+      "predicted": "brainstorm",
+      "correct": true,
+      "utterance": "help me think through"
+    },
+    {
+      "sample_id": "ku2-en-05",
+      "variant": "english_only_en",
+      "expected": "brainstorm",
+      "predicted": "brainstorm",
+      "correct": true,
+      "utterance": "what should we build"
+    },
+    {
+      "sample_id": "ku2-en-06",
+      "variant": "english_only_en",
+      "expected": "plan",
+      "predicted": "plan",
+      "correct": true,
+      "utterance": "make a plan"
+    },
+    {
+      "sample_id": "ku2-en-07",
+      "variant": "english_only_en",
+      "expected": "plan",
+      "predicted": "plan",
+      "correct": true,
+      "utterance": "implementation plan"
+    },
+    {
+      "sample_id": "ku2-en-08",
+      "variant": "english_only_en",
+      "expected": "plan",
+      "predicted": "plan",
+      "correct": true,
+      "utterance": "plan the implementation"
+    },
+    {
+      "sample_id": "ku2-en-09",
+      "variant": "english_only_en",
+      "expected": "plan",
+      "predicted": "plan",
+      "correct": true,
+      "utterance": "break this down"
+    },
+    {
+      "sample_id": "ku2-en-10",
+      "variant": "english_only_en",
+      "expected": "plan",
+      "predicted": "plan",
+      "correct": true,
+      "utterance": "how should we build"
+    },
+    {
+      "sample_id": "ku2-en-11",
+      "variant": "english_only_en",
+      "expected": "verify",
+      "predicted": "verify",
+      "correct": true,
+      "utterance": "verify this"
+    },
+    {
+      "sample_id": "ku2-en-12",
+      "variant": "english_only_en",
+      "expected": "verify",
+      "predicted": "verify",
+      "correct": true,
+      "utterance": "score this artifact"
+    },
+    {
+      "sample_id": "ku2-en-13",
+      "variant": "english_only_en",
+      "expected": "verify",
+      "predicted": "verify",
+      "correct": true,
+      "utterance": "Ralph Loop retry"
+    },
+    {
+      "sample_id": "ku2-en-14",
+      "variant": "english_only_en",
+      "expected": "verify",
+      "predicted": "verify",
+      "correct": true,
+      "utterance": "promote this"
+    },
+    {
+      "sample_id": "ku2-en-15",
+      "variant": "english_only_en",
+      "expected": "verify",
+      "predicted": "verify",
+      "correct": true,
+      "utterance": "reject or retry"
+    },
+    {
+      "sample_id": "ku2-en-16",
+      "variant": "english_only_en",
+      "expected": "compound",
+      "predicted": "compound",
+      "correct": true,
+      "utterance": "compound this"
+    },
+    {
+      "sample_id": "ku2-en-17",
+      "variant": "english_only_en",
+      "expected": "compound",
+      "predicted": "compound",
+      "correct": true,
+      "utterance": "promotion gate"
+    },
+    {
+      "sample_id": "ku2-en-18",
+      "variant": "english_only_en",
+      "expected": "compound",
+      "predicted": "compound",
+      "correct": true,
+      "utterance": "session wrap"
+    },
+    {
+      "sample_id": "ku2-en-19",
+      "variant": "english_only_en",
+      "expected": "compound",
+      "predicted": "compound",
+      "correct": true,
+      "utterance": "save learning"
+    },
+    {
+      "sample_id": "ku2-en-20",
+      "variant": "english_only_en",
+      "expected": "compound",
+      "predicted": "compound",
+      "correct": true,
+      "utterance": "memory promotion"
+    },
+    {
+      "sample_id": "ku2-ko-01",
+      "variant": "bilingual_ko",
+      "expected": "brainstorm",
+      "predicted": "brainstorm",
+      "correct": true,
+      "utterance": "브레인스토밍하자"
+    },
+    {
+      "sample_id": "ku2-ko-02",
+      "variant": "bilingual_ko",
+      "expected": "brainstorm",
+      "predicted": "brainstorm",
+      "correct": true,
+      "utterance": "요구사항 정리해줘"
+    },
+    {
+      "sample_id": "ku2-ko-03",
+      "variant": "bilingual_ko",
+      "expected": "brainstorm",
+      "predicted": "brainstorm",
+      "correct": true,
+      "utterance": "아이디어 정리"
+    },
+    {
+      "sample_id": "ku2-ko-04",
+      "variant": "bilingual_ko",
+      "expected": "brainstorm",
+      "predicted": "brainstorm",
+      "correct": true,
+      "utterance": "뭘 만들지 모르겠어"
+    },
+    {
+      "sample_id": "ku2-ko-05",
+      "variant": "bilingual_ko",
+      "expected": "brainstorm",
+      "predicted": "brainstorm",
+      "correct": true,
+      "utterance": "spec 정리"
+    },
+    {
+      "sample_id": "ku2-ko-06",
+      "variant": "bilingual_ko",
+      "expected": "plan",
+      "predicted": "plan",
+      "correct": true,
+      "utterance": "계획 세워줘"
+    },
+    {
+      "sample_id": "ku2-ko-07",
+      "variant": "bilingual_ko",
+      "expected": "plan",
+      "predicted": "plan",
+      "correct": true,
+      "utterance": "구현 계획"
+    },
+    {
+      "sample_id": "ku2-ko-08",
+      "variant": "bilingual_ko",
+      "expected": "plan",
+      "predicted": "plan",
+      "correct": true,
+      "utterance": "태스크 분해"
+    },
+    {
+      "sample_id": "ku2-ko-09",
+      "variant": "bilingual_ko",
+      "expected": "plan",
+      "predicted": "plan",
+      "correct": true,
+      "utterance": "break this down"
+    },
+    {
+      "sample_id": "ku2-ko-10",
+      "variant": "bilingual_ko",
+      "expected": "plan",
+      "predicted": "plan",
+      "correct": true,
+      "utterance": "plan this"
+    },
+    {
+      "sample_id": "ku2-ko-11",
+      "variant": "bilingual_ko",
+      "expected": "verify",
+      "predicted": "verify",
+      "correct": true,
+      "utterance": "검증해"
+    },
+    {
+      "sample_id": "ku2-ko-12",
+      "variant": "bilingual_ko",
+      "expected": "verify",
+      "predicted": "verify",
+      "correct": true,
+      "utterance": "qa-judge 돌려"
+    },
+    {
+      "sample_id": "ku2-ko-13",
+      "variant": "bilingual_ko",
+      "expected": "verify",
+      "predicted": "verify",
+      "correct": true,
+      "utterance": "Ralph Loop"
+    },
+    {
+      "sample_id": "ku2-ko-14",
+      "variant": "bilingual_ko",
+      "expected": "verify",
+      "predicted": "verify",
+      "correct": true,
+      "utterance": "산출물 검증"
+    },
+    {
+      "sample_id": "ku2-ko-15",
+      "variant": "bilingual_ko",
+      "expected": "verify",
+      "predicted": "verify",
+      "correct": true,
+      "utterance": "재시도"
+    },
+    {
+      "sample_id": "ku2-ko-16",
+      "variant": "bilingual_ko",
+      "expected": "compound",
+      "predicted": "compound",
+      "correct": true,
+      "utterance": "컴파운딩"
+    },
+    {
+      "sample_id": "ku2-ko-17",
+      "variant": "bilingual_ko",
+      "expected": "compound",
+      "predicted": "compound",
+      "correct": true,
+      "utterance": "session wrap"
+    },
+    {
+      "sample_id": "ku2-ko-18",
+      "variant": "bilingual_ko",
+      "expected": "compound",
+      "predicted": "compound",
+      "correct": true,
+      "utterance": "학습 저장"
+    },
+    {
+      "sample_id": "ku2-ko-19",
+      "variant": "bilingual_ko",
+      "expected": "compound",
+      "predicted": "compound",
+      "correct": true,
+      "utterance": "승격"
+    },
+    {
+      "sample_id": "ku2-ko-20",
+      "variant": "bilingual_ko",
+      "expected": "compound",
+      "predicted": "compound",
+      "correct": true,
+      "utterance": "promotion gate"
+    }
+  ]
+}

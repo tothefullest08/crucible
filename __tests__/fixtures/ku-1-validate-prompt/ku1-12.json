@@ -1,0 +1,11 @@
+{
+  "ku_id": "KU-1",
+  "sample_id": "ku1-12",
+  "skill": "verify",
+  "prompt": "utterance #2 for /verify",
+  "expected_validate_fire": true,
+  "expected_response_pattern": "qa-judge|promote|retry|reject|Ralph|검증",
+  "actual_fire": true,
+  "actual_response": "self-check for /verify: qa-judge present.",
+  "initial_match": true
+}

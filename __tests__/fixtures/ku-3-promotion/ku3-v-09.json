@@ -1,0 +1,9 @@
+{
+  "ku_id": "KU-3",
+  "sample_id": "ku3-v-09",
+  "ground_truth": "valid",
+  "category": "correction",
+  "title": "frontmatter 수정 시 description 한·영 병기 유지 필수",
+  "content": "P1-3 영향: 한국어 제거 시 한국어 발화 인식률 떨어짐 (KU-2 A/B 실증).",
+  "evidence": "KU-2 실측 (2026-04-19)"
+}
