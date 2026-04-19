@@ -1,0 +1,12 @@
+candidate_id: 20000003-0000-4000-8000-0000000000c3
+detector_id: session_wrap:tsconfig-strict
+trigger_source: session_wrap
+content: |
+  Rejected session wrap candidate C - tsconfig strict flag discussion
+context:
+  session_id: sess_20260419_170003
+  turn_range: 7-9
+  related_files:
+    - tsconfig.json
+detected_at: 2026-04-19T17:00:03Z
+suggested_slug: reject-c

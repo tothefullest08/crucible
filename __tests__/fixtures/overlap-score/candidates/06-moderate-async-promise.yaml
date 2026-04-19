@@ -1,0 +1,15 @@
+candidate_id: 06000000-0000-4000-8000-000000000006
+trigger_source: pattern_repeat
+problem: |
+  Node.js Promise chain unhandled rejection leaks crash the process in strict mode
+cause: |
+  Missing catch handler on async Promise chain causes unhandledRejection event crashing Node process
+solution: |
+  Attach catch handler to every Promise chain or wrap with try-catch in async-await function
+prevention: |
+  Enable node unhandled-rejections strict mode and CI lint for missing promise catch handlers
+context:
+  related_files:
+    - src/services/http-client.ts
+    - src/queue/processor.ts
+detected_at: 2026-04-19T15:00:00Z

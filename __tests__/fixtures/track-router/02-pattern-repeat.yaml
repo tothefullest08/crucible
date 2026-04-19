@@ -1,0 +1,11 @@
+candidate_id: 22222222-2222-4222-8222-222222222222
+trigger_source: pattern_repeat
+content: |
+  Kotlin CoroutineScope lifecycle pattern - suspend 밖에서 명시 생성
+context:
+  session_id: sess_20260419_130000
+  turn_range: 45-48
+  related_files:
+    - app/src/main/kotlin/Main.kt
+detected_at: 2026-04-19T13:00:00Z
+suggested_slug: kotlin-coroutine-scope

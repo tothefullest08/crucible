@@ -1,0 +1,12 @@
+candidate_id: 20000002-0000-4000-8000-0000000000b2
+detector_id: pattern_repeat:webpack-alias
+trigger_source: pattern_repeat
+content: |
+  Rejected pattern candidate B - webpack alias mapping suggestion
+context:
+  session_id: sess_20260419_170002
+  turn_range: 4-6
+  related_files:
+    - webpack.config.js
+detected_at: 2026-04-19T17:00:02Z
+suggested_slug: reject-b

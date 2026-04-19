@@ -1,0 +1,15 @@
+candidate_id: 02000000-0000-4000-8000-000000000002
+trigger_source: pattern_repeat
+problem: |
+  Kotlin CoroutineScope must be created outside suspend functions for proper lifecycle management
+cause: |
+  CoroutineScope created inside suspend functions loses structured concurrency and lifecycle
+solution: |
+  Use lifecycleScope or viewModelScope or create explicit CoroutineScope outside suspend function
+prevention: |
+  Always attach CoroutineScope to a lifecycle owner to cancel coroutines when owner is destroyed
+context:
+  related_files:
+    - app/src/main/kotlin/MainActivity.kt
+    - app/src/main/kotlin/UserRepository.kt
+detected_at: 2026-04-19T11:00:00Z

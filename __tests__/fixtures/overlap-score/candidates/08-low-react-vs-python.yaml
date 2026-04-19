@@ -1,0 +1,14 @@
+candidate_id: 08000000-0000-4000-8000-000000000008
+trigger_source: user_correction
+problem: |
+  React useEffect dependency array stale closure issue in custom hook
+cause: |
+  Hook captures stale variable because dependency array omits the referenced value
+solution: |
+  Add referenced variable to dependency array and enable exhaustive-deps lint rule
+prevention: |
+  Always use exhaustive-deps eslint plugin to catch missing references before merge
+context:
+  related_files:
+    - src/hooks/useCounter.ts
+detected_at: 2026-04-19T17:00:00Z

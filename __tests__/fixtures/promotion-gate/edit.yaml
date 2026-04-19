@@ -1,0 +1,11 @@
+candidate_id: cccccccc-cccc-4ccc-8ccc-cccccccccccc
+trigger_source: session_wrap
+content: |
+  Raw session content before edit
+context:
+  session_id: sess_20260419_150003
+  turn_range: 11-15
+  related_files:
+    - src/session-note.ts
+detected_at: 2026-04-19T15:00:03Z
+suggested_slug: edit-sample

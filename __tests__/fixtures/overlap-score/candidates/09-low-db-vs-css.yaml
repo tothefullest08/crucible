@@ -1,0 +1,15 @@
+candidate_id: 09000000-0000-4000-8000-000000000009
+trigger_source: session_wrap
+problem: |
+  PostgreSQL vacuum autovacuum triggers on heavily updated tables slow queries during business hours
+cause: |
+  Autovacuum scheduler runs during peak load because default thresholds too aggressive for table size
+solution: |
+  Tune autovacuum_vacuum_scale_factor per table and schedule manual vacuum during low traffic windows
+prevention: |
+  Monitor vacuum progress per table add alerts when vacuum runs longer than fifteen minutes
+context:
+  related_files:
+    - db/migrations/001_init.sql
+    - ops/postgres-tuning.md
+detected_at: 2026-04-19T18:00:00Z

@@ -1,0 +1,15 @@
+candidate_id: 04000000-0000-4000-8000-000000000004
+trigger_source: pattern_repeat
+problem: |
+  React setState batching behavior changed between versions causing race conditions in form handlers
+cause: |
+  setState is asynchronous and batched so reading state immediately after setState returns old value
+solution: |
+  Use functional setState setter callback or useEffect to react to state changes instead of reading directly
+prevention: |
+  Treat state as immutable snapshot during render and never read state synchronously after setState
+context:
+  related_files:
+    - src/components/FormHandler.tsx
+    - src/hooks/useForm.ts
+detected_at: 2026-04-19T13:00:00Z

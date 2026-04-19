@@ -1,0 +1,11 @@
+candidate_id: bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb
+trigger_source: user_correction
+content: |
+  Correction reject sample content body for promotion gate test
+context:
+  session_id: sess_20260419_150002
+  turn_range: 6-10
+  related_files:
+    - src/bad-logic.ts
+detected_at: 2026-04-19T15:00:02Z
+suggested_slug: reject-sample

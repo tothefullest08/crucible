@@ -1,0 +1,12 @@
+candidate_id: 10000001-0000-4000-8000-000000000002
+detector_id: pattern_repeat:coroutine-scope
+trigger_source: pattern_repeat
+content: |
+  Repeated coroutine scope suggestion second occurrence
+context:
+  session_id: sess_20260419_160002
+  turn_range: 6-10
+  related_files:
+    - app/Second.kt
+detected_at: 2026-04-19T16:00:02Z
+suggested_slug: coroutine-scope-b
