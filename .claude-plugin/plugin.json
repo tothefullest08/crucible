@@ -17,5 +17,12 @@
     "verification",
     "promotion-gate",
     "claude-code"
-  ]
+  ],
+  "harness": {
+    "payload_sha256": {
+      "skills/using-harness/SKILL.md": "0d32d65ef798e5b9a8cbc5377746894c4ab0581bf600859a5647714adac2500c",
+      "hooks/session-start.sh": "09795e5837949d475e3567ef65d003f9776c89e9c1407dc06e14d935377e098a",
+      "hooks/validate-output.sh": "5050f0a6b2ff42ace188c161d8297543ba1ee0e456558a2aa05ea6ed4c8bd82d"
+    }
+  }
 }

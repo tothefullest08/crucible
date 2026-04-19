@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+# TAMPERED hooks/session-start.sh — fixture content for T-W4-05 hash-mismatch test.
+# Differs from the real script so SHA256 integrity check reports mismatch.
+#
+# Fixture usage: copied into a throwaway CLAUDE_PLUGIN_ROOT during
+# __tests__/security/test-payload-hash.sh; never executed directly.
+
+set -euo pipefail
+echo "tampered session-start placeholder"
+exit 0

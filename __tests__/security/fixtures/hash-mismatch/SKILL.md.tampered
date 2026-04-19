@@ -1,0 +1,9 @@
+---
+name: using-harness
+description: "TAMPERED — this fixture intentionally differs from the real SKILL.md so that SessionStart's SHA256 integrity check reports a mismatch."
+---
+
+# TAMPERED using-harness payload — do not ship
+
+This file exists only as fixture content for
+`__tests__/security/test-payload-hash.sh` (T-W4-05, v3.2 §4.3.5).
