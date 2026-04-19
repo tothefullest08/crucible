@@ -184,12 +184,12 @@ flowchart TD
 
 ### W2 — `/brainstorm` MVP (5일 / 40h)
 
-- [ ] **T-W2-01** `skills/brainstorm/SKILL.md` 구조 + frontmatter (name/description/when_to_use/input/output)
+- [x] **T-W2-01** `skills/brainstorm/SKILL.md` 구조 + frontmatter (name/description/when_to_use/input/output)
   - 의존성: T-W1-10
   - 공수: 4h
   - 검증: CE `/ce-review` skill-frontmatter lint 통과
 
-- [ ] **T-W2-02** clarify 3-lens (vague / unknown / metamedium) 본문 내장
+- [x] **T-W2-02** clarify 3-lens (vague / unknown / metamedium) 본문 내장
   - 의존성: T-W2-01
   - 공수: 8h
   - 검증: 3-lens 각각 트리거 키워드 리스트 + 3-Round depth pattern 재현
