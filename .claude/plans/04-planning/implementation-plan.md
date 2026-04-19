@@ -427,13 +427,13 @@ flowchart TD
   - 의존성: T-W5-08
   - 공수: 4h
 
-- [ ] **T-W6-02** session-wrap 2-Phase 파이프라인 포팅 (4 분석자 병렬 + 1 validator 순차)
+- [x] **T-W6-02** session-wrap 2-Phase 파이프라인 포팅 (4 분석자 병렬 + 1 validator 순차)
   - 의존성: T-W6-01
   - 공수: 8h
   - 검증: 4 분석자 병렬 실행 + validator 최종 검증 동작 파리티
   - 관련 자산: **#4**
 
-- [ ] **T-W6-03** `agents/compound/` 5종 리네이밍 (tacit-extractor / correction-recorder / pattern-detector / preference-tracker / duplicate-checker)
+- [x] **T-W6-03** `agents/compound/` 5종 리네이밍 (tacit-extractor / correction-recorder / pattern-detector / preference-tracker / duplicate-checker)
   - 의존성: T-W6-02
   - 공수: 8h
   - 검증: 5 에이전트 각각 최소 동작 + 이름 P1 네임스페이스 규약 준수
