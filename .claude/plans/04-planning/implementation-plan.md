@@ -309,42 +309,42 @@ flowchart TD
   - 의존성: T-W4-PRE-01
   - 공수: 4h
 
-- [ ] **T-W4-02** `agents/verify/` 6-에이전트 스텁 (verifier / verification-planner / verify-planner / qa-verifier / ralph-verifier / spec-coverage) — **일부 W7.5로 이월**
+- [x] **T-W4-02** `agents/verify/` 6-에이전트 스텁 (verifier / verification-planner / verify-planner / qa-verifier / ralph-verifier / spec-coverage) — **일부 W7.5로 이월**
   - 의존성: T-W4-01
   - 공수: 8h (잔여 4h는 T-W7.5-05로 이월)
   - 검증: 각 에이전트 최소 stub 응답 동작
   - 관련 자산: **#1**
 
-- [ ] **T-W4-03** `agents/evaluator/qa-judge.md` 스키마 (score / verdict / dimensions / differences / suggestions)
+- [x] **T-W4-03** `agents/evaluator/qa-judge.md` 스키마 (score / verdict / dimensions / differences / suggestions)
   - 의존성: T-W4-01
   - 공수: 4h
   - 검증: JSON schema validator + 임계값 0.80/0.40 분기 로직 unit test
   - 관련 자산: **#3**
 
-- [ ] **T-W4-04** Ralph Loop 의사코드 verify 본문 내장 (non-blocking + level-based polling)
+- [x] **T-W4-04** Ralph Loop 의사코드 verify 본문 내장 (non-blocking + level-based polling)
   - 의존성: T-W4-01
   - 공수: 4h
   - 검증: 의사코드 라인 커버리지 vs ouroboros 원본 ≥ 80%
   - 관련 자산: **#2**
 
-- [ ] **T-W4-05** `validate_prompt` + hooks 페이로드 SHA256 해시 검증 구현 → **AC-3 구현** 🚨 P0-8
+- [x] **T-W4-05** `validate_prompt` + hooks 페이로드 SHA256 해시 검증 구현 → **AC-3 구현** 🚨 P0-8
   - 의존성: T-W4-PRE-01
   - 공수: 4h
   - 검증: 세션 시작 시 해시 불일치 주입 거부 실측 3/3
   - 관련 자산: **#5** + §11-2
 
-- [ ] **T-W4-06** Secrets redaction 정규식 리스트 구현 (AWS · GCP · GitHub · Slack · JWT · DB URL · Bearer) 🚨 P0-5
+- [x] **T-W4-06** Secrets redaction 정규식 리스트 구현 (AWS · GCP · GitHub · Slack · JWT · DB URL · Bearer) 🚨 P0-5
   - 의존성: T-W4-PRE-01
   - 공수: 6h
   - 검증: 7 정규식 각 positive 3건 + negative 1건 = 28 케이스 unit test 통과. 드롭 시 `{redacted: N}` 기록
 
-- [ ] **T-W4-07** `hooks/drift-monitor.sh` PostToolUse 드리프트 advisory (bash+jq 재작성) 🚨 P0-1
+- [x] **T-W4-07** `hooks/drift-monitor.sh` PostToolUse 드리프트 advisory (bash+jq 재작성) 🚨 P0-1
   - 의존성: T-W4-01
   - 공수: 4h
   - 검증: 원본 `drift-monitor.py` 로직 파리티 테스트 + Python 런타임 0 assertion
   - 관련 자산: ouroboros `drift-monitor.py` (재작성 필수)
 
-- [ ] **T-W4-08** unit test: qa-judge 임계값 분기 3종 (승격 ≥0.80 / 재시도 0.40~0.80 / 기각 ≤0.40) → **AC-2**
+- [x] **T-W4-08** unit test: qa-judge 임계값 분기 3종 (승격 ≥0.80 / 재시도 0.40~0.80 / 기각 ≤0.40) → **AC-2**
   - 의존성: T-W4-03, T-W4-04
   - 공수: 2h
   - 검증: 각 분기 최소 1건 정확 판정
