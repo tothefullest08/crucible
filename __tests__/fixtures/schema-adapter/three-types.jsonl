@@ -1,0 +1,3 @@
+{"type":"file-history-snapshot","schema_version":"v0","path":"src/main.ts","sha":"abc1234","timestamp":"2026-04-19T12:00:00Z"}
+{"type":"user-prompt","schema_version":"v0","prompt":"3종 디스패치 테스트","timestamp":"2026-04-19T12:00:01Z","session_id":"sess-adapter-001"}
+{"type":"assistant-turn","schema_version":"v0","message":{"content":[{"type":"text","text":"3종 모두 정규화 OK."},{"type":"tool_use","name":"Edit","id":"tool-42"}]},"timestamp":"2026-04-19T12:00:02Z"}

@@ -1,0 +1,4 @@
+{"type":"user-prompt","schema_version":"v0","prompt":"정상 1건","timestamp":"2026-04-19T13:00:00Z","session_id":"sess-adapter-002"}
+{"type":"queue-operation","schema_version":"v0","op":"enqueue","payload":{"job":"compact"},"timestamp":"2026-04-19T13:00:01Z"}
+{"type":"brand-new-future-type","schema_version":"v1","meta":{"foo":"bar"},"timestamp":"2026-04-19T13:00:02Z"}
+{"type":"file-history-snapshot","schema_version":"v99","path":"future.ts","sha":"deadbeef","timestamp":"2026-04-19T13:00:03Z"}

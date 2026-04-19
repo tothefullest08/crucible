@@ -1,0 +1,3 @@
+{"type":"user-prompt","schema_version":"v0","prompt":"corrupted 픽스처","timestamp":"2026-04-19T11:00:00Z","session_id":"sess-corrupt-003"}
+{"type":"assistant-turn","schema_version":"v0","message":{"content":[{"type":"text","text":"정상 응답."}]},"timestamp":"2026-04-19T11:00:03Z"}
+{not valid json at all — truncated mid-record

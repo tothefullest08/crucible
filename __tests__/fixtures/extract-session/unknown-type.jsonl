@@ -1,0 +1,3 @@
+{"type":"user-prompt","schema_version":"v0","prompt":"unknown-type 픽스처 시작","timestamp":"2026-04-19T10:00:00Z","session_id":"sess-unknown-002"}
+{"type":"queue-operation","schema_version":"v0","op":"enqueue","payload":{"job":"compact"},"timestamp":"2026-04-19T10:00:02Z"}
+{"type":"assistant-turn","schema_version":"v0","message":{"content":[{"type":"text","text":"unknown 라인은 스킵되어야 합니다."}]},"timestamp":"2026-04-19T10:00:05Z"}
