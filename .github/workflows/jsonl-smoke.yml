@@ -1,0 +1,259 @@
+name: jsonl-smoke
+
+# v3.1 §4.2.3 — JSONL 72h smoke test (T-W1-08, 🚨 P0-2)
+# 3일 cron으로 C-1~C-5 체크. FAIL 1건 → job exit 1. WARN만 있으면 로그만 남김.
+
+on:
+  schedule:
+    # UTC 09:00, 매 3일마다 (≈ 72h 간격)
+    - cron: '0 9 */3 * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  smoke:
+    name: JSONL schema smoke (v3.1 §4.2.3)
+    runs-on: ubuntu-latest
+    env:
+      FIXTURE: __tests__/fixtures/jsonl-smoke/baseline.jsonl
+      SNAPSHOT: __tests__/fixtures/jsonl-smoke/last-known-distribution.json
+      REPORT: smoke-report.json
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verify toolchain (bash + jq + shellcheck)
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash --version | head -1
+          jq --version
+          if ! command -v shellcheck >/dev/null 2>&1; then
+            sudo apt-get update -qq
+            sudo apt-get install -y shellcheck
+          fi
+          shellcheck --version | head -2
+
+      - name: Lint smoke-sensitive scripts
+        shell: bash
+        run: |
+          set -euo pipefail
+          shellcheck scripts/extract-session.sh scripts/schema-adapter.sh
+
+      - name: Init report
+        shell: bash
+        run: |
+          set -euo pipefail
+          jq -n --arg ts "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            '{run_ts: $ts, checks: {}}' > "$REPORT"
+
+      # --- C-1: JSONL 파싱 에러율 < 5% ------------------------------------
+      - name: 'C-1 · JSONL parse error rate < 5%'
+        id: c1
+        shell: bash
+        run: |
+          set -euo pipefail
+          err_log="$(mktemp)"
+          scripts/extract-session.sh "$FIXTURE" >/dev/null 2>"$err_log" || true
+          total=$(wc -l < "$FIXTURE" | tr -d ' ')
+          corrupted=$(grep -c 'corrupted JSONL line' "$err_log" || true)
+          if [[ "$total" -eq 0 ]]; then
+            status=FAIL; ratio="NA"
+          else
+            ratio=$(awk -v c="$corrupted" -v t="$total" 'BEGIN{printf "%.4f", c/t}')
+            # threshold: 5%
+            status=$(awk -v r="$ratio" 'BEGIN{print (r < 0.05) ? "PASS" : "FAIL"}')
+          fi
+          echo "C-1 total=$total corrupted=$corrupted ratio=$ratio status=$status"
+          jq --arg s "$status" --argjson t "$total" --argjson c "$corrupted" --arg r "$ratio" \
+            '.checks["C-1"] = {status:$s, total:$t, corrupted:$c, ratio:$r, threshold:"<5%"}' \
+            "$REPORT" > "$REPORT.tmp" && mv "$REPORT.tmp" "$REPORT"
+          rm -f "$err_log"
+
+      # --- C-2: unknown dispatch 출현 (WARN-only) ------------------------
+      - name: 'C-2 · unknown dispatch count (WARN-only)'
+        id: c2
+        shell: bash
+        run: |
+          set -euo pipefail
+          err_log="$(mktemp)"
+          # schema-adapter.sh emits "skipped: TYPE@VER" for unknown dispatches (v3.1 §4.2.1).
+          scripts/schema-adapter.sh < "$FIXTURE" >/dev/null 2>"$err_log" || true
+          unknown=$(grep -c '^skipped: ' "$err_log" || true)
+          if [[ "$unknown" -gt 0 ]]; then
+            status=WARN
+            echo '::warning title=C-2 unknown dispatch::'"$unknown"' lines routed through the unknown-type fallback — new Claude Code JSONL type may have appeared.'
+            echo "--- unknown type frequencies ---"
+            grep '^skipped: ' "$err_log" | sort | uniq -c
+          else
+            status=PASS
+          fi
+          echo "C-2 unknown=$unknown status=$status"
+          jq --arg s "$status" --argjson n "$unknown" \
+            '.checks["C-2"] = {status:$s, unknown_count:$n, threshold:">0 ⇒ WARN"}' \
+            "$REPORT" > "$REPORT.tmp" && mv "$REPORT.tmp" "$REPORT"
+          rm -f "$err_log"
+
+      # --- C-3: schema_version / type 분포 변화 감지 ---------------------
+      - name: 'C-3 · distribution drift vs last-known snapshot'
+        id: c3
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Build current distribution from fixture
+          current=$(jq -s '
+            {
+              total_lines: length,
+              by_type: (group_by(.type) | map({key: .[0].type, value: length}) | from_entries),
+              by_schema_version: (group_by(.schema_version) | map({key: .[0].schema_version, value: length}) | from_entries)
+            }' "$FIXTURE")
+
+          # Compare each bucket ratio to snapshot; FAIL if any |delta| > 0.9
+          drift=$(jq -n --argjson cur "$current" --slurpfile snap "$SNAPSHOT" '
+            def ratio(v; total): if total == 0 then 0 else (v / total) end;
+            def drift_map(cur_map; base_map; cur_total; base_total):
+              ((cur_map | keys) + (base_map | keys)) | unique
+              | map({
+                  key: .,
+                  current_ratio: ratio(cur_map[.] // 0; cur_total),
+                  baseline_ratio: ratio(base_map[.] // 0; base_total)
+                } | .delta = (.current_ratio - .baseline_ratio) | .abs_delta = (.delta | fabs));
+            ($snap[0]) as $base
+            | {
+                by_type: drift_map($cur.by_type; $base.by_type; $cur.total_lines; $base.total_lines),
+                by_schema_version: drift_map($cur.by_schema_version; $base.by_schema_version; $cur.total_lines; $base.total_lines)
+              }
+            | . as $d
+            | $d + {max_abs_delta: ([$d.by_type[].abs_delta] + [$d.by_schema_version[].abs_delta] | max)}
+          ')
+
+          max_delta=$(jq -r '.max_abs_delta' <<<"$drift")
+          status=$(awk -v d="$max_delta" 'BEGIN{print (d > 0.9) ? "FAIL" : "PASS"}')
+          echo "C-3 max_abs_delta=$max_delta status=$status"
+          echo "$drift" | jq '.'
+
+          jq --arg s "$status" --argjson d "$drift" \
+            '.checks["C-3"] = {status:$s, threshold:"|delta|>0.9 ⇒ FAIL", drift:$d}' \
+            "$REPORT" > "$REPORT.tmp" && mv "$REPORT.tmp" "$REPORT"
+
+      # --- C-4: adapter dispatch 누락 카운트 = 0 -------------------------
+      - name: 'C-4 · adapter dispatch accounts for every input line'
+        id: c4
+        shell: bash
+        run: |
+          set -euo pipefail
+          stderr_log="$(mktemp)"
+          stdout_log="$(mktemp)"
+          scripts/schema-adapter.sh < "$FIXTURE" >"$stdout_log" 2>"$stderr_log" || true
+
+          total=$(wc -l < "$FIXTURE" | tr -d ' ')
+          dispatched=$(wc -l < "$stdout_log" | tr -d ' ')
+          skipped=$(grep -c '^skipped: ' "$stderr_log" || true)
+          parse_err=$(grep -c 'invalid JSON line' "$stderr_log" || true)
+          sum=$((dispatched + skipped + parse_err))
+
+          if [[ "$sum" -eq "$total" ]]; then
+            status=PASS
+          else
+            status=FAIL
+          fi
+          echo "C-4 total=$total dispatched=$dispatched skipped=$skipped parse_err=$parse_err sum=$sum status=$status"
+
+          jq --arg s "$status" \
+             --argjson t "$total" --argjson d "$dispatched" \
+             --argjson sk "$skipped" --argjson pe "$parse_err" --argjson sum "$sum" \
+            '.checks["C-4"] = {status:$s, total:$t, dispatched:$d, skipped:$sk, parse_errors:$pe, sum:$sum}' \
+            "$REPORT" > "$REPORT.tmp" && mv "$REPORT.tmp" "$REPORT"
+
+          rm -f "$stderr_log" "$stdout_log"
+
+      # --- C-5: Claude Code recent release check (WARN-only) ------------
+      - name: 'C-5 · Claude Code release in last 72h mentions JSONL/session/schema'
+        id: c5
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          # gh is pre-installed on ubuntu-latest runners.
+          releases_json=$(gh release list -R anthropics/claude-code --limit 10 --json publishedAt,tagName,body 2>/dev/null || echo '[]')
+          now_epoch=$(date -u +%s)
+          cutoff=$((now_epoch - 72 * 3600))
+
+          hits=$(jq --argjson cutoff "$cutoff" '
+            [ .[] |
+              . as $r |
+              ($r.publishedAt | fromdateiso8601) as $ts |
+              select($ts >= $cutoff) |
+              select(($r.body // "") | test("jsonl|session|schema"; "i"))
+              | {tagName: $r.tagName, publishedAt: $r.publishedAt}
+            ]' <<<"$releases_json")
+
+          hit_count=$(jq 'length' <<<"$hits")
+          if [[ "$hit_count" -gt 0 ]]; then
+            status=WARN
+            echo '::warning title=C-5 upstream release::Claude Code release within 72h mentions jsonl/session/schema — verify adapter still covers new fields.'
+            echo "$hits" | jq '.'
+            # placeholder: issue creation is left as manual decision (see Notify step).
+          else
+            status=PASS
+          fi
+          echo "C-5 hit_count=$hit_count status=$status"
+
+          jq --arg s "$status" --argjson hits "$hits" \
+            '.checks["C-5"] = {status:$s, window_h:72, hits:$hits, threshold:"hit ⇒ WARN"}' \
+            "$REPORT" > "$REPORT.tmp" && mv "$REPORT.tmp" "$REPORT"
+
+      # --- Roll up & emit report ----------------------------------------
+      - name: Aggregate & upload smoke report
+        id: rollup
+        shell: bash
+        run: |
+          set -euo pipefail
+          fail_count=$(jq '[.checks[] | select(.status == "FAIL")] | length' "$REPORT")
+          warn_count=$(jq '[.checks[] | select(.status == "WARN")] | length' "$REPORT")
+          jq --argjson f "$fail_count" --argjson w "$warn_count" \
+            '.summary = {fail: $f, warn: $w, overall: (if $f > 0 then "FAIL" elif $w > 0 then "WARN" else "PASS" end)}' \
+            "$REPORT" > "$REPORT.tmp" && mv "$REPORT.tmp" "$REPORT"
+          echo "--- smoke-report.json ---"
+          jq '.' "$REPORT"
+          echo "fail_count=$fail_count" >> "$GITHUB_OUTPUT"
+          echo "warn_count=$warn_count" >> "$GITHUB_OUTPUT"
+
+      - name: Upload report artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-report
+          path: smoke-report.json
+          retention-days: 30
+
+      # --- Failure notifier placeholder ---------------------------------
+      # 실제 Issue 생성은 초기 릴리스에선 placeholder (echo) 로 유지.
+      # 운영 시 actions/github-script@v7 로 이슈/Slack 알림 훅 추가.
+      - name: Notify on FAIL (placeholder)
+        if: failure()
+        shell: bash
+        env:
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          RUN_TS: ${{ github.event.repository.updated_at }}
+        run: |
+          set -euo pipefail
+          failing=$(jq -r '[.checks | to_entries[] | select(.value.status=="FAIL") | .key] | join(", ")' "$REPORT" 2>/dev/null || echo "unknown")
+          echo "::error title=JSONL smoke FAIL::Failing checks: ${failing}"
+          echo "JSONL smoke FAIL at $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          echo "Failing checks: $failing"
+          echo "See run: $RUN_URL"
+
+      - name: Exit non-zero if any FAIL
+        shell: bash
+        run: |
+          set -euo pipefail
+          overall=$(jq -r '.summary.overall' "$REPORT")
+          echo "overall=$overall"
+          if [[ "$overall" == "FAIL" ]]; then
+            exit 1
+          fi

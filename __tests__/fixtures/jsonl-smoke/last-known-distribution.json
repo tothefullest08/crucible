@@ -1,0 +1,14 @@
+{
+  "snapshot_date": "2026-04-19",
+  "total_lines": 100,
+  "by_type": {
+    "file-history-snapshot": 67,
+    "queue-operation": 27,
+    "prompt": 6
+  },
+  "by_schema_version": {
+    "v0": 95,
+    "v1": 5
+  },
+  "notes": "Initial snapshot. Only file-history-snapshot@v0 dispatches to a known adapter; the rest skip as unknown (expected). C-3 compares future fixture distributions against these ratios."
+}
