@@ -1,0 +1,10 @@
+{
+  "_note": "FAIL: missing item #2 — no 'Included / Excluded' scope boundary.",
+  "expected": "advisory",
+  "tool_name": "Skill",
+  "tool_input": {
+    "skill": "brainstorm"
+  },
+  "cwd": "/Users/ethan/Desktop/personal/harness",
+  "tool_response": "## Brainstorm Summary\n\n구체 사용자 / 통증 / 결과: junior engineers / broken test flakes / green CI.\n\nSuccess Criteria: flake rate under 0.5%.\n\nLens picked (vague / unknown / metamedium) = vague. Decisions Made table produced.\n\nOutput at .claude/plans/2026-04-19-flake-fighter-requirements.md (slug 화이트리스트: [a-zA-Z0-9_-] OK). Handover to /plan next."
+}
