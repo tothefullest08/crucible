@@ -168,12 +168,12 @@ flowchart TD
   - 공수: 4h
   - 검증: cron 3회 연속 성공 + 스키마 변화 감지 시 알림 이벤트 발화
 
-- [ ] **T-W1-09** unit test: hooks bash 보안 (쌍따옴표 + slug 화이트리스트 + `eval` 금지) 🚨 P0-8
+- [x] **T-W1-09** unit test: hooks bash 보안 (쌍따옴표 + slug 화이트리스트 + `eval` 금지) 🚨 P0-8
   - 의존성: T-W1-04
   - 공수: 2h
   - 검증: shellcheck + 커스텀 보안 linter 2종 전부 통과
 
-- [ ] **T-W1-10** integration test — 플러그인 설치 → SessionStart 주입 확인 → **AC-1**
+- [x] **T-W1-10** integration test — 플러그인 설치 → SessionStart 주입 확인 → **AC-1**
   - 의존성: T-W1-09
   - 공수: 2h
   - 검증: Claude Code 실 세션 로그에 `using-harness.md` 페이로드 포함
