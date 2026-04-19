@@ -283,7 +283,7 @@ flowchart TD
   - 공수: 2h
   - 검증: W2-05와 동일 패턴 재현
 
-- [ ] **T-W3-08** unit test: 3개 요구사항 문서로 /plan 실행 + 산출물 스키마 검증 → **AC-2**
+- [x] **T-W3-08** unit test: 3개 요구사항 문서로 /plan 실행 + 산출물 스키마 검증 → **AC-2**
   - 의존성: T-W3-05, T-W3-06, T-W3-07
   - 공수: 4h
   - 검증: Markdown+YAML 하이브리드 포맷 linter 통과 3/3
