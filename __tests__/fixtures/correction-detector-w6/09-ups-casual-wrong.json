@@ -1,0 +1,7 @@
+{
+  "hook_event_name": "UserPromptSubmit",
+  "session_id": "sess_20260419_094503",
+  "prompt": "I took my wrong turn at an intersection yesterday.",
+  "prior_assistant_turn": "TypeScript `satisfies` keeps literal narrowing while validating against a broader constraint.",
+  "_expected": {"detected": false, "note": "EN wrong but unrelated topic — negative-context #2 blocks"}
+}

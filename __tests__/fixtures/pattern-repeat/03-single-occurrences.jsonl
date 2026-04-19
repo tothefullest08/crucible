@@ -1,0 +1,6 @@
+{"type":"user-prompt","schema_version":"v0","prompt":"Kubernetes HPA 설정을 확인해줘","timestamp":"2026-04-19T12:00:00Z","session_id":"sess-pr-003"}
+{"type":"assistant-turn","schema_version":"v0","message":{"content":[{"type":"text","text":"scaleTargetRef 와 metrics 블록을 확인합니다."}]},"timestamp":"2026-04-19T12:00:05Z"}
+{"type":"user-prompt","schema_version":"v0","prompt":"Nginx reverse proxy buffer 크기는?","timestamp":"2026-04-19T12:01:00Z","session_id":"sess-pr-003"}
+{"type":"assistant-turn","schema_version":"v0","message":{"content":[{"type":"text","text":"proxy_buffer_size 기본값 확인 후 조정하세요."}]},"timestamp":"2026-04-19T12:01:05Z"}
+{"type":"user-prompt","schema_version":"v0","prompt":"TypeScript satisfies 와 as const 차이 설명해줘","timestamp":"2026-04-19T12:02:00Z","session_id":"sess-pr-003"}
+{"type":"assistant-turn","schema_version":"v0","message":{"content":[{"type":"text","text":"satisfies 는 타입 검증 하면서 narrowing 유지, as const 는 readonly 변환"}]},"timestamp":"2026-04-19T12:02:05Z"}

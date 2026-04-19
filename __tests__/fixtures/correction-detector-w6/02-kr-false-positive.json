@@ -1,0 +1,9 @@
+{
+  "hook_event_name": "PostToolUse",
+  "tool_name": "Task",
+  "tool_response": {
+    "user_utterance": "어제 축구장에서 친구가 방향을 잘못 안내했다.",
+    "prior_assistant_turn": "Python의 GIL은 멀티스레딩에서 순수 연산의 병렬 실행을 막습니다. 따라서 CPU-bound 작업은 스레드로 병렬화할 수 없습니다."
+  },
+  "_expected": {"detected": false, "note": "3rd-person unrelated — no shared noun with prior turn"}
+}

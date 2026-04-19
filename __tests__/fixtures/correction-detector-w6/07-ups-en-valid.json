@@ -1,0 +1,7 @@
+{
+  "hook_event_name": "UserPromptSubmit",
+  "session_id": "sess_20260419_094501",
+  "prompt": "Your claim about PostgreSQL MVCC is incorrect — dead tuples remain until VACUUM reclaims them.",
+  "prior_assistant_turn": "PostgreSQL MVCC stores multiple versions of each row; old versions are cleaned up immediately after the transaction that produced them commits.",
+  "_expected": {"detected": true, "note": "EN incorrect + shared postgresql/mvcc"}
+}

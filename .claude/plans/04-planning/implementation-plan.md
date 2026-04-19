@@ -438,30 +438,30 @@ flowchart TD
   - 공수: 8h
   - 검증: 5 에이전트 각각 최소 동작 + 이름 P1 네임스페이스 규약 준수
 
-- [ ] **T-W6-04** `scripts/keyword-detector.sh` — ouroboros Python → bash+jq 재작성 🚨 P0-1
+- [x] **T-W6-04** `scripts/keyword-detector.sh` — ouroboros Python → bash+jq 재작성 🚨 P0-1
   - 의존성: T-W6-01
   - 공수: 6h
   - 검증: 원본 keyword-detector.py 파리티 테스트 + Python 런타임 0 assertion
   - 관련 자산: ouroboros `keyword-detector.py` (재작성 필수)
 
-- [ ] **T-W6-05** `hooks/correction-detector.sh` UserPromptSubmit 훅 (bash+jq) 🚨 P0-8
+- [x] **T-W6-05** `hooks/correction-detector.sh` UserPromptSubmit 훅 (bash+jq) 🚨 P0-8
   - 의존성: T-W5-09, T-W6-04
   - 공수: 4h
   - 검증: "틀렸다" 발언 10샘플 감지율 ≥ 90%
   - 관련 자산: §11-2 (P1-7)
 
-- [ ] **T-W6-06** 3회 반복 패턴 감지 (JSONL 파서 활용)
+- [x] **T-W6-06** 3회 반복 패턴 감지 (JSONL 파서 활용)
   - 의존성: T-W1-06
   - 공수: 4h
   - 검증: 동일 토픽 3회 반복 세션 샘플 정확 감지 3/3
   - 관련 자산: **#25**
 
-- [ ] **T-W6-07** `/session-wrap` 수동 호출 트리거
+- [x] **T-W6-07** `/session-wrap` 수동 호출 트리거
   - 의존성: T-W6-01
   - 공수: 2h
   - 검증: 수동 호출 시 컴파운딩 후보 목록 제시
 
-- [ ] **T-W6-08** unit test: 3트리거 감지 (반복 / 틀렸다 / session-wrap) → **AC-6**
+- [x] **T-W6-08** unit test: 3트리거 감지 (반복 / 틀렸다 / session-wrap) → **AC-6**
   - 의존성: T-W6-05, T-W6-06, T-W6-07
   - 공수: 4h
   - 검증: 3 트리거 각각 최소 1건 실측 (감지 정확도는 KU-3 → W7.5에서 엄밀 측정)
