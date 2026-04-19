@@ -1,0 +1,3 @@
+{"type":"user-prompt","schema_version":"v0","prompt":"안녕, harness 플러그인 시작하자","timestamp":"2026-04-19T09:00:00Z","session_id":"sess-normal-001"}
+{"type":"assistant-turn","schema_version":"v0","message":{"content":[{"type":"text","text":"좋습니다. 먼저 6축 중 어떤 축부터 시작할까요?"},{"type":"tool_use","name":"Read","id":"tool-01"}]},"timestamp":"2026-04-19T09:00:05Z"}
+{"type":"user-prompt","schema_version":"v0","prompt":"구조 축부터 가자","timestamp":"2026-04-19T09:00:12Z","session_id":"sess-normal-001"}

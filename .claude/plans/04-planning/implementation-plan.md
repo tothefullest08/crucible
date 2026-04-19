@@ -152,13 +152,13 @@ flowchart TD
   - 검증: superpowers 패턴 체크리스트 7항 전부 충족
   - 관련 자산: **#6**
 
-- [ ] **T-W1-06** `scripts/extract-session.sh` — p4cn history-insight 포팅 (bash+jq 재작성) 🚨 P0-1 🚨 P0-2
+- [x] **T-W1-06** `scripts/extract-session.sh` — p4cn history-insight 포팅 (bash+jq 재작성) 🚨 P0-1 🚨 P0-2
   - 의존성: T-W1-PRE-01
   - 공수: 6h
   - 검증: unit test 3종 (정상 JSONL · unknown `type` 스킵 · 손상 JSONL 전체 실패 없음)
   - 관련 자산: **#25**
 
-- [ ] **T-W1-07** `scripts/schema-adapter.sh` — JSONL `schema_version` 감지 레이어 🚨 P0-2
+- [x] **T-W1-07** `scripts/schema-adapter.sh` — JSONL `schema_version` 감지 레이어 🚨 P0-2
   - 의존성: T-W1-06, T-W1-PRE-01
   - 공수: 4h
   - 검증: 3개 버전 JSONL 샘플에서 모두 적절한 adapter 함수 dispatch
