@@ -1,0 +1,25 @@
+# 상류 레퍼런스 (별도 repo clone, 저작권 + 크기 112MB)
+references/
+
+# 강의 원본 PDF (저작권) — 정리본 .md만 포함
+lecture/*.pdf
+
+# 로컬 Claude Code 설정
+.claude/settings.local.json
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# 로그·임시
+*.log
+*.tmp
+*.swp
+.env
+.env.local
