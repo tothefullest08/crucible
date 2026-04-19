@@ -75,6 +75,14 @@ expect_pass 'fixture good.sh         -> linter PASS' "${fixtures_dir}/good.sh"
 expect_fail 'fixture bad-unquoted.sh -> linter FAIL' "${fixtures_dir}/bad-unquoted.sh"
 expect_fail 'fixture bad-eval.sh     -> linter FAIL' "${fixtures_dir}/bad-eval.sh"
 
+# ---- Phase C: slug injection smoke (T-W2-08) ---------------------------------
+printf '\n== Phase C: slug-smoke ==\n'
+if bash "${script_dir}/slug-smoke.sh"; then
+    record_pass 'slug-smoke: 5 injection rejected + 1 valid accepted'
+else
+    record_fail 'slug-smoke failed'
+fi
+
 # ---- Summary ------------------------------------------------------------------
 printf '\n== Summary ==\n'
 printf '  passed: %d\n' "${pass_count}"

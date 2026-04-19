@@ -200,7 +200,7 @@ flowchart TD
   - 공수: 2h
   - 검증: 한국어 트리거 5~6개 + 영어 "Use when ..." 문장 병기
 
-- [ ] **T-W2-04** output: `.claude/plans/YYYY-MM-DD-{slug}-requirements.md` 템플릿 + slug 화이트리스트 🚨 P0-8
+- [x] **T-W2-04** output: `.claude/plans/YYYY-MM-DD-{slug}-requirements.md` 템플릿 + slug 화이트리스트 🚨 P0-8
   - 의존성: T-W2-01
   - 공수: 2h
   - 검증: `[a-zA-Z0-9_-]` 외 문자 주입 시 reject
@@ -222,7 +222,7 @@ flowchart TD
   - 공수: 4h
   - 검증: 10개 중 9개 이상 정확 트리거
 
-- [ ] **T-W2-08** smoke test: slug 생성 화이트리스트 보안 🚨 P0-8
+- [x] **T-W2-08** smoke test: slug 생성 화이트리스트 보안 🚨 P0-8
   - 의존성: T-W2-04
   - 공수: 2h
   - 검증: injection payload 5종 모두 reject
