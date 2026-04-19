@@ -299,13 +299,13 @@ flowchart TD
 
 ### W4 — `/verify` scaffolding + qa-judge + Ralph Loop (6일 / 48h)
 
-- [ ] **T-W4-PRE-01** ⛳ §11-2 승격 — 보안 완전 사양 정식화 🚨 P0-5 🚨 P0-8
+- [x] **T-W4-PRE-01** ⛳ §11-2 승격 — 보안 완전 사양 정식화 🚨 P0-5 🚨 P0-8
   - 의존성: T-W3-09
   - 공수: 8h
   - 검증: v2 §4.3 확장 완료 — Secrets regex 7종 리스트 · 훅 페이로드 SHA256 고정 · correction-detector 부정 문맥 규칙 · PostToolUse 훅 실행 순서 4개 모두 확정
   - §11: **§11-2 승격 완료**
 
-- [ ] **T-W4-01** `skills/verify/SKILL.md` 구조 + frontmatter
+- [x] **T-W4-01** `skills/verify/SKILL.md` 구조 + frontmatter
   - 의존성: T-W4-PRE-01
   - 공수: 4h
 
