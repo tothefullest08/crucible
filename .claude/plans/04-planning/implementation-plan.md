@@ -479,35 +479,35 @@ flowchart TD
 
 > v2 §10.2 Stretch AC. MVP 릴리스 차단 기준 아님.
 
-- [ ] **T-W7-01** `[Stretch]` `skills/orchestrate/SKILL.md` 구조 + frontmatter → **AC-Stretch-1**
+- [x] **T-W7-01** `[Stretch]` `skills/orchestrate/SKILL.md` 구조 + frontmatter → **AC-Stretch-1**
   - 의존성: T-W6-08
   - 공수: 4h (Stretch)
   - 검증: frontmatter lint 통과
 
-- [ ] **T-W7-02** `[Stretch]` 내부 4축 순차 파이프라인 (/brainstorm → /plan → /verify → /compound)
+- [x] **T-W7-02** `[Stretch]` 내부 4축 순차 파이프라인 (/brainstorm → /plan → /verify → /compound)
   - 의존성: T-W7-01
   - 공수: 12h (Stretch)
   - 검증: 단일 주제로 4축 end-to-end 성공 1회
 
-- [ ] **T-W7-03** `[Stretch]` agent-council Wait cursor bucket UI 차용
+- [x] **T-W7-03** `[Stretch]` agent-council Wait cursor bucket UI 차용
   - 의존성: T-W7-02
   - 공수: 6h (Stretch)
   - 검증: 6축 진행 시각화 + cursor 상태 전이
   - 관련 자산: **#12**
 
-- [ ] **T-W7-04** `[Stretch]` hoyeon 3-Axis 실행 조합 (dispatch × work × verify = 9 조합)
+- [x] **T-W7-04** `[Stretch]` hoyeon 3-Axis 실행 조합 (dispatch × work × verify = 9 조합)
   - 의존성: T-W7-02
   - 공수: 8h (Stretch)
   - 검증: 9 조합 중 최소 3 조합 동작
   - 관련 자산: **#16**
 
-- [ ] **T-W7-05** `[Stretch]` Mandatory Disk Checkpoints CP-0~CP-5
+- [x] **T-W7-05** `[Stretch]` Mandatory Disk Checkpoints CP-0~CP-5
   - 의존성: T-W7-02
   - 공수: 6h (Stretch)
   - 검증: `experiment-log.yaml` 체크포인트 6단계 전부 기록
   - 관련 자산: **#17**
 
-- [ ] **T-W7-06** `[Stretch]` unit test: 4축 순차 전체 파이프라인
+- [x] **T-W7-06** `[Stretch]` unit test: 4축 순차 전체 파이프라인
   - 의존성: T-W7-05
   - 공수: 4h (Stretch)
   - 검증: 단일 주제 end-to-end 녹화 1회 성공
