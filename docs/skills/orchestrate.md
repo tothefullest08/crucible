@@ -2,6 +2,8 @@
 
 > Chain `/brainstorm → /plan → /verify → /compound` through six disk checkpoints, SHA256-pinned, crash-safe on resume.
 
+English · [한국어](./orchestrate.ko.md)
+
 ## Paradigm
 
 `/orchestrate` is the only skill that lights up all six axes at once. Every other skill owns a subset of the pipeline; `/orchestrate` owns the pipeline itself. The design tension it resolves is the gap between "I want the end-to-end run" and "I do not want to rerun the first three axes because the fourth crashed." Disk checkpoints are the cheapest mechanism we found that preserves both properties — the run goes fast when nothing breaks, and resumes cleanly from the last disk write when something does.

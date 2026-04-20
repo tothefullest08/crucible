@@ -2,6 +2,8 @@
 
 > Clarify a vague feature request into a concrete requirements doc through a 3-lens pass, then stop — do not plan.
 
+English · [한국어](./brainstorm.ko.md)
+
 ## Paradigm
 
 `/brainstorm` exists because the most expensive mistake in a Claude Code session is committing to a plan built on an ambiguous prompt. Every lens in the skill interrogates the prompt from a different direction, and the skill refuses to emit a requirements doc until all three have run. The output is deliberately not a plan: it is a `*-requirements.md` file that `/plan` can consume. Separating "what are we building?" from "how do we build it?" is the whole reason `/brainstorm` is its own skill.

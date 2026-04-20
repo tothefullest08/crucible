@@ -2,6 +2,8 @@
 
 > Score an artifact with `qa-judge`, retry through Ralph Loop, and fall through to manual review when the cap hits.
 
+English · [한국어](./verify.ko.md)
+
 ## Paradigm
 
 Verify is the one axis whose absence looks identical to a pass. `/verify` exists so that absence becomes impossible: it produces a numeric verdict (`qa-judge` score + dimensions) that any other skill (`/plan`, `/compound`, `/orchestrate`) can read without re-interpreting the artifact. The retry loop (Ralph Loop) and the fresh-context separation are there to make the verdict *credible*, not just present. If `/verify` were single-pass and reused the author's context, the verdict would be a self-review.

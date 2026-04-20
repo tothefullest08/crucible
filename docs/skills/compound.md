@@ -2,6 +2,8 @@
 
 > Promote user-approved learnings into durable memory through a 6-step gate, 3 triggers, and a 5-dimensional overlap check.
 
+English · [한국어](./compound.ko.md)
+
 ## Paradigm
 
 Automatic memory writes are the failure mode `/compound` is designed to prevent. Every other plugin in the neighbourhood writes memory first and asks forgiveness later; `/compound` inverts the default — nothing reaches `.claude/memory/` without an explicit user approval. The three triggers decide *when* to ask, the 5-dimensional overlap decides *whether to ask at all*, and the 6-step gate decides *how the user answers*. Together they turn memory from a passive accumulator into a curated artifact.

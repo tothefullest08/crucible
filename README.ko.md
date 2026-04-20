@@ -47,7 +47,7 @@ git clone https://github.com/<owner>/crucible.git ~/.claude/plugins/crucible
 - `/compound` — 반복 패턴·유저 정정·`/session-wrap` 트리거를 위한 승격 게이트. 유저 승인된 후보만 `.claude/memory/`에 저장.
 - `/orchestrate` *(Stretch)* — 위 4 스킬을 end-to-end 파이프라인으로 연결. CP-0~CP-5 디스크 체크포인트로 크래시 안전.
 
-**상세** → [`docs/skills/`](./docs/skills/) (스킬별 Paradigm · Judgment · Design Choices).
+**상세** → [`docs/skills/`](./docs/skills/) (스킬별 Paradigm · Judgment · Design Choices — 한국어: [`brainstorm.ko.md`](./docs/skills/brainstorm.ko.md) · [`plan.ko.md`](./docs/skills/plan.ko.md) · [`verify.ko.md`](./docs/skills/verify.ko.md) · [`compound.ko.md`](./docs/skills/compound.ko.md) · [`orchestrate.ko.md`](./docs/skills/orchestrate.ko.md)).
 
 ---
 
@@ -55,7 +55,7 @@ git clone https://github.com/<owner>/crucible.git ~/.claude/plugins/crucible
 
 모든 산출물은 6축 게이트(**Structure · Context · Plan · Execute · Verify · Improve**)를 통과합니다. `--skip-axis N`은 허용되지만 `--skip-axis 5`는 `--acknowledge-risk` 조합이 필수 — 검증 스킵은 명시적 릴리스 블로커입니다.
 
-**상세** → [`docs/axes.md`](./docs/axes.md) (전체 matrix · 스킬 × 축 표 · skip 정책 근거).
+**상세** → [`docs/axes.ko.md`](./docs/axes.ko.md) (전체 matrix · 스킬 × 축 표 · skip 정책 근거).
 
 ---
 
@@ -87,7 +87,7 @@ git clone https://github.com/<owner>/crucible.git ~/.claude/plugins/crucible
 
 `/orchestrate`가 체크포인트 사이에서 중단되어도, 재실행 시 디스크에 기록된 마지막 CP부터 재개합니다 — 재작업 없음.
 
-**상세** → [`docs/thresholds.md`](./docs/thresholds.md) (verdict band · retry cap · overlap 가중치) · [`docs/faq.md`](./docs/faq.md) (이 기본값의 근거 · synthetic fixture 한계 · production 튜닝 로드맵).
+**상세** → [`docs/thresholds.ko.md`](./docs/thresholds.ko.md) (verdict band · retry cap · overlap 가중치) · [`docs/faq.ko.md`](./docs/faq.ko.md) (이 기본값의 근거 · synthetic fixture 한계 · production 튜닝 로드맵).
 
 ---
 

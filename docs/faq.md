@@ -2,6 +2,8 @@
 
 > Plain-answer FAQ. Every numeric value points back to [`thresholds.md`](./thresholds.md); this file explains *why* those numbers exist, not what they are.
 
+English · [한국어](./faq.ko.md)
+
 ---
 
 ## Q1. Why `0.80 / 0.40` for `qa-judge`?

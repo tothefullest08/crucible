@@ -3,6 +3,8 @@
 > Why six axes, why this specific matrix, why `--skip-axis 5` needs `--acknowledge-risk`.
 > This document is **externally complete** — you do not need to open `final-spec.md` to act on it.
 
+English · [한국어](./axes.ko.md)
+
 ---
 
 ## The six axes

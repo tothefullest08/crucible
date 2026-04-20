@@ -2,6 +2,8 @@
 
 > ⚠️ **MVP status.** Every number below is anchored to either an upstream convention, a design derivation, or a 20-sample **synthetic fixture** (KU-0 · KU-1 · KU-2 · KU-3 under `.claude/state/ku-results/`). Production tuning **is required** once real-session JSONL logs (≥ 100) are collected. Treat these values as defaults, not as validated production constants.
 
+English · [한국어](./thresholds.ko.md)
+
 All quantitative values used by `crucible` live in this file. Every other file links here; **no number may be duplicated**. Edits to a value must update this file first, then any referring doc.
 
 ---

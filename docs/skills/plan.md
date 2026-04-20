@@ -2,6 +2,8 @@
 
 > Turn a requirements doc into a hybrid Markdown + YAML plan that both humans and `qa-judge` can parse.
 
+English · [한국어](./plan.ko.md)
+
 ## Paradigm
 
 `/plan` takes a single input (`*-requirements.md` from `/brainstorm`) and produces a single file that serves two readers at once: a human reviewer who reads the Markdown body, and the `qa-judge` Evaluator that reads the YAML frontmatter. The dual-reader constraint is the whole point — a plan that only humans can parse cannot be verified, and a plan that only machines can parse cannot be reviewed. The hybrid format is the contract that keeps both honest.
