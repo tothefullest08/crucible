@@ -43,24 +43,19 @@ Runtime requirements: `bash` (≥ 4), `jq` (≥ 1.6), `uuidgen`, `flock`. No Pyt
 
 - `/brainstorm` — Feature brainstorming with a 3-lens clarify pass (vague · unknown · metamedium). Emits a requirements doc at `.claude/plans/YYYY-MM-DD-{slug}-requirements.md`.
 - `/plan` — Hybrid Markdown + YAML-frontmatter plan built from a requirements doc. Includes acceptance criteria, evaluation principles with weights, and exit conditions.
-- `/verify` — Artifact scoring with `qa-judge` (promote ≥ 0.80, retry 0.40–0.80, reject ≤ 0.40), Ralph Loop retries, and Charter Preflight.
+- `/verify` — Artifact scoring with `qa-judge`, Ralph Loop retries, and Charter Preflight.
 - `/compound` — Promotion gate for repeated patterns, user corrections, and session-wrap summaries. Only user-approved candidates reach `.claude/memory/`.
 - `/orchestrate` *(Stretch)* — End-to-end pipeline that chains the four skills above with CP-0 through CP-5 disk checkpoints for crash-safe resume.
+
+**Details** → [`docs/skills/`](./docs/skills/) (per-skill paradigm, judgment, design choices).
 
 ---
 
 ## 6-Axis Harness
 
-| # | Axis | What it enforces |
-|---|------|------------------|
-| 1 | **Structure** | Plugin layout, manifest integrity, slash-command registration |
-| 2 | **Context** | `SessionStart` hook + `using-harness` guidance + `MEMORY.md` injection |
-| 3 | **Plan** | Hybrid Markdown + YAML artifacts that humans and Evaluators both parse |
-| 4 | **Execute** | Scoped skills, hook-validated prompts, SHA256-pinned payloads |
-| 5 | **Verify** | `qa-judge` scoring · Ralph Loop · 3-stage Evaluator · grey-zone fallback |
-| 6 | **Improve** | `/compound` promotion gate → `tacit/`, `corrections/`, `preferences/` memory |
+Every artifact passes a six-axis gate: **Structure · Context · Plan · Execute · Verify · Improve**. `--skip-axis N` is permitted, but `--skip-axis 5` additionally requires `--acknowledge-risk` — skipping verification is an explicit release blocker.
 
-Enforcement scope per skill is defined in [final-spec §3.5](./.claude/plans/2026-04-19/03-design/final-spec.md). `--skip-axis N` is permitted, but `--skip-axis 5` additionally requires `--acknowledge-risk` — skipping verification is an explicit release blocker.
+**Details** → [`docs/axes.md`](./docs/axes.md) (full matrix, skill × axis grid, skip-policy rationale).
 
 ---
 
@@ -91,6 +86,8 @@ Enforcement scope per skill is defined in [final-spec §3.5](./.claude/plans/202
 ```
 
 If `/orchestrate` crashes between checkpoints, re-invocation resumes from the last CP written to disk — no rework.
+
+**Details** → [`docs/thresholds.md`](./docs/thresholds.md) (verdict bands, retry cap, overlap weights) · [`docs/faq.md`](./docs/faq.md) (why these defaults, synthetic-fixture caveat, production tuning plan).
 
 ---
 
