@@ -30,3 +30,6 @@ lecture/*.pdf
 # 개발 이력 (not distributed) — v1.0.3+에서 filter-repo로 이력 정리됨
 .claude/plans/
 .claude/state/
+
+# 진단 리포트 (/check-harness 결과물, 로컬 전용)
+.harness/

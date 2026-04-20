@@ -9,16 +9,15 @@
 
 - **Project**: `crucible` — a Claude Code plugin that compounds user-approved learnings into durable memory.
 - **Position**: crucible compounds only user-approved learnings into durable memory across a six-axis Brainstorm→Plan→Verify→Compound Claude Code loop.
-- **Runtime**: `bash` (≥ 4), `jq` (≥ 1.6), `uuidgen`, `flock`. **Python and Node are prohibited** (final-spec §4.1).
-- **Canonical spec**: internal dev doc (not distributed; see the development mirror) — v3.4, §3.5 · §4.5 · §11-5/6/7 locked.
-- **Implementation plan**: internal dev doc (not distributed; see the development mirror) — §W0–§W8 + §W7.5.
+- **Runtime**: `bash` (≥ 4), `jq` (≥ 1.6), `uuidgen`, `flock`. **Python and Node are prohibited** (see Non-goals).
+- **Authoritative references**: per-skill compliance → [AGENTS.md](./AGENTS.md) · release criteria → [RELEASE-CHECKLIST.md](./RELEASE-CHECKLIST.md) · project guardrails → [.claude/rules/project-guardrails.md](./.claude/rules/project-guardrails.md) · non-goals → bottom of this file.
 - **License**: MIT (SPDX `MIT`) · DCO sign-off required on every commit.
 
 ---
 
 ## 6-axis compliance rules
 
-Every artifact Claude emits must pass the axis checks relevant to its skill class (final-spec §3.5):
+Every artifact Claude emits must pass the axis checks relevant to its skill class. Per-skill enforcement detail lives in [AGENTS.md](./AGENTS.md).
 
 | Axis | # | Enforcement |
 |------|---|-------------|
@@ -49,7 +48,7 @@ Escape hatch `--skip-axis N` is permitted. **Skipping axis 5 requires `--acknowl
 | [`/compound`](./skills/compound/SKILL.md) | "compound", pattern_repeat, `/session-wrap` | Candidate queue | `.claude/memory/{tacit,corrections,preferences}/*.md` |
 | [`/orchestrate`](./skills/orchestrate/SKILL.md) *(Stretch)* | "orchestrate", "4축 파이프라인" | Topic prompt | 4-axis pipeline + CP-0~CP-5 checkpoints |
 
-Detailed `SKILL.md` frontmatter (6 fields × 5 skills) is audited in final-spec §11-7.1.
+Per-skill `SKILL.md` frontmatter (6 fields × 5 skills) is audited via the checklist in [AGENTS.md](./AGENTS.md).
 
 ---
 
@@ -58,11 +57,11 @@ Detailed `SKILL.md` frontmatter (6 fields × 5 skills) is audited in final-spec 
 - **Immutability first**: new objects over in-place mutation (global coding-style rule).
 - **Many small files**: 200–400 lines typical, 800 max. High cohesion, low coupling.
 - **TDD**: RED → GREEN → REFACTOR, ≥ 80 % coverage (project-wide testing rule).
-- **Shell only**: `bash` + `jq` + `yq` + `uuidgen`. No Python, no Node (final-spec §4.1).
+- **Shell only**: `bash` + `jq` + `yq` + `uuidgen`. No Python, no Node (see Non-goals).
 - **Commit format**: Conventional Commits (`feat:`, `fix:`, etc.) with `Signed-off-by:` trailer (DCO).
-- **Secrets**: never commit `.env`, credentials, or secrets (global security rule).
+- **Secrets**: never commit `.env`, credentials, or secrets (enforced by `hooks/pretool-block-secrets.sh`).
 
-Full workflow and validation steps live in [CONTRIBUTING.md](./CONTRIBUTING.md).
+Full workflow and validation steps live in [CONTRIBUTING.md](./CONTRIBUTING.md). Project-local guardrails (memory gate, axis skip policy, file policy) live in [.claude/rules/project-guardrails.md](./.claude/rules/project-guardrails.md).
 
 ---
 
@@ -72,6 +71,7 @@ Full workflow and validation steps live in [CONTRIBUTING.md](./CONTRIBUTING.md).
 - **[NOTICES.md](./NOTICES.md)** — Upstream copyright notices (6 MIT-licensed sources).
 - **[CONTRIBUTING.md](./CONTRIBUTING.md)** — DCO sign-off procedure, PR checklist, development setup.
 - **[RELEASE-CHECKLIST.md](./RELEASE-CHECKLIST.md)** — W8 release criteria, Hard AC judgment table.
+- **[.claude/rules/project-guardrails.md](./.claude/rules/project-guardrails.md)** — project-local guardrails (runtime, memory gate, axis skip, file policy).
 - **[LICENSE](./LICENSE)** — MIT license text.
 
 ---
@@ -79,20 +79,20 @@ Full workflow and validation steps live in [CONTRIBUTING.md](./CONTRIBUTING.md).
 ## When asked to work on this repo
 
 1. Read the user's request and identify which skill class applies (`/plan`, `/verify`, etc.).
-2. Confirm which axes are **ON** for that class (§3.5.1 summary table above).
-3. If the task crosses final-spec §3.5/§4.5/§11 boundaries, update the spec *first*, then implement.
+2. Confirm which axes are **ON** for that class (see the summary table above).
+3. If the task crosses axis rules, `SKILL.md` contracts, or release AC, update [AGENTS.md](./AGENTS.md) or [RELEASE-CHECKLIST.md](./RELEASE-CHECKLIST.md) *first*, then implement.
 4. Keep edits minimal. Do not refactor out of scope. Do not add features the task did not ask for.
-5. On commit: `git commit -s` (DCO). On push: follow `_git-workflow-template.md` for rebase-first policy.
+5. On commit: `git commit -s` (DCO). On push: rebase-first policy (see [CONTRIBUTING.md](./CONTRIBUTING.md)).
 
 ---
 
 ## Non-goals
 
-- Python/Node dependencies (permanent exclusion — final-spec §9.1).
+- Python/Node dependencies (permanent exclusion).
 - Automatic memory writes without user approval (contradicts `/compound` gate).
-- Cross-project memory leakage (`~/.claude/memory/` is **off by default** — §4.3.4).
+- Cross-project memory leakage (`~/.claude/memory/` is **off by default**).
 - Breaking any of the 8 Hard AC listed in [RELEASE-CHECKLIST.md](./RELEASE-CHECKLIST.md).
 
 ---
 
-*Spec v3.4 · W8 release prep · MIT · DCO enforced.*
+*MIT · DCO enforced.*
