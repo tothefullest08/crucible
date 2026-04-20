@@ -1,6 +1,6 @@
 # Developer Certificate of Origin
 
-Contributions to **harness** are accepted under the Developer Certificate of Origin (DCO) v1.1. The full, unmodified text of the DCO follows. The canonical copy lives at <https://developercertificate.org>.
+Contributions to **crucible** are accepted under the Developer Certificate of Origin (DCO) v1.1. The full, unmodified text of the DCO follows. The canonical copy lives at <https://developercertificate.org>.
 
 ---
 

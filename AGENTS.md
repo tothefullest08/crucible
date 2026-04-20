@@ -1,6 +1,6 @@
 # AGENTS.md — Skill Compliance Checklist
 
-> Enforcement contract for every skill in `harness`. Paired with [CLAUDE.md](./CLAUDE.md) project guidance.
+> Enforcement contract for every skill in `crucible`. Paired with [CLAUDE.md](./CLAUDE.md) project guidance.
 > All 5 skills must pass their applicable 6-axis checks **before** an artifact leaves `validate_prompt`.
 
 ---
@@ -80,4 +80,4 @@ Each `SKILL.md` frontmatter declares a `validate_prompt` block. The `hooks/valid
 
 ---
 
-*Skill Compliance Checklist v1 · keeps `harness` agent behaviour honest at each axis boundary.*
+*Skill Compliance Checklist v1 · keeps `crucible` agent behaviour honest at each axis boundary.*

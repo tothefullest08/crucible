@@ -1,8 +1,8 @@
 # NOTICES
 
-> Third-party attributions for `harness`. All upstream projects are **MIT-licensed** (scenario A — final-spec §4.5). No GPL contamination, no missing-license items.
+> Third-party attributions for `crucible`. All upstream projects are **MIT-licensed** (scenario A — final-spec §4.5). No GPL contamination, no missing-license items.
 
-`harness` itself is distributed under [MIT](./LICENSE) (SPDX `MIT`). The notices below satisfy the attribution clause of MIT for each upstream.
+`crucible` itself is distributed under [MIT](./LICENSE) (SPDX `MIT`). The notices below satisfy the attribution clause of MIT for each upstream.
 
 ---
 

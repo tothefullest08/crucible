@@ -1,4 +1,4 @@
-# RELEASE-CHECKLIST — harness MVP (W8)
+# RELEASE-CHECKLIST — crucible MVP (W8)
 
 > Gate document for the MVP release. All 8 Hard AC must be **PASS** before publishing the plugin.
 > Paired artifacts: [`.claude/state/ac-final.json`](./.claude/state/ac-final.json), [`final-spec.md`](./.claude/plans/03-design/final-spec.md) §10.1.
@@ -30,7 +30,7 @@ Supplementary (not counted in 8 Hard AC but release-blocking):
 
 ## W0 → W8 gate retrospective
 
-- **W0 — Premise re-verification**: Scenario-A license scan + harness differentiator reaffirmed (6-axis + promotion gate). Gate decision: proceed to W1.
+- **W0 — Premise re-verification**: Scenario-A license scan + crucible differentiator reaffirmed (6-axis + promotion gate). Gate decision: proceed to W1.
 - **W1 — Scaffold + JSONL smoke + SessionStart**: plugin.json/marketplace.json minimal manifest, session-start hook with payload SHA256 guard, history-insight JSONL parser (jq-only rewrite).
 - **W2 — `/brainstorm` MVP**: clarify 3-lens (vague/unknown/metamedium), validate_prompt hook, HARD-GATE tag convention ported from superpowers.
 - **W3 — `/plan` hybrid**: Markdown body + YAML frontmatter (Seed schema from ouroboros), Ambiguity Gate 0.2, Model Tiering policy.

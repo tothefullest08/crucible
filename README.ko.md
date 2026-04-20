@@ -1,6 +1,6 @@
-# harness
+# crucible
 
-> **harness는 승격 게이트 통과 학습만 저장하는, 6축(Brainstorm→Plan→Verify→Compound) 컴파운딩 메모리 Claude Code 플러그인입니다.**
+> **crucible은 승격 게이트 통과 학습만 저장하는, 6축(Brainstorm→Plan→Verify→Compound) 컴파운딩 메모리 Claude Code 플러그인입니다.**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
 [![SPDX](https://img.shields.io/badge/SPDX-MIT-blue.svg)](./LICENSE)
@@ -11,28 +11,28 @@
 
 ---
 
-## 왜 harness 인가 (Why)
+## 왜 crucible 인가 (Why)
 
-Claude Code 세션에서 반복되는 3가지 실패 모드. `harness`는 유저 승인 게이트를 통과하지 않은 어떤 학습도 영속 저장하지 않습니다.
+Claude Code 세션에서 반복되는 3가지 실패 모드. `crucible`은 유저 승인 게이트를 통과하지 않은 어떤 학습도 영속 저장하지 않습니다.
 
 - **반복 실수** — 같은 버그를 매 세션마다 다시 발견합니다. 수정은 세션 메모리에서 증발합니다.
 - **암묵지 휘발** — 프로젝트 컨벤션, 팀 결정, "아 그거 틀렸다" 순간이 기록되지 않고 사라집니다.
 - **6축 메타 루프 부재** — 기존 플러그인은 brainstorm/plan/verify/compound 중 *하나*만 자동화합니다. 6축(Structure · Context · Plan · Execute · Verify · Improve)을 하드 게이트로 강제하는 플러그인은 없습니다.
 - **Auto-memory 노이즈** — 자동 메모리 저장 플러그인은 큐레이션 없는 저신호 항목으로 이후 컨텍스트를 오염시킵니다.
-- **검증 스킵** — Verify 축 스킵은 보통 키 한 번 실수로 발생합니다. `harness`는 `--acknowledge-risk` 플래그 없이는 스킵 자체를 릴리스 블로커로 취급합니다.
+- **검증 스킵** — Verify 축 스킵은 보통 키 한 번 실수로 발생합니다. `crucible`는 `--acknowledge-risk` 플래그 없이는 스킵 자체를 릴리스 블로커로 취급합니다.
 
 ---
 
 ## 설치 (Install)
 
-`harness`는 외부 의존이 0인 Claude Code 플러그인입니다 (`bash` + `jq`만 사용). Claude Code 플러그인 경로에 디렉토리를 복사하면 5 슬래시 커맨드가 자동 등록됩니다.
+`crucible`는 외부 의존이 0인 Claude Code 플러그인입니다 (`bash` + `jq`만 사용). Claude Code 플러그인 경로에 디렉토리를 복사하면 5 슬래시 커맨드가 자동 등록됩니다.
 
 ```bash
 # 옵션 A — Claude Code 플러그인으로 직접 복사
-cp -r harness ~/.claude-plugin-harness
+cp -r crucible ~/.claude-plugin-crucible
 
 # 옵션 B — 플러그인 디렉토리로 clone
-git clone https://github.com/<owner>/harness.git ~/.claude/plugins/harness
+git clone https://github.com/<owner>/crucible.git ~/.claude/plugins/crucible
 ```
 
 런타임 요구사항: `bash` (≥ 4), `jq` (≥ 1.6), `uuidgen`, `flock`. Python/Node 불필요. 개발 환경 상세는 [CONTRIBUTING.md](./CONTRIBUTING.md#development-setup) 참조.
@@ -104,7 +104,7 @@ git clone https://github.com/<owner>/harness.git ~/.claude/plugins/harness
 
 ## 감사의 말 (Acknowledgments)
 
-`harness`는 6개 상류 Claude Code 프로젝트의 자산을 포팅·각색했습니다. 전부 **MIT 라이선스**이며 재배포 호환입니다 (커밋 해시·sync 주기는 [`porting-matrix.md`](./.claude/plans/04-planning/porting-matrix.md)):
+`crucible`는 6개 상류 Claude Code 프로젝트의 자산을 포팅·각색했습니다. 전부 **MIT 라이선스**이며 재배포 호환입니다 (커밋 해시·sync 주기는 [`porting-matrix.md`](./.claude/plans/04-planning/porting-matrix.md)):
 
 - **hoyeon** — `validate_prompt` 훅 패턴, 6-agent verify 스택, 한국어 UX
 - **ouroboros** — `qa-judge` JSON 스키마, Ralph Loop, Seed YAML, Ambiguity Gate
