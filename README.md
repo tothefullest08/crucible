@@ -25,14 +25,42 @@ Three failure modes repeatedly kill Claude Code sessions. `crucible` refuses to 
 
 ## Install
 
-`crucible` is a zero-dependency Claude Code plugin (`bash` + `jq` only). Drop the plugin directory into a Claude Code plugins path and the five slash commands register automatically.
+`crucible` is a zero-dependency Claude Code plugin (`bash` + `jq` only). Install through the Claude Code plugin marketplace in three commands, typed inside any Claude Code session:
+
+```
+/plugin marketplace add tothefullest08/crucible
+/plugin install crucible@crucible
+/reload-plugins
+```
+
+After `/reload-plugins`, the five slash commands (`/crucible:brainstorm` · `/crucible:plan` · `/crucible:verify` · `/crucible:compound` · `/crucible:orchestrate`) and the PreToolUse guard hooks are active in the current session. Confirm with:
+
+```
+/plugin list         # crucible@crucible should appear under Installed
+```
+
+Pick a scope at the interactive prompt:
+
+- **User scope** — available in all your Claude Code sessions (recommended for regular use).
+- **Project scope** — committed to `.claude/settings.json`, shared with collaborators on this repo.
+- **Local scope** — this repo only, not shared (recommended for trial / dogfood).
+
+Uninstall reverses the same two commands:
+
+```
+/plugin uninstall crucible@crucible
+/plugin marketplace remove crucible
+```
+
+### Local-dev alternative (contributors only)
+
+If you are modifying `crucible` itself, clone the repo and register it as a **local** marketplace instead of fetching from GitHub:
 
 ```bash
-# Option A — direct copy into Claude Code plugins
-cp -r crucible ~/.claude-plugin-crucible
-
-# Option B — clone into a plugins directory
-git clone https://github.com/<owner>/crucible.git ~/.claude/plugins/crucible
+git clone https://github.com/tothefullest08/crucible.git ~/src/crucible
+# then inside Claude Code:
+#   /plugin marketplace add ~/src/crucible
+#   /plugin install crucible@crucible
 ```
 
 Runtime requirements: `bash` (≥ 4), `jq` (≥ 1.6), `uuidgen`, `flock`. No Python or Node. See [CONTRIBUTING.md](./CONTRIBUTING.md#development-setup) for the full development environment.
@@ -61,10 +89,12 @@ Every artifact passes a six-axis gate: **Structure · Context · Plan · Execute
 
 ## Example
 
-**Single-skill call (`/verify` standalone):**
+All slash commands use the `crucible:` namespace once the plugin is installed (see Install). Claude Code can resolve them without the prefix when the name is unambiguous, but the explicit form is always safe.
 
-```bash
-/verify .claude/plans/2026-04-20-dark-mode-plan.md --axis 5
+**Single-skill call (`/crucible:verify` standalone):**
+
+```
+/crucible:verify .claude/plans/2026-04-20-dark-mode-plan.md --axis 5
 # → qa-judge report:
 #    {"score": 0.86, "verdict": "promote",
 #     "dimensions": {"completeness": 0.9, "correctness": 0.85, ...},
@@ -73,10 +103,10 @@ Every artifact passes a six-axis gate: **Structure · Context · Plan · Execute
 # → axis 5 PASS, artifact promoted.
 ```
 
-**Full pipeline (`/orchestrate`):**
+**Full pipeline (`/crucible:orchestrate`):**
 
-```bash
-/orchestrate "add dark mode toggle to settings panel"
+```
+/crucible:orchestrate "add dark mode toggle to settings panel"
 # → CP-0: brainstorm   → requirements.md
 # → CP-1: plan         → plan.md (Markdown + YAML)
 # → CP-2: verify       → qa-judge report
@@ -85,7 +115,7 @@ Every artifact passes a six-axis gate: **Structure · Context · Plan · Execute
 # → CP-5: experiment-log.yaml committed
 ```
 
-If `/orchestrate` crashes between checkpoints, re-invocation resumes from the last CP written to disk — no rework.
+If `/crucible:orchestrate` crashes between checkpoints, re-invocation resumes from the last CP written to disk — no rework.
 
 **Details** → [`docs/thresholds.md`](./docs/thresholds.md) (verdict bands, retry cap, overlap weights) · [`docs/faq.md`](./docs/faq.md) (why these defaults, synthetic-fixture caveat, production tuning plan).
 
