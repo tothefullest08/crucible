@@ -51,8 +51,8 @@ fi
 
 # --- 2) Create clean tmpdir + copy plugin surface ----------------------------
 printf '\n== stage clean copy ==\n'
-tmpdir="$(mktemp -d -t harness-clean-install.XXXXXX)"
-target="${tmpdir}/clean-harness"
+tmpdir="$(mktemp -d -t crucible-clean-install.XXXXXX)"
+target="${tmpdir}/clean-crucible"
 mkdir -p "${target}"
 
 # Copy plugin surface required for `/brainstorm` cold start.

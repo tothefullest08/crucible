@@ -1,8 +1,8 @@
-# Contributing to harness
+# Contributing to crucible
 
 <!-- SPDX-License-Identifier: MIT -->
 
-Thanks for your interest in contributing! harness is an **MIT-licensed** (SPDX `MIT`) Claude Code plugin, and we welcome issues, patches, docs, and new porting candidates from the wider Claude Code ecosystem.
+Thanks for your interest in contributing! crucible is an **MIT-licensed** (SPDX `MIT`) Claude Code plugin, and we welcome issues, patches, docs, and new porting candidates from the wider Claude Code ecosystem.
 
 This document covers the workflow, commit/PR rules, and the **DCO sign-off** that every contribution must carry.
 
@@ -13,13 +13,13 @@ This document covers the workflow, commit/PR rules, and the **DCO sign-off** tha
 ### Reporting issues
 
 - Search existing issues before opening a new one.
-- Use a descriptive title and include: Claude Code version, harness commit hash, and the minimal reproduction steps.
+- Use a descriptive title and include: Claude Code version, crucible commit hash, and the minimal reproduction steps.
 - For suspected spec drift, link the relevant section of `.claude/plans/03-design/final-spec.md` (v3.1 is the single source of truth).
 
 ### Submitting pull requests
 
 1. **Fork and branch.** Branch names follow `<type>/<short-topic>` (e.g., `feat/verify-gate`, `fix/hook-race`).
-2. **Write tests first.** harness follows the project-wide TDD rule — RED → GREEN → REFACTOR, ≥ 80% coverage.
+2. **Write tests first.** crucible follows the project-wide TDD rule — RED → GREEN → REFACTOR, ≥ 80% coverage.
 3. **Run validation locally** before pushing (see [PR checklist](#pr-checklist)).
 4. **Sign off every commit** (DCO — see next section).
 5. **Open a PR** against `main` with a summary, test plan, and links to any `.claude/plans/` sections touched.
@@ -28,7 +28,7 @@ This document covers the workflow, commit/PR rules, and the **DCO sign-off** tha
 
 ## DCO sign-off (required)
 
-harness uses the **Developer Certificate of Origin (DCO) v1.1** instead of a Contributor License Agreement. This is the same mechanism used by the Linux kernel, Git, and most major OSS projects — it keeps the barrier to entry low while giving the project baseline legal protection.
+crucible uses the **Developer Certificate of Origin (DCO) v1.1** instead of a Contributor License Agreement. This is the same mechanism used by the Linux kernel, Git, and most major OSS projects — it keeps the barrier to entry low while giving the project baseline legal protection.
 
 ### What you need to do
 
@@ -68,7 +68,7 @@ PRs whose commits lack DCO sign-offs will be asked to rebase before merge. A Git
 
 ## Commit message convention
 
-harness follows [Conventional Commits](https://www.conventionalcommits.org/):
+crucible follows [Conventional Commits](https://www.conventionalcommits.org/):
 
 ```
 <type>: <short imperative summary>
@@ -124,8 +124,8 @@ A formal Code of Conduct will be added in a future release. Until then, the shor
 ### Local install
 
 ```bash
-git clone https://github.com/<owner>/harness.git
-cd harness
+git clone https://github.com/<owner>/crucible.git
+cd crucible
 
 # Link the plugin into your Claude Code plugins dir
 # (exact command will be finalized alongside the W8 install docs)
@@ -149,4 +149,4 @@ cd harness
 
 Open a GitHub issue with the `question` label, or link to the relevant `.claude/plans/` section so we can respond in context.
 
-Thanks for contributing to harness.
+Thanks for contributing to crucible.

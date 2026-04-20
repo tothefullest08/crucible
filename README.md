@@ -1,6 +1,6 @@
-# harness
+# crucible
 
-> **harness compounds only user-approved learnings into durable memory across a six-axis Brainstorm→Plan→Verify→Compound Claude Code loop.**
+> **crucible compounds only user-approved learnings into durable memory across a six-axis Brainstorm→Plan→Verify→Compound Claude Code loop.**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
 [![SPDX](https://img.shields.io/badge/SPDX-MIT-blue.svg)](./LICENSE)
@@ -13,26 +13,26 @@ English · [한국어](./README.ko.md)
 
 ## Why
 
-Three failure modes repeatedly kill Claude Code sessions. `harness` refuses to ship past any of them without a user-approved gate.
+Three failure modes repeatedly kill Claude Code sessions. `crucible` refuses to ship past any of them without a user-approved gate.
 
 - **Repeated mistakes** — the same bug gets rediscovered every session because the correction never leaves working memory.
 - **Tacit-knowledge evaporation** — project conventions, team decisions, and "that was wrong" moments never get written down.
 - **No six-axis meta-loop** — Claude Code plugins typically automate *one* of brainstorm/plan/verify/compound; none enforce all six axes (Structure · Context · Plan · Execute · Verify · Improve) with a hard gate.
 - **Auto-memory noise** — plugins that write memory automatically pollute future context with low-signal entries no one curated.
-- **Skipped verification** — skipping the Verify axis is usually a one-keystroke mistake; `harness` makes it a release blocker unless you explicitly acknowledge the risk.
+- **Skipped verification** — skipping the Verify axis is usually a one-keystroke mistake; `crucible` makes it a release blocker unless you explicitly acknowledge the risk.
 
 ---
 
 ## Install
 
-`harness` is a zero-dependency Claude Code plugin (`bash` + `jq` only). Drop the plugin directory into a Claude Code plugins path and the five slash commands register automatically.
+`crucible` is a zero-dependency Claude Code plugin (`bash` + `jq` only). Drop the plugin directory into a Claude Code plugins path and the five slash commands register automatically.
 
 ```bash
 # Option A — direct copy into Claude Code plugins
-cp -r harness ~/.claude-plugin-harness
+cp -r crucible ~/.claude-plugin-crucible
 
 # Option B — clone into a plugins directory
-git clone https://github.com/<owner>/harness.git ~/.claude/plugins/harness
+git clone https://github.com/<owner>/crucible.git ~/.claude/plugins/crucible
 ```
 
 Runtime requirements: `bash` (≥ 4), `jq` (≥ 1.6), `uuidgen`, `flock`. No Python or Node. See [CONTRIBUTING.md](./CONTRIBUTING.md#development-setup) for the full development environment.
@@ -104,7 +104,7 @@ Contributions require a **DCO sign-off** (`git commit -s`). The full workflow an
 
 ## Acknowledgments
 
-`harness` ports and adapts work from six upstream Claude Code projects, all **MIT-licensed** and compatible with our redistribution (commit hashes and sync cadence tracked in [`porting-matrix.md`](./.claude/plans/04-planning/porting-matrix.md)):
+`crucible` ports and adapts work from six upstream Claude Code projects, all **MIT-licensed** and compatible with our redistribution (commit hashes and sync cadence tracked in [`porting-matrix.md`](./.claude/plans/04-planning/porting-matrix.md)):
 
 - **hoyeon** — `validate_prompt` hook pattern, 6-agent verify stack, Korean UX
 - **ouroboros** — `qa-judge` JSON schema, Ralph Loop, Seed YAML, Ambiguity Gate

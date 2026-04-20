@@ -27,8 +27,8 @@ W1의 **첫 3개 실질 스캐폴드 태스크**를 순차 수행. 실제 파일
 - `license`: `MIT` (v3 §4.5)
 
 그 외 필드 (CE 레퍼런스에 있으면 복사):
-- `keywords`: ["harness", "compound", "6-axis", "planning", "brainstorm"] 등 5~8개
-- `repository`: GitHub URL `https://github.com/tothefullest08/harness` (HTTPS)
+- `keywords`: ["crucible", "compound", "6-axis", "planning", "brainstorm"] 등 5~8개
+- `repository`: GitHub URL `https://github.com/tothefullest08/crucible` (HTTPS)
 
 **경로**: `/Users/ethan/Desktop/personal/harness/.claude-plugin/plugin.json`
 

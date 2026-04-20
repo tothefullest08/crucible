@@ -1,4 +1,4 @@
-# harness — CLAUDE.md
+# crucible — CLAUDE.md
 
 > Project-level guidance for Claude Code agents working in this repository.
 > For Skill Compliance Checklists (6-axis + `validate_prompt`), see [AGENTS.md](./AGENTS.md).
@@ -7,8 +7,8 @@
 
 ## Project header
 
-- **Project**: `harness` — a Claude Code plugin that compounds user-approved learnings into durable memory.
-- **Position**: harness compounds only user-approved learnings into durable memory across a six-axis Brainstorm→Plan→Verify→Compound Claude Code loop.
+- **Project**: `crucible` — a Claude Code plugin that compounds user-approved learnings into durable memory.
+- **Position**: crucible compounds only user-approved learnings into durable memory across a six-axis Brainstorm→Plan→Verify→Compound Claude Code loop.
 - **Runtime**: `bash` (≥ 4), `jq` (≥ 1.6), `uuidgen`, `flock`. **Python and Node are prohibited** (final-spec §4.1).
 - **Canonical spec**: `.claude/plans/03-design/final-spec.md` (currently v3.4, §3.5 · §4.5 · §11-5/6/7 locked).
 - **Implementation plan**: `.claude/plans/04-planning/implementation-plan.md` (§W0–§W8 + §W7.5).
