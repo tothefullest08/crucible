@@ -1,9 +1,9 @@
 ---
 name: brainstorm
 description: |
-  Feature brainstorming with embedded clarify 3-lens (vague · unknown · metamedium).
+  요구사항 브레인스토밍 (한·영) / Feature brainstorming with embedded clarify 3-lens (vague · unknown · metamedium).
   Use when requirements are ambiguous, hidden assumptions need surfacing, or content-vs-form reframing is needed — turns a vague topic into a file-backed requirements document at `.claude/plans/YYYY-MM-DD-{slug}-requirements.md`.
-  트리거: "브레인스토밍", "요구사항 정리", "요구사항 명확히", "뭘 만들지 모르겠어", "아이디어 정리", "전략 점검", "내용 vs 형식", "spec this out", "scope this".
+  트리거: "브레인스토밍", "요구사항 정리", "요구사항 명확히", "뭘 만들지 모르겠어", "아이디어 정리", "전략 점검", "내용 vs 형식", "brainstorm", "spec this out", "scope this".
 when_to_use: "모호한 요구사항을 구체 스펙으로 정제할 때. 'brainstorm', '브레인스토밍', '요구사항 정리', 'spec this out' 등"
 input: "주제 (자유 발화)"
 output: ".claude/plans/YYYY-MM-DD-{slug}-requirements.md (slug 화이트리스트: [a-zA-Z0-9_-])"

@@ -1,6 +1,8 @@
 # Contributing to harness
 
-Thanks for your interest in contributing! harness is an MIT-licensed Claude Code plugin, and we welcome issues, patches, docs, and new porting candidates from the wider Claude Code ecosystem.
+<!-- SPDX-License-Identifier: MIT -->
+
+Thanks for your interest in contributing! harness is an **MIT-licensed** (SPDX `MIT`) Claude Code plugin, and we welcome issues, patches, docs, and new porting candidates from the wider Claude Code ecosystem.
 
 This document covers the workflow, commit/PR rules, and the **DCO sign-off** that every contribution must carry.
 
@@ -91,10 +93,14 @@ Before marking a PR ready for review, confirm:
 - [ ] Commit messages follow Conventional Commits
 - [ ] Tests pass locally (unit + integration + e2e where applicable)
 - [ ] `shellcheck` passes on any touched shell scripts
-- [ ] JSON manifests validate (`.claude-plugin/plugin.json`, `marketplace.json`, any skill frontmatter)
+- [ ] `yq` parses every skill's YAML frontmatter (`yq eval '.name' skills/*/SKILL.md`)
+- [ ] JSON manifests validate (`.claude-plugin/plugin.json`, `marketplace.json`)
+- [ ] 6-axis compliance: state which of axes 1–6 the change affects and confirm `validate_prompt` still passes for affected skills
+- [ ] Hard AC impact: list any of the 8 Hard AC (final-spec §10.1) the change touches
 - [ ] Any `§11` open-item deadline referenced in `.claude/plans/03-design/final-spec.md` is respected (or you've explicitly flagged that the PR postpones one)
 - [ ] Docs and `MEMORY.md` pointers are updated when behavior changes
 - [ ] No secrets, API keys, or local paths committed
+- [ ] `SPDX-License-Identifier: MIT` preserved in `LICENSE` and this file
 
 ---
 
