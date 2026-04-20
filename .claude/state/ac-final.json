@@ -1,0 +1,59 @@
+{
+  "spec_version": "v3.4",
+  "captured_at": "2026-04-20",
+  "release_target": "W8 / MVP",
+  "ac_1": {
+    "status": "pass",
+    "title": "Plugin install success (external deps = 0)",
+    "evidence": "__tests__/integration/test-clean-install.sh (T-W8-08) — AC-1 PASS, clean tmpdir copy + no python/node runtime refs + bash/jq/yq/uuidgen verified"
+  },
+  "ac_2": {
+    "status": "pass",
+    "title": "4 skills callable (/brainstorm /plan /verify /compound)",
+    "evidence": "test-clean-install.sh yq parses skills/brainstorm/SKILL.md .name = brainstorm (T-W8-08); test-ac2-brainstorm-validate.sh AC-2 PASS; skills/{plan,verify,compound}/SKILL.md frontmatter field audit (final-spec §11-7.1)"
+  },
+  "ac_3": {
+    "status": "pass",
+    "title": "validate_prompt hook fire-rate ≥ 99% and response-rate ≥ 90%",
+    "evidence": ".claude/state/ku-results/ku-1.json — GREEN, 20 samples, fire_rate 1.0, response_rate 1.0 (W7.5)"
+  },
+  "ac_4": {
+    "status": "pass",
+    "title": "description 한·영 병기 trigger accuracy (bidirectional 20 samples each)",
+    "evidence": ".claude/state/ku-results/ku-2.json — GREEN, 40 samples, ko 1.00 / en 1.00, delta 0.00 (W7.5)"
+  },
+  "ac_5": {
+    "status": "pass",
+    "title": "Promotion gate false-positive rate < 20%",
+    "evidence": ".claude/state/ku-results/ku-3.json — GREEN, 20 samples, FPR 0.0000 (W7.5)"
+  },
+  "ac_6": {
+    "status": "pass",
+    "title": "Session JSONL parser detects 3 compounding triggers",
+    "evidence": "__tests__/integration/test-ac6-compound-triggers.sh AC-6 PASS — user_correction=1, pattern_repeat=1, session_wrap_processed=2 (W6)"
+  },
+  "ac_7": {
+    "status": "pass",
+    "title": "qa-judge score distribution KU-0 complete + thresholds locked",
+    "evidence": ".claude/state/ku-results/ku-0.json — GREEN, 20 samples, new thresholds accept 0.86 / retry 0.50 (W7.5)"
+  },
+  "ac_8": {
+    "status": "pass",
+    "title": "README.md + README.ko.md bilingual + 한·영 description empirical",
+    "evidence": "README.md 120 lines · README.ko.md bilingual mirror (T-W8-01/02); 5 SKILL.md description 한·영 slash format + ≥5 trigger keywords (T-W8-05); final-spec §11-7.2 positioning ≤140 chars"
+  },
+  "supplementary": {
+    "license_package": {
+      "status": "pass",
+      "title": "LICENSE (MIT) + NOTICES.md (6 upstreams) + CONTRIBUTING.md (DCO)",
+      "evidence": "LICENSE SPDX-License-Identifier: MIT (T-W8-07); NOTICES.md 6 upstream attributions with commit hashes; CONTRIBUTING.md DCO sign-off procedure + SPDX header"
+    }
+  },
+  "hard_ac_summary": {
+    "total": 8,
+    "pass": 8,
+    "fail": 0,
+    "pending": 0
+  },
+  "release_gate": "GREEN"
+}

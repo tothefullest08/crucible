@@ -15,8 +15,8 @@
 - **P3 (6개)**: 선택·실험 — W8 / 2차 릴리스
 - **2차 릴리스 명시 분류 (7개)**: `/orchestrate` 고급 기능·`skill-rules.json`·Rulph 3모델 등
 - **bash+jq 재작성 필수 (P0-1 위반 시 전면 재작업)**: 2개 — ouroboros `drift-monitor.py`, `keyword-detector.py`
-- **라이선스 실측 결과 (2026-04-19 · user-decisions-5 §4 근거)**: **6개 상류 전부 MIT 확인 → 시나리오 A 확정**. 본 플러그인 최종 라이선스 **MIT** (final-spec v3 §4.5). 호환 플래그 전부 ✅
-- **상류 커밋 해시**: 현 시점 모두 TBD — T-W8-PRE-02 (§6 상류 커밋 해시 컬럼 갱신 + NOTICES.md 초안) 단계에서 확정
+- **라이선스 실측 결과 (2026-04-19 · user-decisions-5 §4 근거)**: **6개 상류 전부 MIT 확인 → 시나리오 A 확정**. 본 플러그인 최종 라이선스 **MIT** (SPDX identifier `MIT`, final-spec v3 §4.5). 호환 플래그 전부 ✅
+- **상류 커밋 해시 스냅샷 (2026-04-20 · T-W8-PRE-02 확정)**: hoyeon `4a4e0f3` · ouroboros `23426b5` · p4cn `7895a58` · superpowers `b557648` · CE plugin `b575e49` · agent-council `79a13ee`. 각 §2 상세 매트릭스에 반영
 
 ---
 
@@ -120,55 +120,55 @@
 
 ### P0 — 즉시 포팅 (#1~7)
 
-| # | 자산 | 원본 경로 | 우리 위치 | 상류 커밋 해시 | 재작성 필요 | 주차 | 태스크 ID | 라이선스 | MIT 호환 |
-|---|------|-----------|----------|--------------|-------------|------|-----------|---------|---------|
-| 1 | verify 6-에이전트 스택 | hoyeon `agents/{verifier,verification-planner,verify-planner,qa-verifier,ralph-verifier,spec-coverage}.md` | `agents/verify/` | TBD | ✗ | W4 | T-W4-02 | **MIT** (hoyeon, © 2026 team-attention) | ✅ |
-| 2 | Ralph Loop 의사코드 (non-blocking + level-based polling) | ouroboros `skills/ralph/SKILL.md:50-99` | `skills/verify/` 본문 | TBD | ✗ | W4 | T-W4-04 | **MIT** (ouroboros, © 2025 Q00) | ✅ |
-| 3 | qa-judge JSON 스키마 (0.80/0.40 임계값) | ouroboros `agents/qa-judge.md` | `agents/evaluator/qa-judge.md` | TBD | ✗ | W4 | T-W4-03 | **MIT** (ouroboros) | ✅ |
-| 4 | session-wrap 2-Phase 파이프라인 (4 병렬 + 1 순차 + AskUserQuestion) | p4cn `session-wrap/` 전체 | `skills/compound/` 전체 뼈대 | TBD | ✗ | W6 | T-W6-02 | **MIT** (p4cn, © 2025 Team Attention) | ✅ |
-| 5 | `validate_prompt` frontmatter + `PostToolUse[Task\|Skill]` 훅 | hoyeon `CLAUDE.md:27-44` + `validate-output.sh` | `skills/*/SKILL.md` frontmatter + `hooks/validate-output.sh` | TBD | ✗ | W2 | T-W2-05, T-W2-06 | **MIT** (hoyeon) | ✅ |
-| 6 | SessionStart 훅 + `using-harness.md` 주입 | superpowers `hooks/session-start` | `hooks/session-start` + `skills/using-harness/` | TBD | ✗ | W1 | T-W1-04, T-W1-05 | **MIT** (superpowers, © 2025 Jesse Vincent) | ✅ |
-| 7 | HARD-GATE 태그 패턴 | superpowers `brainstorming/SKILL.md:12-14` | 각 스킬 본문 (전환점) | TBD | ✗ | W2 | T-W2-10 | **MIT** (superpowers) | ✅ |
+| # | 자산 | 원본 경로 | 우리 위치 | 상류 커밋 해시 | sync 주기 | 재작성 필요 | 주차 | 태스크 ID | 라이선스 | MIT 호환 |
+|---|------|-----------|----------|--------------|----------|-------------|------|-----------|---------|---------|
+| 1 | verify 6-에이전트 스택 | hoyeon `agents/{verifier,verification-planner,verify-planner,qa-verifier,ralph-verifier,spec-coverage}.md` | `agents/verify/` | `4a4e0f3` | 분기 | ✗ | W4 | T-W4-02 | **MIT** (hoyeon, © 2026 team-attention) | ✅ |
+| 2 | Ralph Loop 의사코드 (non-blocking + level-based polling) | ouroboros `skills/ralph/SKILL.md:50-99` | `skills/verify/` 본문 | `23426b5` | 분기 | ✗ | W4 | T-W4-04 | **MIT** (ouroboros, © 2025 Q00) | ✅ |
+| 3 | qa-judge JSON 스키마 (0.80/0.40 임계값) | ouroboros `agents/qa-judge.md` | `agents/evaluator/qa-judge.md` | `23426b5` | 분기 | ✗ | W4 | T-W4-03 | **MIT** (ouroboros) | ✅ |
+| 4 | session-wrap 2-Phase 파이프라인 (4 병렬 + 1 순차 + AskUserQuestion) | p4cn `session-wrap/` 전체 | `skills/compound/` 전체 뼈대 | `7895a58` | 반기 | ✗ | W6 | T-W6-02 | **MIT** (p4cn, © 2025 Team Attention) | ✅ |
+| 5 | `validate_prompt` frontmatter + `PostToolUse[Task\|Skill]` 훅 | hoyeon `CLAUDE.md:27-44` + `validate-output.sh` | `skills/*/SKILL.md` frontmatter + `hooks/validate-output.sh` | `4a4e0f3` | 분기 | ✗ | W2 | T-W2-05, T-W2-06 | **MIT** (hoyeon) | ✅ |
+| 6 | SessionStart 훅 + `using-harness.md` 주입 | superpowers `hooks/session-start` | `hooks/session-start` + `skills/using-harness/` | `b557648` | 반기 | ✗ | W1 | T-W1-04, T-W1-05 | **MIT** (superpowers, © 2025 Jesse Vincent) | ✅ |
+| 7 | HARD-GATE 태그 패턴 | superpowers `brainstorming/SKILL.md:12-14` | 각 스킬 본문 (전환점) | `b557648` | 반기 | ✗ | W2 | T-W2-10 | **MIT** (superpowers) | ✅ |
 
 ### P1 — 구조 차용 (#8~16)
 
-| # | 자산 | 원본 경로 | 우리 위치 | 상류 커밋 해시 | 재작성 필요 | 주차 | 태스크 ID | 라이선스 | MIT 호환 |
-|---|------|-----------|----------|--------------|-------------|------|-----------|---------|---------|
-| 8 | 3단 Evaluator (implementer/spec-reviewer/code-quality) | superpowers `subagent-driven-development/*-prompt.md` | `agents/evaluator/` 2·3단 | TBD | ✗ | W4 | T-W4-02 (부분) | **MIT** (superpowers) | ✅ |
-| 9 | Always-on + Conditional 페르소나 | CE `ce-code-review` (17 페르소나) | `/verify` 6축 always-on + 도메인 conditional | TBD | ✗ | W4 | T-W4-01 | **MIT** (CE, © 2025 Every) | ✅ |
-| 10 | 4단계 머지/dedup 파이프라인 (fingerprint + confidence gate + cross-reviewer +0.10) | CE `ce-code-review` Stage 5 | Evaluator 여러 관점 합성 | TBD | ✗ | W7.5 (측정) | T-W7.5-04 | **MIT** (CE) | ✅ |
-| 11 | 3단 검증 파이프라인 (Mechanical $0 → Semantic $$ → Consensus $$$$) + Stage 3 6트리거 | ouroboros `agents/evaluator.md` | `/verify --deep` 확장 | TBD | ✗ | **2차** | — | **MIT** (ouroboros) | ✅ |
-| 12 | Host UI payload + Wait cursor bucket | agent-council `council-job.js:179-258, 515-650` | `/orchestrate` 6축 진행 시각화 | TBD | ✗ | W7 `[Stretch]` | T-W7-03 | **MIT** (agent-council, © 2024 Team Attention) | ✅ |
-| 13 | Charter Preflight 5줄 블록 | hoyeon `agents/_shared/charter-preflight.md` | `agents/_shared/charter-preflight.md` | TBD | ✗ | W4 | T-W4-02 (부속) | **MIT** (hoyeon) | ✅ |
-| 14 | clarify 3-lens (vague/unknown/metamedium + 3-Round depth) | p4cn `clarify/skills/*` | `skills/brainstorm/` 본문 내장 | TBD | ✗ | W2 | T-W2-02 | **MIT** (p4cn) | ✅ |
-| 15 | Model Tiering (Orchestrator / Subagent / Validator) | CE ce-code-review Stage 4 + superpowers `subagent-driven-development:87-100` | 전체 서브에이전트 호출 정책 | TBD | ✗ | W3 | T-W3-02 | **MIT** (CE + superpowers) | ✅ |
-| 16 | hoyeon 3-Axis 실행 조합 (dispatch × work × verify = 9) | hoyeon `/execute` | `/orchestrate` 실행 전략 선택 | TBD | ✗ | W7 `[Stretch]` | T-W7-04 | **MIT** (hoyeon) | ✅ |
+| # | 자산 | 원본 경로 | 우리 위치 | 상류 커밋 해시 | sync 주기 | 재작성 필요 | 주차 | 태스크 ID | 라이선스 | MIT 호환 |
+|---|------|-----------|----------|--------------|----------|-------------|------|-----------|---------|---------|
+| 8 | 3단 Evaluator (implementer/spec-reviewer/code-quality) | superpowers `subagent-driven-development/*-prompt.md` | `agents/evaluator/` 2·3단 | `b557648` | 반기 | ✗ | W4 | T-W4-02 (부분) | **MIT** (superpowers) | ✅ |
+| 9 | Always-on + Conditional 페르소나 | CE `ce-code-review` (17 페르소나) | `/verify` 6축 always-on + 도메인 conditional | `b575e49` | 연 | ✗ | W4 | T-W4-01 | **MIT** (CE, © 2025 Every) | ✅ |
+| 10 | 4단계 머지/dedup 파이프라인 (fingerprint + confidence gate + cross-reviewer +0.10) | CE `ce-code-review` Stage 5 | Evaluator 여러 관점 합성 | `b575e49` | 연 | ✗ | W7.5 (측정) | T-W7.5-04 | **MIT** (CE) | ✅ |
+| 11 | 3단 검증 파이프라인 (Mechanical $0 → Semantic $$ → Consensus $$$$) + Stage 3 6트리거 | ouroboros `agents/evaluator.md` | `/verify --deep` 확장 | `23426b5` | 분기 | ✗ | **2차** | — | **MIT** (ouroboros) | ✅ |
+| 12 | Host UI payload + Wait cursor bucket | agent-council `council-job.js:179-258, 515-650` | `/orchestrate` 6축 진행 시각화 | `79a13ee` | 연 | ✗ | W7 `[Stretch]` | T-W7-03 | **MIT** (agent-council, © 2024 Team Attention) | ✅ |
+| 13 | Charter Preflight 5줄 블록 | hoyeon `agents/_shared/charter-preflight.md` | `agents/_shared/charter-preflight.md` | `4a4e0f3` | 분기 | ✗ | W4 | T-W4-02 (부속) | **MIT** (hoyeon) | ✅ |
+| 14 | clarify 3-lens (vague/unknown/metamedium + 3-Round depth) | p4cn `clarify/skills/*` | `skills/brainstorm/` 본문 내장 | `7895a58` | 반기 | ✗ | W2 | T-W2-02 | **MIT** (p4cn) | ✅ |
+| 15 | Model Tiering (Orchestrator / Subagent / Validator) | CE ce-code-review Stage 4 + superpowers `subagent-driven-development:87-100` | 전체 서브에이전트 호출 정책 | `b575e49`+`b557648` | 연+반기 | ✗ | W3 | T-W3-02 | **MIT** (CE + superpowers) | ✅ |
+| 16 | hoyeon 3-Axis 실행 조합 (dispatch × work × verify = 9) | hoyeon `/execute` | `/orchestrate` 실행 전략 선택 | `4a4e0f3` | 분기 | ✗ | W7 `[Stretch]` | T-W7-04 | **MIT** (hoyeon) | ✅ |
 
 ### P2 — 알고리즘·수치 차용 (#17~26)
 
-| # | 자산 | 원본 경로 | 우리 위치 | 상류 커밋 해시 | 재작성 필요 | 주차 | 태스크 ID | 라이선스 | MIT 호환 |
-|---|------|-----------|----------|--------------|-------------|------|-----------|---------|---------|
-| 17 | Mandatory Disk Checkpoints CP-0~CP-5 (experiment-log.yaml) | CE `ce-optimize` Persistence Discipline | `/orchestrate` 장기 실행 내구성 | TBD | ✗ | W7 `[Stretch]` | T-W7-05 | **MIT** (CE) | ✅ |
-| 18 | 5-dimension overlap scoring (problem/cause/solution/files/prevention) + High/Moderate/Low | CE `ce-compound` Related Docs Finder | `/compound` 승격 게이트 drift 판정 | TBD | ✗ | W5 | T-W5-05 | **MIT** (CE) | ✅ |
-| 19 | Auto Memory supplementary block ("additional context, not primary evidence") | CE `ce-compound` Phase 0.5 | MEMORY.md 계층 규약 | TBD | ✗ | W5 | T-W5-02 | **MIT** (CE) | ✅ |
-| 20 | Ambiguity Score Gate (0.2) + Drift 임계값 (0.15/0.30) | ouroboros `README.ko.md:210-230, skills/status:79-85` | `/plan` 시작 + 승격 게이트 수치 | TBD | ✗ | W3 | T-W3-05 | **MIT** (ouroboros) | ✅ |
-| 21 | Seed YAML 스키마 (goal / AC / evaluation_principles+weight / exit_conditions / parent_seed_id) | ouroboros `.ouroboros/seeds/*.yaml` | `/plan` 산출물 frontmatter | TBD | ✗ | W3 | T-W3-03 | **MIT** (ouroboros) | ✅ |
-| 22 | 병리 패턴 감지 4종 (stagnation/oscillation/repeated-feedback/hard-cap) | ouroboros `README.ko.md:249-257` | `/compound` 과적합 방지 | TBD | ✗ | W6 → W7.5 이월 | T-W6-09 / T-W7.5-06 | **MIT** (ouroboros) | ✅ |
-| 23 | Rulph 다중 모델 병렬 평가 (Codex+Gemini+Claude, per-criterion floor + threshold) | hoyeon `skills/rulph/SKILL.md` | Evaluator 편향 승격 게이트 | TBD | ✗ | **2차** (KU-4 의존) | — | **MIT** (hoyeon) | ✅ |
-| 24 | Bug track vs Knowledge track 스키마 분기 (`What Didn't Work` 포함) | CE `ce-compound` schema.yaml | `corrections/` vs `tacit/` 매핑 | TBD | ✗ | W5 | T-W5-04 | **MIT** (CE) | ✅ |
-| 25 | history-insight 세션 로그 파서 (경로 인코딩 · jq 배치 · split+병렬) | p4cn `history-insight/scripts/*.sh` | `scripts/extract-session.sh` | TBD | ○ jq 패턴 통일 | W1 | T-W1-06 | **MIT** (p4cn) | ✅ |
-| 26 | session-analyzer Expected vs Actual 비교 테이블 | p4cn `session-analyzer/SKILL.md` Phase 5 | `/verify` 스코어링 엔진 골격 | TBD | ✗ | W6 | T-W6-02 (부속) | **MIT** (p4cn) | ✅ |
+| # | 자산 | 원본 경로 | 우리 위치 | 상류 커밋 해시 | sync 주기 | 재작성 필요 | 주차 | 태스크 ID | 라이선스 | MIT 호환 |
+|---|------|-----------|----------|--------------|----------|-------------|------|-----------|---------|---------|
+| 17 | Mandatory Disk Checkpoints CP-0~CP-5 (experiment-log.yaml) | CE `ce-optimize` Persistence Discipline | `/orchestrate` 장기 실행 내구성 | `b575e49` | 연 | ✗ | W7 `[Stretch]` | T-W7-05 | **MIT** (CE) | ✅ |
+| 18 | 5-dimension overlap scoring (problem/cause/solution/files/prevention) + High/Moderate/Low | CE `ce-compound` Related Docs Finder | `/compound` 승격 게이트 drift 판정 | `b575e49` | 연 | ✗ | W5 | T-W5-05 | **MIT** (CE) | ✅ |
+| 19 | Auto Memory supplementary block ("additional context, not primary evidence") | CE `ce-compound` Phase 0.5 | MEMORY.md 계층 규약 | `b575e49` | 연 | ✗ | W5 | T-W5-02 | **MIT** (CE) | ✅ |
+| 20 | Ambiguity Score Gate (0.2) + Drift 임계값 (0.15/0.30) | ouroboros `README.ko.md:210-230, skills/status:79-85` | `/plan` 시작 + 승격 게이트 수치 | `23426b5` | 분기 | ✗ | W3 | T-W3-05 | **MIT** (ouroboros) | ✅ |
+| 21 | Seed YAML 스키마 (goal / AC / evaluation_principles+weight / exit_conditions / parent_seed_id) | ouroboros `.ouroboros/seeds/*.yaml` | `/plan` 산출물 frontmatter | `23426b5` | 분기 | ✗ | W3 | T-W3-03 | **MIT** (ouroboros) | ✅ |
+| 22 | 병리 패턴 감지 4종 (stagnation/oscillation/repeated-feedback/hard-cap) | ouroboros `README.ko.md:249-257` | `/compound` 과적합 방지 | `23426b5` | 분기 | ✗ | W6 → W7.5 이월 | T-W6-09 / T-W7.5-06 | **MIT** (ouroboros) | ✅ |
+| 23 | Rulph 다중 모델 병렬 평가 (Codex+Gemini+Claude, per-criterion floor + threshold) | hoyeon `skills/rulph/SKILL.md` | Evaluator 편향 승격 게이트 | `4a4e0f3` | 분기 | ✗ | **2차** (KU-4 의존) | — | **MIT** (hoyeon) | ✅ |
+| 24 | Bug track vs Knowledge track 스키마 분기 (`What Didn't Work` 포함) | CE `ce-compound` schema.yaml | `corrections/` vs `tacit/` 매핑 | `b575e49` | 연 | ✗ | W5 | T-W5-04 | **MIT** (CE) | ✅ |
+| 25 | history-insight 세션 로그 파서 (경로 인코딩 · jq 배치 · split+병렬) | p4cn `history-insight/scripts/*.sh` | `scripts/extract-session.sh` | `7895a58` | 반기 | ○ jq 패턴 통일 | W1 | T-W1-06 | **MIT** (p4cn) | ✅ |
+| 26 | session-analyzer Expected vs Actual 비교 테이블 | p4cn `session-analyzer/SKILL.md` Phase 5 | `/verify` 스코어링 엔진 골격 | `7895a58` | 반기 | ✗ | W6 | T-W6-02 (부속) | **MIT** (p4cn) | ✅ |
 
 ### P3 — 선택·실험 (#27~32)
 
-| # | 자산 | 원본 경로 | 우리 위치 | 상류 커밋 해시 | 재작성 필요 | 주차 | 태스크 ID | 라이선스 | MIT 호환 |
-|---|------|-----------|----------|--------------|-------------|------|-----------|---------|---------|
-| 27 | 4언어 README + `--lang ko` 플래그 | hoyeon `README.{md,ko,zh,ja}.md` + `CLAUDE.md` Pre-Release Checklist | `README.md` + `README.ko.md` (MVP 2언어) / `--lang` 2차 | TBD | ✗ | W8 (2언어) / **2차** (4언어+플래그) | T-W8-01, T-W8-02 | **MIT** (hoyeon) | ✅ |
-| 28 | 마켓플레이스 최소 구조 (plugin.json 없이 marketplace.json만) | agent-council `.claude-plugin/marketplace.json` | `.claude-plugin/marketplace.json` | TBD | ✗ | W1 | T-W1-02 | **MIT** (agent-council) | ✅ |
-| 29 | llms.txt / llms-full.txt LLM 전용 요약 | ouroboros 루트 | 플러그인 소비자 AI 문서 | TBD | ✗ | W8 | T-W8-07 (부속) | **MIT** (ouroboros) | ✅ |
-| 30 | writing-skills Skill TDD (RED-GREEN-REFACTOR for docs) | superpowers `writing-skills/SKILL.md:31-45, 376-392` | `/compound` 승격 품질 검증 | TBD | ✗ | W7.5 (보조) | T-W7.5-04 | **MIT** (superpowers) | ✅ |
-| 31 | Cross-spec BM25 검색 (learnings.json 조회) | hoyeon `cli/src/commands/learning.js` + `README.ko.md:112-118` | MEMORY.md 인덱스 검색 | TBD | ✗ | **2차** | — | **MIT** (hoyeon) | ✅ |
-| 32 | dhh-rails / kieran-* persona-as-code 문체 | CE `agents/review/*` | 6축 evaluator 페르소나 스타일 | TBD | ✗ | **2차** | — | **MIT** (CE) | ✅ |
+| # | 자산 | 원본 경로 | 우리 위치 | 상류 커밋 해시 | sync 주기 | 재작성 필요 | 주차 | 태스크 ID | 라이선스 | MIT 호환 |
+|---|------|-----------|----------|--------------|----------|-------------|------|-----------|---------|---------|
+| 27 | 4언어 README + `--lang ko` 플래그 | hoyeon `README.{md,ko,zh,ja}.md` + `CLAUDE.md` Pre-Release Checklist | `README.md` + `README.ko.md` (MVP 2언어) / `--lang` 2차 | `4a4e0f3` | 분기 | ✗ | W8 (2언어) / **2차** (4언어+플래그) | T-W8-01, T-W8-02 | **MIT** (hoyeon) | ✅ |
+| 28 | 마켓플레이스 최소 구조 (plugin.json 없이 marketplace.json만) | agent-council `.claude-plugin/marketplace.json` | `.claude-plugin/marketplace.json` | `79a13ee` | 연 | ✗ | W1 | T-W1-02 | **MIT** (agent-council) | ✅ |
+| 29 | llms.txt / llms-full.txt LLM 전용 요약 | ouroboros 루트 | 플러그인 소비자 AI 문서 | `23426b5` | 분기 | ✗ | W8 | T-W8-07 (부속) | **MIT** (ouroboros) | ✅ |
+| 30 | writing-skills Skill TDD (RED-GREEN-REFACTOR for docs) | superpowers `writing-skills/SKILL.md:31-45, 376-392` | `/compound` 승격 품질 검증 | `b557648` | 반기 | ✗ | W7.5 (보조) | T-W7.5-04 | **MIT** (superpowers) | ✅ |
+| 31 | Cross-spec BM25 검색 (learnings.json 조회) | hoyeon `cli/src/commands/learning.js` + `README.ko.md:112-118` | MEMORY.md 인덱스 검색 | `4a4e0f3` | 분기 | ✗ | **2차** | — | **MIT** (hoyeon) | ✅ |
+| 32 | dhh-rails / kieran-* persona-as-code 문체 | CE `agents/review/*` | 6축 evaluator 페르소나 스타일 | `b575e49` | 연 | ✗ | **2차** | — | **MIT** (CE) | ✅ |
 
 ### 특수 — 재작성 필수 원본 (P0-1 제약)
 
@@ -233,9 +233,9 @@
 ### 4.3 잔여 확인 체크리스트 (T-W8-PRE-02 실행 항목)
 
 - [x] 6개 상류 각각 `LICENSE` 파일 확인 (2026-04-19 완료 · 전부 MIT)
-- [ ] 각 상류 `LICENSE` 파일의 git blob hash 스냅샷 기록 (T-W8-PRE-02)
-- [x] SPDX identifier 확정: **전부 `MIT`**
-- [ ] 본 플러그인 `LICENSE` 파일 작성 (MIT 원문) + `NOTICES.md` 6 저작권 고지 기재 (T-W8-01 · T-W8-PRE-02)
+- [x] 각 상류 `LICENSE` 파일의 git commit hash 스냅샷 기록 (2026-04-20 · T-W8-PRE-02 완료): hoyeon `4a4e0f3` · ouroboros `23426b5` · p4cn `7895a58` · superpowers `b557648` · CE `b575e49` · agent-council `79a13ee`
+- [x] SPDX identifier 확정: **전부 `MIT`** (본 플러그인 포함)
+- [x] 본 플러그인 `LICENSE` 파일 작성 (MIT 원문) + `NOTICES.md` 6 저작권 고지 기재 (T-W8-07)
 - [x] 라이선스 호환 불가 자산 유무 점검 → **0건** (시나리오 A)
 
 ---

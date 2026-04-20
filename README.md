@@ -1,159 +1,120 @@
 # harness
 
-> **harness is a Claude Code plugin for developers who keep repeating the same mistakes session after session and watching their tacit knowledge evaporate — it accumulates personalized compounding memory through promotion gates and a six-axis verification loop. Unlike existing plugins like CE or hoyeon, only learnings that pass a user-approval gate are persisted.**
->
-> **(한국어)** harness는 Claude Code로 반복 작업하는 개발자가 세션마다 같은 실수를 반복하고 암묵지가 휘발하는 문제를 해결하고 싶을 때, 승격 게이트와 6축 검증 루프로 개인화된 컴파운딩 메모리를 누적하는 플러그인이다. 기존 CE·hoyeon과는 "유저 승인 게이트를 통과한 학습만 영속 저장한다"는 점에서 구별된다.
+> **harness compounds only user-approved learnings into durable memory across a six-axis Brainstorm→Plan→Verify→Compound Claude Code loop.**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
-[![Status: WIP](https://img.shields.io/badge/Status-Work%20In%20Progress-orange.svg)](#status)
+[![SPDX](https://img.shields.io/badge/SPDX-MIT-blue.svg)](./LICENSE)
+[![DCO](https://img.shields.io/badge/DCO-required-green.svg)](./CONTRIBUTING.md#dco-sign-off-required)
 [![Claude Code](https://img.shields.io/badge/Claude%20Code-compatible-8A2BE2.svg)](https://claude.com/claude-code)
-[![DCO](https://img.shields.io/badge/DCO-required-green.svg)](./.github/DCO.md)
 
-English · [한국어](./README.ko.md) *(planned)*
-
----
-
-## Overview
-
-**harness** is a `.claude-plugin/` that structurally enforces the *six harness axes* — **Structure · Context · Plan · Execute · Verify · Improve** — across your Claude Code sessions. It combines a skeptical Evaluator loop with a promotion gate so that only **user-approved** learnings become persistent memory.
-
-Where existing tooling either writes memory automatically (lossy, noisy) or skips verification entirely (drift, hallucination), harness insists every compounding decision pass through a human gate. The result is a lean, personalized knowledge base that compounds across sessions instead of decaying.
+English · [한국어](./README.ko.md)
 
 ---
 
-## Features
+## Why
 
-### The Six Harness Axes
+Three failure modes repeatedly kill Claude Code sessions. `harness` refuses to ship past any of them without a user-approved gate.
+
+- **Repeated mistakes** — the same bug gets rediscovered every session because the correction never leaves working memory.
+- **Tacit-knowledge evaporation** — project conventions, team decisions, and "that was wrong" moments never get written down.
+- **No six-axis meta-loop** — Claude Code plugins typically automate *one* of brainstorm/plan/verify/compound; none enforce all six axes (Structure · Context · Plan · Execute · Verify · Improve) with a hard gate.
+- **Auto-memory noise** — plugins that write memory automatically pollute future context with low-signal entries no one curated.
+- **Skipped verification** — skipping the Verify axis is usually a one-keystroke mistake; `harness` makes it a release blocker unless you explicitly acknowledge the risk.
+
+---
+
+## Install
+
+`harness` is a zero-dependency Claude Code plugin (`bash` + `jq` only). Drop the plugin directory into a Claude Code plugins path and the five slash commands register automatically.
+
+```bash
+# Option A — direct copy into Claude Code plugins
+cp -r harness ~/.claude-plugin-harness
+
+# Option B — clone into a plugins directory
+git clone https://github.com/<owner>/harness.git ~/.claude/plugins/harness
+```
+
+Runtime requirements: `bash` (≥ 4), `jq` (≥ 1.6), `uuidgen`, `flock`. No Python or Node. See [CONTRIBUTING.md](./CONTRIBUTING.md#development-setup) for the full development environment.
+
+---
+
+## Skills (5)
+
+- `/brainstorm` — Feature brainstorming with a 3-lens clarify pass (vague · unknown · metamedium). Emits a requirements doc at `.claude/plans/YYYY-MM-DD-{slug}-requirements.md`.
+- `/plan` — Hybrid Markdown + YAML-frontmatter plan built from a requirements doc. Includes acceptance criteria, evaluation principles with weights, and exit conditions.
+- `/verify` — Artifact scoring with `qa-judge` (promote ≥ 0.80, retry 0.40–0.80, reject ≤ 0.40), Ralph Loop retries, and Charter Preflight.
+- `/compound` — Promotion gate for repeated patterns, user corrections, and session-wrap summaries. Only user-approved candidates reach `.claude/memory/`.
+- `/orchestrate` *(Stretch)* — End-to-end pipeline that chains the four skills above with CP-0 through CP-5 disk checkpoints for crash-safe resume.
+
+---
+
+## 6-Axis Harness
 
 | # | Axis | What it enforces |
 |---|------|------------------|
 | 1 | **Structure** | Plugin layout, manifest integrity, slash-command registration |
-| 2 | **Context** | Session-bootstrapped `using-harness` guidance + memory index |
-| 3 | **Plan** | Hybrid artifacts (Markdown body + YAML frontmatter) for both humans and Evaluators |
-| 4 | **Execute** | Scoped skills, hook-validated prompts, isolated work |
-| 5 | **Verify** | `qa-judge` scoring · Ralph Loop retries · grey-zone Consensus (v2) |
-| 6 | **Improve** | `/compound` promotion gate → tacit / corrections / preferences memory |
+| 2 | **Context** | `SessionStart` hook + `using-harness` guidance + `MEMORY.md` injection |
+| 3 | **Plan** | Hybrid Markdown + YAML artifacts that humans and Evaluators both parse |
+| 4 | **Execute** | Scoped skills, hook-validated prompts, SHA256-pinned payloads |
+| 5 | **Verify** | `qa-judge` scoring · Ralph Loop · 3-stage Evaluator · grey-zone fallback |
+| 6 | **Improve** | `/compound` promotion gate → `tacit/`, `corrections/`, `preferences/` memory |
 
-Enforcement scope: `/plan`, `/verify`, and `/orchestrate` run with axes **ON by default**. `--skip-axis N` is permitted, but skipping the Verify axis (#5) triggers a hard warning.
-
-### Three Core Mechanics
-
-1. **Tacit-Knowledge Surfacing** — conversation-first elicitation plus a dedicated `corrections/` store for "that was wrong" moments. What you implicitly know gets written down once, not re-derived every session.
-2. **Result Verification Loop** — every significant artifact is scored by a skeptical Evaluator running in a fresh context. Grey-zone outputs (0.40–0.80) trigger auto-retry; failures flow into the Ralph Loop.
-3. **Compounding Memory** — hybrid triggers (3-time repetition detection · explicit "틀렸다" / "that was wrong" · `/session-wrap`) feed a six-step promotion gate. Nothing hits `.claude/memory/` without your approval.
-
-### Memory Layout
-
-```
-.claude/memory/                # project-local by default
-├── MEMORY.md                  # lightweight index (≤200 lines, loaded every session)
-├── tacit/                     # surfaced implicit knowledge
-├── corrections/               # "that was wrong" entries, dated
-└── preferences/               # stable user/team preferences
-```
-
-Global memory (`~/.claude/memory/`) is **off by default** and must be explicitly opted in — this keeps cross-project leakage out of the loop.
+Enforcement scope per skill is defined in [final-spec §3.5](./.claude/plans/03-design/final-spec.md). `--skip-axis N` is permitted, but `--skip-axis 5` additionally requires `--acknowledge-risk` — skipping verification is an explicit release blocker.
 
 ---
 
-## Installation
+## Example
 
-> ⚠️ **Work In Progress.** Official Claude Code marketplace distribution is planned for **W8** (see [Status](#status)). The commands below are the target install paths.
-
-### Claude Code marketplace *(planned, W8)*
+**Single-skill call (`/verify` standalone):**
 
 ```bash
-# Not yet available — this is the target surface
-/plugin install harness@claude-plugins-official
+/verify .claude/plans/2026-04-20-dark-mode-plan.md --axis 5
+# → qa-judge report:
+#    {"score": 0.86, "verdict": "promote",
+#     "dimensions": {"completeness": 0.9, "correctness": 0.85, ...},
+#     "differences": [...],
+#     "suggestions": [...]}
+# → axis 5 PASS, artifact promoted.
 ```
 
-### Local development install *(current path)*
+**Full pipeline (`/orchestrate`):**
 
 ```bash
-# Clone
-git clone https://github.com/<owner>/harness.git
-cd harness
-
-# Link as a local Claude Code plugin
-# (exact linking command will be finalized in W8 install docs)
+/orchestrate "add dark mode toggle to settings panel"
+# → CP-0: brainstorm   → requirements.md
+# → CP-1: plan         → plan.md (Markdown + YAML)
+# → CP-2: verify       → qa-judge report
+# → CP-3: compound     → promotion gate (user y/N/e/s)
+# → CP-4: artifact link bundle
+# → CP-5: experiment-log.yaml committed
 ```
 
-Requirements: `bash`, `jq`, Claude Code CLI. See [CONTRIBUTING.md](./CONTRIBUTING.md#development-setup) for full dev setup.
-
----
-
-## Usage
-
-Five slash commands drive the full loop. Each has its own skill under `skills/`; run the detailed walkthrough via `skills/using-harness`.
-
-| Command | One-liner |
-|---------|-----------|
-| `/brainstorm [topic]` | Clarify vague intent with a 3-lens (vague · unknown · metamedium) pass and emit a requirements doc |
-| `/plan [requirements.md]` | Produce a hybrid plan — Markdown body plus YAML frontmatter that the Evaluator can parse |
-| `/verify [artifact] [--axis N]` | Score an artifact with `qa-judge`, decide promote / retry / reject, and run the Ralph Loop when needed |
-| `/compound` | Manual or trigger-driven promotion gate: verify → user approval → write to `tacit` / `corrections` / `preferences` |
-| `/orchestrate [topic]` | *(Stretch, W8 target)* Run the four internal skills end-to-end as a pipeline |
-
-For the full axis-by-axis walkthrough, invoke `skills/using-harness` once the plugin is loaded.
-
-### Typical flow
-
-```
-/brainstorm "add dark mode"
-        │
-        ▼   requirements.md
-/plan requirements.md
-        │
-        ▼   plan.md (Markdown + YAML frontmatter)
-/verify plan.md
-        │
-        ▼   qa-judge report — promote / retry / reject
-/compound                       ← user-approval gate before memory write
-        │
-        ▼   .claude/memory/{tacit|corrections|preferences}/*.md
-```
-
----
-
-## Status
-
-**Work In Progress — Phase 4 complete, W1 implementation in progress.**
-
-| Milestone | State |
-|-----------|-------|
-| Phase 0–3 (design, research, spec v3.1) | ✅ Complete (see `.claude/plans/INDEX.md`) |
-| Phase 4 (implementation plan) | ✅ Complete |
-| **W1** — core skills scaffold | 🟡 In progress |
-| W2–W7 — verify · compound · orchestrate | 🔲 Planned |
-| **W8** — marketplace distribution + docs | 🔲 Target release |
-
-Spec v3.1 is the single source of truth: `.claude/plans/03-design/final-spec.md`. Open questions live in §11; promoted items are tracked in `04-planning/section11-promotion-tracker.md`.
-
----
-
-## Reference / Credits
-
-harness is built on top of prior work from the Claude Code ecosystem. All six upstream sources are **MIT-licensed** (verified 2026-04-19) and compatible with our redistribution:
-
-- [Compound Engineering plugin](./references/compound-engineering-plugin/) — 5-dimensional overlap model, Auto Memory conventions
-- [hoyeon](./references/hoyeon/) — `validate_prompt` hook patterns, 6-agent verify stack, Korean UX patterns
-- [superpowers](./references/superpowers/) — `SessionStart` hook, `HARD-GATE` tags, 3-stage Evaluator design
-- [ouroboros](./references/ouroboros/) — `qa-judge` JSON schema, Ralph Loop pseudocode, Seed YAML
-- `p4cn` — `session-wrap` 2-phase flow, `history-insight` JSONL parsing, clarify patterns
-- `agent-council` — marketplace structure, Wait cursor UX
-
-Copyright notices for all upstream works will ship in `NOTICES.md` at W8. Porting lineage is tracked per-asset in [`.claude/plans/04-planning/porting-matrix.md`](./.claude/plans/04-planning/porting-matrix.md).
+If `/orchestrate` crashes between checkpoints, re-invocation resumes from the last CP written to disk — no rework.
 
 ---
 
 ## License
 
-[MIT](./LICENSE) © 2026 Ethan
+**MIT** — see [LICENSE](./LICENSE). SPDX identifier: `MIT`.
 
-Contributions require a **DCO sign-off** (`git commit -s`). See [CONTRIBUTING.md](./CONTRIBUTING.md) for the full workflow and [.github/DCO.md](./.github/DCO.md) for the Developer Certificate of Origin v1.1 text.
+Contributions require a **DCO sign-off** (`git commit -s`). The full workflow and Developer Certificate of Origin v1.1 reference live in [CONTRIBUTING.md](./CONTRIBUTING.md).
 
 ---
 
-## Korean version
+## Acknowledgments
 
-A Korean-language README ([`README.ko.md`](./README.ko.md)) is planned as a later addition — the upstream reference hoyeon ships parallel locales and harness intends to match that pattern. English remains the primary doc per OSS convention.
+`harness` ports and adapts work from six upstream Claude Code projects, all **MIT-licensed** and compatible with our redistribution (commit hashes and sync cadence tracked in [`porting-matrix.md`](./.claude/plans/04-planning/porting-matrix.md)):
+
+- **hoyeon** — `validate_prompt` hook pattern, 6-agent verify stack, Korean UX
+- **ouroboros** — `qa-judge` JSON schema, Ralph Loop, Seed YAML, Ambiguity Gate
+- **p4cn** (plugins-for-claude-natives) — `session-wrap` 2-phase pipeline, clarify 3-lens, `history-insight` parser
+- **superpowers** (obra/superpowers) — `SessionStart` hook, `HARD-GATE` tag pattern, 3-stage Evaluator
+- **compound-engineering-plugin** — 5-dimensional overlap scoring, Auto Memory conventions, persistence discipline
+- **agent-council** — marketplace minimal structure, Wait cursor UX
+
+Full copyright notices in [NOTICES.md](./NOTICES.md).
+
+---
+
+*[한국어 README →](./README.ko.md)*

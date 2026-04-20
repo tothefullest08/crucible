@@ -7,6 +7,14 @@ description: |
 when_to_use: "요구사항 문서에서 구현 태스크 · 평가 원칙 · exit 조건을 정리할 때"
 input: "요구사항 문서 (.claude/plans/YYYY-MM-DD-{slug}-requirements.md 혹은 임의 경로)"
 output: ".claude/plans/YYYY-MM-DD-{slug}-plan.md (Markdown 본문 + YAML frontmatter)"
+validate_prompt: |
+  /plan 자기검증 (Plan 3축):
+  1. 산출물 경로가 `.claude/plans/YYYY-MM-DD-{slug}-plan.md` 규약 + slug 화이트리스트([a-zA-Z0-9_-])를 만족하는가?
+  2. YAML frontmatter 필수 필드(goal · acceptance_criteria · evaluation_principles[with weights] · exit_conditions · parent_seed_id)가 전부 존재하는가?
+  3. 각 태스크가 ID 체계(T-W{주차}-{순번} 또는 자유 ID)와 acceptance criteria를 최소 1개씩 포함하는가?
+  4. Ambiguity Score Gate(0.2 임계) 통과 판정이 본문 상단에 명시되는가? (미통과 시 `/brainstorm` 재진입 권고)
+  5. 평가 원칙(evaluation_principles)의 weight 합이 1.0 ± 0.05 범위인가?
+  6. Exit conditions 3종(성공 · 중단 · 재시도)이 측정 가능한 기준으로 서술되는가?
 ---
 
 # Plan

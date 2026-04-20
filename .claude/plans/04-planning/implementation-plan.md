@@ -562,59 +562,59 @@ flowchart TD
 
 ### W8 — 문서화 + 오픈소스 배포 (6.5일 / 52h)
 
-- [ ] **T-W8-PRE-01** ⛳ §11-5 승격 — 6축 강제 적용 범위 확정
+- [x] **T-W8-PRE-01** ⛳ §11-5 승격 — 6축 강제 적용 범위 확정
   - 의존성: T-W7.5-04
   - 공수: 4h
   - 검증: v2 §3 확장 — 축별 활성 규칙 (`/plan`·`/verify`·`/orchestrate` 기본 ON, `/brainstorm`·`/compound` 자연 대화, 일반 Q&A OFF) + `--skip-axis N` 이스케이프 해치 스펙 + 실효성 지표 메트릭 KU 추가 검토
   - §11: **§11-5 승격 완료**
 
-- [ ] **T-W8-PRE-02** ⛳ §11-6 승격 — 라이선스 · 상류 sync 매트릭스
+- [x] **T-W8-PRE-02** ⛳ §11-6 승격 — 라이선스 · 상류 sync 매트릭스
   - 의존성: T-W7.5-04
   - 공수: 4h
   - 검증: v2 §6 테이블에 `상류 커밋 해시` · `sync 주기` 컬럼 추가 + 4 상류(hoyeon/ouroboros/p4cn/superpowers) 라이선스 호환성 매트릭스 + 본 플러그인 최종 라이선스 선택 (→ porting-matrix.md §4와 연동)
   - §11: **§11-6 승격 완료**
 
-- [ ] **T-W8-PRE-03** ⛳ §11-7 승격 — 기타 설계 미결 정리
+- [x] **T-W8-PRE-03** ⛳ §11-7 승격 — 기타 설계 미결 정리
   - 의존성: T-W7.5-04
   - 공수: 4h
   - 검증: 프론트매터 필드 5 스킬 전부 확정 · 포지셔닝 1문장 README 확정 · OSS composability (스킬 독립 사용 가능 여부) 명세 · `/orchestrate` 실질 가치 vs 수동 호출 비교표
   - §11: **§11-7 승격 완료**
 
-- [ ] **T-W8-01** README.md 영어 → **AC-8**
+- [x] **T-W8-01** README.md 영어 → **AC-8**
   - 의존성: T-W8-PRE-03
   - 공수: 6h
   - 검증: 포지셔닝 1문장 · 설치법 · 5 스킬 사용 예제 · License 섹션 포함
 
-- [ ] **T-W8-02** README.ko.md → **AC-8**
+- [x] **T-W8-02** README.ko.md → **AC-8**
   - 의존성: T-W8-01
   - 공수: 4h
   - 검증: 영어 README와 섹션 구성 동형 + ko 고유 예제 최소 1개
 
-- [ ] **T-W8-03** CLAUDE.md 작성 (프로젝트 가이드라인)
+- [x] **T-W8-03** CLAUDE.md 작성 (프로젝트 가이드라인)
   - 의존성: T-W8-PRE-03
   - 공수: 4h
   - 검증: hoyeon 2중 구조 차용 확인
 
-- [ ] **T-W8-04** AGENTS.md 작성 (Skill Compliance Checklist 섹션)
+- [x] **T-W8-04** AGENTS.md 작성 (Skill Compliance Checklist 섹션)
   - 의존성: T-W8-03
   - 공수: 2h
 
-- [ ] **T-W8-05** 각 스킬 description 한·영 병기 최종 점검
+- [x] **T-W8-05** 각 스킬 description 한·영 병기 최종 점검
   - 의존성: T-W7.5-03
   - 공수: 2h
   - 검증: 5 스킬 전부 병기 포맷 일관성 확인
 
-- [ ] **T-W8-06** 릴리스 체크리스트 + Hard AC 8개 모두 만족 판정
+- [x] **T-W8-06** 릴리스 체크리스트 + Hard AC 8개 모두 만족 판정
   - 의존성: T-W8-01 ~ T-W8-05
   - 공수: 4h
   - 검증: §5 AC 매핑 전체 green + W0~W8 게이트 회고
 
-- [ ] **T-W8-07** 오픈소스 라이선스 파일 + CONTRIBUTING 초안
+- [x] **T-W8-07** 오픈소스 라이선스 파일 + CONTRIBUTING 초안
   - 의존성: T-W8-PRE-02
   - 공수: 2h
   - 검증: SPDX identifier 포함
 
-- [ ] **T-W8-08** 배포 검증: 클린 머신에서 플러그인 설치 → `/brainstorm` 호출 → **AC-1**
+- [x] **T-W8-08** 배포 검증: 클린 머신에서 플러그인 설치 → `/brainstorm` 호출 → **AC-1**
   - 의존성: T-W8-07
   - 공수: 4h
   - 검증: 외부 의존 0 · `/brainstorm` 단일 호출 성공
