@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # pretool-block-secrets.sh — block writes to sensitive-file patterns before the tool runs.
 # stdin: PreToolUse JSON payload.
-# stdout: {"decision":"allow"} or {"decision":"block","reason":"..."}.
+# stdout: hookSpecificOutput with permissionDecision=allow|deny (Claude Code >= v2.1 schema).
 
 set -euo pipefail
 
@@ -11,7 +11,7 @@ path="$(jq -r '.tool_input.file_path // .tool_input.path // empty' <<<"$input")"
 
 # Empty path = not a file-writing invocation; let it through.
 if [ -z "$path" ]; then
-  jq -n '{decision:"allow"}'
+  jq -n '{hookSpecificOutput:{hookEventName:"PreToolUse",permissionDecision:"allow"}}'
   exit 0
 fi
 
@@ -31,9 +31,8 @@ esac
 
 if [ "$blocked" -eq 1 ]; then
   jq -n --arg p "$path" \
-    '{decision:"block",
-      reason:("Blocked by pretool-block-secrets: " + $p + " matches a sensitive-file pattern (.env / credentials / keys / secrets). If this is intentional, move the file or rename it, then retry.")}'
+    '{hookSpecificOutput:{hookEventName:"PreToolUse",permissionDecision:"deny",permissionDecisionReason:("Blocked by pretool-block-secrets: " + $p + " matches a sensitive-file pattern (.env / credentials / keys / secrets). If this is intentional, move the file or rename it, then retry.")}}'
   exit 0
 fi
 
-jq -n '{decision:"allow"}'
+jq -n '{hookSpecificOutput:{hookEventName:"PreToolUse",permissionDecision:"allow"}}'

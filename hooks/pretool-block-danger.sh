@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # pretool-block-danger.sh — block destructive Bash commands before execution.
 # stdin: PreToolUse JSON payload.
-# stdout: {"decision":"allow"} or {"decision":"block","reason":"..."}.
+# stdout: hookSpecificOutput with permissionDecision=allow|deny (Claude Code >= v2.1 schema).
 
 set -euo pipefail
 
@@ -10,13 +10,13 @@ cmd="$(jq -r '.tool_input.command // empty' <<<"$input")"
 
 # Non-Bash invocation or empty command: let through.
 if [ -z "$cmd" ]; then
-  jq -n '{decision:"allow"}'
+  jq -n '{hookSpecificOutput:{hookEventName:"PreToolUse",permissionDecision:"allow"}}'
   exit 0
 fi
 
 block_with() {
   jq -n --arg c "$cmd" --arg why "$1" \
-    '{decision:"block", reason:("Blocked by pretool-block-danger (" + $why + "): " + $c)}'
+    '{hookSpecificOutput:{hookEventName:"PreToolUse",permissionDecision:"deny",permissionDecisionReason:("Blocked by pretool-block-danger (" + $why + "): " + $c)}}'
 }
 
 # rm -rf against root or absolute-root-adjacent paths.
@@ -44,4 +44,4 @@ if printf '%s' "$cmd" | grep -qE 'dd[[:space:]].*of=/dev/(sd[a-z]|nvme|disk)'; t
   exit 0
 fi
 
-jq -n '{decision:"allow"}'
+jq -n '{hookSpecificOutput:{hookEventName:"PreToolUse",permissionDecision:"allow"}}'
