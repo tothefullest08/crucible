@@ -194,16 +194,3 @@ units:
 
 output 파일의 frontmatter 구조는 `skills/plan/templates/plan-template.md` 참조 (T-W3-03 산출).
 주요 필드: `goal`, `constraints`, `AC`, `evaluation_principles` (weight 합 1.0), `exit_conditions`, `parent_seed_id`.
-
-## TODO (후속 주차 작업)
-
-| 태스크 | 범위 | 주차 |
-|-------|------|------|
-| T-W3-02 | Phase 1~5 본문 완성 (CE 5-Phase) | W3 |
-| T-W3-03 | `templates/plan-template.md` YAML 스키마 | W3 |
-| T-W3-04 | gap-analyzer 호출 레이어 | W3 |
-| T-W3-05 | Ambiguity Score Gate (0.2 임계) | W3 |
-| T-W3-06 | output slug hook | W3 |
-| T-W3-07 | `validate_prompt` frontmatter 필드 (계획 축 자기검증) | W3 |
-| T-W3-08 | 3 샘플 unit test → AC-3 | W3 |
-| T-W3-09 | 한·영 사용 예제 README | W3 |
