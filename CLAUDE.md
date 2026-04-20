@@ -10,8 +10,8 @@
 - **Project**: `crucible` — a Claude Code plugin that compounds user-approved learnings into durable memory.
 - **Position**: crucible compounds only user-approved learnings into durable memory across a six-axis Brainstorm→Plan→Verify→Compound Claude Code loop.
 - **Runtime**: `bash` (≥ 4), `jq` (≥ 1.6), `uuidgen`, `flock`. **Python and Node are prohibited** (final-spec §4.1).
-- **Canonical spec**: `.claude/plans/03-design/final-spec.md` (currently v3.4, §3.5 · §4.5 · §11-5/6/7 locked).
-- **Implementation plan**: `.claude/plans/04-planning/implementation-plan.md` (§W0–§W8 + §W7.5).
+- **Canonical spec**: `.claude/plans/2026-04-19/03-design/final-spec.md` (currently v3.4, §3.5 · §4.5 · §11-5/6/7 locked).
+- **Implementation plan**: `.claude/plans/2026-04-19/04-planning/implementation-plan.md` (§W0–§W8 + §W7.5).
 - **License**: MIT (SPDX `MIT`) · DCO sign-off required on every commit.
 
 ---
@@ -73,8 +73,8 @@ Full workflow and validation steps live in [CONTRIBUTING.md](./CONTRIBUTING.md).
 - **[CONTRIBUTING.md](./CONTRIBUTING.md)** — DCO sign-off procedure, PR checklist, development setup.
 - **[RELEASE-CHECKLIST.md](./RELEASE-CHECKLIST.md)** — W8 release criteria, Hard AC judgment table.
 - **[LICENSE](./LICENSE)** — MIT license text.
-- **[final-spec.md](./.claude/plans/03-design/final-spec.md)** — Single source of truth for design.
-- **[porting-matrix.md](./.claude/plans/04-planning/porting-matrix.md)** — Upstream commit hashes + sync cadence.
+- **[final-spec.md](./.claude/plans/2026-04-19/03-design/final-spec.md)** — Single source of truth for design.
+- **[porting-matrix.md](./.claude/plans/2026-04-19/04-planning/porting-matrix.md)** — Upstream commit hashes + sync cadence.
 
 ---
 

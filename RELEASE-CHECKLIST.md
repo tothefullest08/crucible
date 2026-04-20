@@ -1,7 +1,7 @@
 # RELEASE-CHECKLIST — crucible MVP (W8)
 
 > Gate document for the MVP release. All 8 Hard AC must be **PASS** before publishing the plugin.
-> Paired artifacts: [`.claude/state/ac-final.json`](./.claude/state/ac-final.json), [`final-spec.md`](./.claude/plans/03-design/final-spec.md) §10.1.
+> Paired artifacts: [`.claude/state/ac-final.json`](./.claude/state/ac-final.json), [`final-spec.md`](./.claude/plans/2026-04-19/03-design/final-spec.md) §10.1.
 
 **Release gate (2026-04-20): GREEN — 8/8 Hard AC PASS.**
 

@@ -14,7 +14,7 @@ This document covers the workflow, commit/PR rules, and the **DCO sign-off** tha
 
 - Search existing issues before opening a new one.
 - Use a descriptive title and include: Claude Code version, crucible commit hash, and the minimal reproduction steps.
-- For suspected spec drift, link the relevant section of `.claude/plans/03-design/final-spec.md` (v3.1 is the single source of truth).
+- For suspected spec drift, link the relevant section of `.claude/plans/2026-04-19/03-design/final-spec.md` (v3.1 is the single source of truth).
 
 ### Submitting pull requests
 
@@ -97,7 +97,7 @@ Before marking a PR ready for review, confirm:
 - [ ] JSON manifests validate (`.claude-plugin/plugin.json`, `marketplace.json`)
 - [ ] 6-axis compliance: state which of axes 1–6 the change affects and confirm `validate_prompt` still passes for affected skills
 - [ ] Hard AC impact: list any of the 8 Hard AC (final-spec §10.1) the change touches
-- [ ] Any `§11` open-item deadline referenced in `.claude/plans/03-design/final-spec.md` is respected (or you've explicitly flagged that the PR postpones one)
+- [ ] Any `§11` open-item deadline referenced in `.claude/plans/2026-04-19/03-design/final-spec.md` is respected (or you've explicitly flagged that the PR postpones one)
 - [ ] Docs and `MEMORY.md` pointers are updated when behavior changes
 - [ ] No secrets, API keys, or local paths committed
 - [ ] `SPDX-License-Identifier: MIT` preserved in `LICENSE` and this file
