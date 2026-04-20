@@ -101,7 +101,7 @@ git clone https://github.com/<owner>/crucible.git ~/.claude/plugins/crucible
 
 ## 감사의 말 (Acknowledgments)
 
-`crucible`는 6개 상류 Claude Code 프로젝트의 자산을 포팅·각색했습니다. 전부 **MIT 라이선스**이며 재배포 호환입니다 (커밋 해시·sync 주기는 [`porting-matrix.md`](./.claude/plans/2026-04-19/04-planning/porting-matrix.md)):
+`crucible`는 6개 상류 Claude Code 프로젝트의 자산을 포팅·각색했습니다. 전부 **MIT 라이선스**이며 재배포 호환입니다 (커밋 해시·sync 주기는 `NOTICES.md`에 요약):
 
 - **hoyeon** — `validate_prompt` 훅 패턴, 6-agent verify 스택, 한국어 UX
 - **ouroboros** — `qa-judge` JSON 스키마, Ralph Loop, Seed YAML, Ambiguity Gate

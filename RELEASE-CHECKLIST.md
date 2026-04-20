@@ -1,7 +1,7 @@
 # RELEASE-CHECKLIST — crucible MVP (W8)
 
 > Gate document for the MVP release. All 8 Hard AC must be **PASS** before publishing the plugin.
-> Paired artifacts: [`.claude/state/ac-final.json`](./.claude/state/ac-final.json), [`final-spec.md`](./.claude/plans/2026-04-19/03-design/final-spec.md) §10.1.
+> Paired artifacts: `ac-final.json` (internal dev mirror), final-spec §10.1 (internal dev mirror).
 
 **Release gate (2026-04-20): GREEN — 8/8 Hard AC PASS.**
 
@@ -13,11 +13,11 @@
 |----|-------|--------|----------|
 | AC-1 | Plugin install (external deps = 0) | ✅ PASS | `__tests__/integration/test-clean-install.sh` (T-W8-08) |
 | AC-2 | 4 skills callable (/brainstorm /plan /verify /compound) | ✅ PASS | test-clean-install.sh yq parse + test-ac2 + §11-7.1 field audit |
-| AC-3 | `validate_prompt` fire-rate ≥ 99% · response-rate ≥ 90% | ✅ PASS | `.claude/state/ku-results/ku-1.json` GREEN (W7.5) |
-| AC-4 | Description 한·영 trigger accuracy (ko/en 20 each) | ✅ PASS | `.claude/state/ku-results/ku-2.json` GREEN (W7.5) |
-| AC-5 | Promotion gate false-positive rate < 20% | ✅ PASS | `.claude/state/ku-results/ku-3.json` GREEN (W7.5) |
+| AC-3 | `validate_prompt` fire-rate ≥ 99% · response-rate ≥ 90% | ✅ PASS | `ku-results/ku-1.json` (internal dev mirror) GREEN (W7.5) |
+| AC-4 | Description 한·영 trigger accuracy (ko/en 20 each) | ✅ PASS | `ku-results/ku-2.json` (internal dev mirror) GREEN (W7.5) |
+| AC-5 | Promotion gate false-positive rate < 20% | ✅ PASS | `ku-results/ku-3.json` (internal dev mirror) GREEN (W7.5) |
 | AC-6 | JSONL parser detects 3 compounding triggers | ✅ PASS | `__tests__/integration/test-ac6-compound-triggers.sh` (W6) |
-| AC-7 | qa-judge distribution KU-0 + thresholds locked | ✅ PASS | `.claude/state/ku-results/ku-0.json` GREEN (W7.5) |
+| AC-7 | qa-judge distribution KU-0 + thresholds locked | ✅ PASS | `ku-results/ku-0.json` (internal dev mirror) GREEN (W7.5) |
 | AC-8 | README.md + README.ko.md bilingual + 한·영 description | ✅ PASS | T-W8-01, T-W8-02, T-W8-05 + §11-7.2 positioning |
 
 Supplementary (not counted in 8 Hard AC but release-blocking):
@@ -53,7 +53,7 @@ Code and tests
 - [x] 4. test-ac3-plan-format.sh PASS
 - [x] 5. test-ac4-qa-judge-threshold.sh PASS
 - [x] 6. test-ac6-compound-triggers.sh PASS
-- [x] 7. KU-0/1/2/3 all GREEN in `.claude/state/ku-results/`
+- [x] 7. KU-0/1/2/3 all GREEN in `ku-results/` (internal dev mirror)
 - [x] 8. `shellcheck` clean on hooks/ and scripts/ (T-W1-09 security linter delegate)
 
 Manifests and metadata
@@ -95,7 +95,7 @@ Items 22/23/24 are post-merge release operations performed after this branch shi
 AC-1 ✅  AC-2 ✅  AC-3 ✅  AC-4 ✅  AC-5 ✅  AC-6 ✅  AC-7 ✅  AC-8 ✅   → release-gate GREEN
 ```
 
-Full JSON: [`.claude/state/ac-final.json`](./.claude/state/ac-final.json).
+Full JSON: `ac-final.json` (internal dev mirror).
 
 ---
 

@@ -101,7 +101,7 @@ Contributions require a **DCO sign-off** (`git commit -s`). The full workflow an
 
 ## Acknowledgments
 
-`crucible` ports and adapts work from six upstream Claude Code projects, all **MIT-licensed** and compatible with our redistribution (commit hashes and sync cadence tracked in [`porting-matrix.md`](./.claude/plans/2026-04-19/04-planning/porting-matrix.md)):
+`crucible` ports and adapts work from six upstream Claude Code projects, all **MIT-licensed** and compatible with our redistribution (commit hashes and sync cadence summarised in `NOTICES.md`):
 
 - **hoyeon** — `validate_prompt` hook pattern, 6-agent verify stack, Korean UX
 - **ouroboros** — `qa-judge` JSON schema, Ralph Loop, Seed YAML, Ambiguity Gate

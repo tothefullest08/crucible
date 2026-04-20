@@ -26,3 +26,7 @@ lecture/*.pdf
 .claude/*.lock
 .claude/state/promotion_queue/
 .claude/state/*.lock
+
+# 개발 이력 (not distributed) — v1.0.3+에서 filter-repo로 이력 정리됨
+.claude/plans/
+.claude/state/
