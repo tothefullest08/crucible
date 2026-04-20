@@ -60,7 +60,7 @@ git clone https://github.com/<owner>/crucible.git ~/.claude/plugins/crucible
 | 5 | **Verify** | `qa-judge` · Ralph Loop · 3-stage Evaluator · grey-zone fallback |
 | 6 | **Improve** | `/compound` 승격 게이트 → `tacit/`, `corrections/`, `preferences/` 메모리 |
 
-스킬별 강제 범위는 [final-spec §3.5](./.claude/plans/03-design/final-spec.md)에 정의되어 있습니다. `--skip-axis N`은 허용되지만 `--skip-axis 5`는 `--acknowledge-risk` 조합이 필수입니다 — 검증 스킵은 명시적 릴리스 블로커입니다.
+스킬별 강제 범위는 [final-spec §3.5](./.claude/plans/2026-04-19/03-design/final-spec.md)에 정의되어 있습니다. `--skip-axis N`은 허용되지만 `--skip-axis 5`는 `--acknowledge-risk` 조합이 필수입니다 — 검증 스킵은 명시적 릴리스 블로커입니다.
 
 ---
 
@@ -104,7 +104,7 @@ git clone https://github.com/<owner>/crucible.git ~/.claude/plugins/crucible
 
 ## 감사의 말 (Acknowledgments)
 
-`crucible`는 6개 상류 Claude Code 프로젝트의 자산을 포팅·각색했습니다. 전부 **MIT 라이선스**이며 재배포 호환입니다 (커밋 해시·sync 주기는 [`porting-matrix.md`](./.claude/plans/04-planning/porting-matrix.md)):
+`crucible`는 6개 상류 Claude Code 프로젝트의 자산을 포팅·각색했습니다. 전부 **MIT 라이선스**이며 재배포 호환입니다 (커밋 해시·sync 주기는 [`porting-matrix.md`](./.claude/plans/2026-04-19/04-planning/porting-matrix.md)):
 
 - **hoyeon** — `validate_prompt` 훅 패턴, 6-agent verify 스택, 한국어 UX
 - **ouroboros** — `qa-judge` JSON 스키마, Ralph Loop, Seed YAML, Ambiguity Gate

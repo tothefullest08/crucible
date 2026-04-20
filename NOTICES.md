@@ -73,4 +73,4 @@ No GPL or All-Rights-Reserved upstream in scope. Scenario B/C fallbacks (final-s
 
 ---
 
-*Last verified 2026-04-20 · corresponds to final-spec §4.5 and [`porting-matrix.md`](./.claude/plans/04-planning/porting-matrix.md) §4.*
+*Last verified 2026-04-20 · corresponds to final-spec §4.5 and [`porting-matrix.md`](./.claude/plans/2026-04-19/04-planning/porting-matrix.md) §4.*

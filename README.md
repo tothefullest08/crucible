@@ -60,7 +60,7 @@ Runtime requirements: `bash` (≥ 4), `jq` (≥ 1.6), `uuidgen`, `flock`. No Pyt
 | 5 | **Verify** | `qa-judge` scoring · Ralph Loop · 3-stage Evaluator · grey-zone fallback |
 | 6 | **Improve** | `/compound` promotion gate → `tacit/`, `corrections/`, `preferences/` memory |
 
-Enforcement scope per skill is defined in [final-spec §3.5](./.claude/plans/03-design/final-spec.md). `--skip-axis N` is permitted, but `--skip-axis 5` additionally requires `--acknowledge-risk` — skipping verification is an explicit release blocker.
+Enforcement scope per skill is defined in [final-spec §3.5](./.claude/plans/2026-04-19/03-design/final-spec.md). `--skip-axis N` is permitted, but `--skip-axis 5` additionally requires `--acknowledge-risk` — skipping verification is an explicit release blocker.
 
 ---
 
@@ -104,7 +104,7 @@ Contributions require a **DCO sign-off** (`git commit -s`). The full workflow an
 
 ## Acknowledgments
 
-`crucible` ports and adapts work from six upstream Claude Code projects, all **MIT-licensed** and compatible with our redistribution (commit hashes and sync cadence tracked in [`porting-matrix.md`](./.claude/plans/04-planning/porting-matrix.md)):
+`crucible` ports and adapts work from six upstream Claude Code projects, all **MIT-licensed** and compatible with our redistribution (commit hashes and sync cadence tracked in [`porting-matrix.md`](./.claude/plans/2026-04-19/04-planning/porting-matrix.md)):
 
 - **hoyeon** — `validate_prompt` hook pattern, 6-agent verify stack, Korean UX
 - **ouroboros** — `qa-judge` JSON schema, Ralph Loop, Seed YAML, Ambiguity Gate
