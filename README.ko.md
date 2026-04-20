@@ -43,24 +43,19 @@ git clone https://github.com/<owner>/crucible.git ~/.claude/plugins/crucible
 
 - `/brainstorm` — 3-lens(vague · unknown · metamedium) clarify 패스로 진행하는 요구사항 브레인스토밍. `.claude/plans/YYYY-MM-DD-{slug}-requirements.md`로 저장.
 - `/plan` — 요구사항 문서에서 Markdown + YAML frontmatter 하이브리드 플랜 생성. acceptance criteria · evaluation principles(가중치) · exit conditions 포함.
-- `/verify` — `qa-judge`로 산출물 채점 (promote ≥ 0.80, retry 0.40–0.80, reject ≤ 0.40) + Ralph Loop 재시도 + Charter Preflight.
+- `/verify` — `qa-judge`로 산출물 채점 + Ralph Loop 재시도 + Charter Preflight.
 - `/compound` — 반복 패턴·유저 정정·`/session-wrap` 트리거를 위한 승격 게이트. 유저 승인된 후보만 `.claude/memory/`에 저장.
 - `/orchestrate` *(Stretch)* — 위 4 스킬을 end-to-end 파이프라인으로 연결. CP-0~CP-5 디스크 체크포인트로 크래시 안전.
+
+**상세** → [`docs/skills/`](./docs/skills/) (스킬별 Paradigm · Judgment · Design Choices).
 
 ---
 
 ## 6축 하네스 (6-Axis Harness)
 
-| # | 축 | 강제 사항 |
-|---|----|----------|
-| 1 | **Structure** | 플러그인 레이아웃, manifest 무결성, 슬래시 커맨드 등록 |
-| 2 | **Context** | `SessionStart` 훅 + `using-harness` 가이드 + `MEMORY.md` 주입 |
-| 3 | **Plan** | 사람·Evaluator가 함께 파싱하는 Markdown + YAML 하이브리드 산출물 |
-| 4 | **Execute** | 스코프 스킬, 훅 검증 프롬프트, SHA256 페이로드 고정 |
-| 5 | **Verify** | `qa-judge` · Ralph Loop · 3-stage Evaluator · grey-zone fallback |
-| 6 | **Improve** | `/compound` 승격 게이트 → `tacit/`, `corrections/`, `preferences/` 메모리 |
+모든 산출물은 6축 게이트(**Structure · Context · Plan · Execute · Verify · Improve**)를 통과합니다. `--skip-axis N`은 허용되지만 `--skip-axis 5`는 `--acknowledge-risk` 조합이 필수 — 검증 스킵은 명시적 릴리스 블로커입니다.
 
-스킬별 강제 범위는 [final-spec §3.5](./.claude/plans/2026-04-19/03-design/final-spec.md)에 정의되어 있습니다. `--skip-axis N`은 허용되지만 `--skip-axis 5`는 `--acknowledge-risk` 조합이 필수입니다 — 검증 스킵은 명시적 릴리스 블로커입니다.
+**상세** → [`docs/axes.md`](./docs/axes.md) (전체 matrix · 스킬 × 축 표 · skip 정책 근거).
 
 ---
 
@@ -91,6 +86,8 @@ git clone https://github.com/<owner>/crucible.git ~/.claude/plugins/crucible
 ```
 
 `/orchestrate`가 체크포인트 사이에서 중단되어도, 재실행 시 디스크에 기록된 마지막 CP부터 재개합니다 — 재작업 없음.
+
+**상세** → [`docs/thresholds.md`](./docs/thresholds.md) (verdict band · retry cap · overlap 가중치) · [`docs/faq.md`](./docs/faq.md) (이 기본값의 근거 · synthetic fixture 한계 · production 튜닝 로드맵).
 
 ---
 
