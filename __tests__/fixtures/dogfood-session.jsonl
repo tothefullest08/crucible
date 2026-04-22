@@ -1,0 +1,6 @@
+{"type":"user","timestamp":"2026-04-22T10:00:00Z","message":{"content":"/crucible:plan .claude/plans/requirements.md"}}
+{"type":"assistant","timestamp":"2026-04-22T10:00:05Z","message":{"content":[{"type":"tool_use","id":"tu1","name":"Skill","input":{"skill":"crucible:plan","args":"requirements.md"}}]}}
+{"type":"assistant","timestamp":"2026-04-22T10:01:10Z","message":{"content":[{"type":"tool_use","id":"tu2","name":"Bash","input":{"command":"bash scripts/verify.sh --skip-axis 5 --acknowledge-risk","description":"verify with skip"}}]}}
+{"type":"assistant","timestamp":"2026-04-22T10:02:30Z","message":{"content":[{"type":"tool_use","id":"tu3","name":"AskUserQuestion","input":{"question":"다음 후보를 메모리에 승격해 저장할까요?","options":["y","n"]}}]}}
+{"type":"user","timestamp":"2026-04-22T10:03:00Z","message":{"content":[{"type":"tool_result","tool_use_id":"tu4","content":"{\"score\": 0.82, \"verdict\": \"promote\", \"dimensions\": {}}"}]}}
+{"type":"user","timestamp":"2026-04-22T10:04:00Z","message":{"content":"irrelevant chatter"}}
