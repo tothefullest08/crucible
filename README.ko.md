@@ -76,7 +76,7 @@ git clone https://github.com/tothefullest08/crucible.git ~/src/crucible
 - `/orchestrate` *(Stretch)* — 위 4 스킬을 end-to-end 파이프라인으로 연결. CP-0~CP-5 디스크 체크포인트로 크래시 안전.
 - `/log` — 수동 dogfooding 로거. qualitative 노트(4 카테고리: good · pain · ambiguous · request) + 자동 추출 structured 이벤트(skill_call · promotion_gate · axis_skip · qa_judge)를 append-only JSONL 로 저장. 로컬은 `.claude/dogfood/log.jsonl`, 글로벌 mirror 는 `~/.claude/dogfood/crucible/{slug}-{hash}/log.jsonl` (opt-in, `CRUCIBLE_DOGFOOD_GLOBAL=0` 으로 비활성). `.gitignore` 자동 등록.
 
-**상세** → [`docs/skills/`](./docs/skills/) (스킬별 Paradigm · Judgment · Design Choices — 한국어: [`brainstorm.ko.md`](./docs/skills/brainstorm.ko.md) · [`plan.ko.md`](./docs/skills/plan.ko.md) · [`verify.ko.md`](./docs/skills/verify.ko.md) · [`compound.ko.md`](./docs/skills/compound.ko.md) · [`orchestrate.ko.md`](./docs/skills/orchestrate.ko.md)).
+**상세** → [`docs/skills/`](./docs/skills/) (스킬별 Paradigm · Judgment · Design Choices — 한국어: [`brainstorm.ko.md`](./docs/skills/brainstorm.ko.md) · [`plan.ko.md`](./docs/skills/plan.ko.md) · [`verify.ko.md`](./docs/skills/verify.ko.md) · [`compound.ko.md`](./docs/skills/compound.ko.md) · [`orchestrate.ko.md`](./docs/skills/orchestrate.ko.md) · [`dogfood.ko.md`](./docs/skills/dogfood.ko.md)).
 
 ---
 
