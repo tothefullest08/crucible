@@ -1,6 +1,6 @@
 {
   "name": "crucible",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "승격 게이트와 6축 검증 루프로 개인화된 컴파운딩 메모리를 누적하는 Claude Code 플러그인. | A Claude Code plugin that accumulates personalized compounding memory via promotion gates and a 6-axis verification loop.",
   "author": {
     "name": "ethan",
@@ -22,6 +22,7 @@
   "harness": {
     "payload_sha256": {
       "skills/using-harness/SKILL.md": "0d32d65ef798e5b9a8cbc5377746894c4ab0581bf600859a5647714adac2500c",
+      "skills/dogfood-digest/SKILL.md": "4654342496ca137c79577cda1c34146f0db38f25fb5878f43a466417f4062d9e",
       "hooks/session-start.sh": "09795e5837949d475e3567ef65d003f9776c89e9c1407dc06e14d935377e098a",
       "hooks/validate-output.sh": "5050f0a6b2ff42ace188c161d8297543ba1ee0e456558a2aa05ea6ed4c8bd82d"
     },

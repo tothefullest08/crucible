@@ -20,6 +20,7 @@ manifest="${plugin_root}/.claude-plugin/plugin.json"
 
 TRACKED=(
     "skills/using-harness/SKILL.md"
+    "skills/dogfood-digest/SKILL.md"
     "hooks/session-start.sh"
     "hooks/validate-output.sh"
 )
