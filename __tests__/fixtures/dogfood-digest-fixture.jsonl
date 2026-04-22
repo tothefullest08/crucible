@@ -1,0 +1,17 @@
+{"ts":"2026-04-15T10:00:00Z","type":"skill_call","skill":"/crucible:brainstorm","args_summary":"threshold tuning topic"}
+{"ts":"2026-04-15T10:05:00Z","type":"skill_call","skill":"/crucible:plan","args_summary":".claude/plans/reqs.md"}
+{"ts":"2026-04-15T10:10:00Z","type":"qa_judge","skill":"/crucible:plan","score":0.62,"verdict":"retry","dimensions":{}}
+{"ts":"2026-04-16T11:00:00Z","type":"qa_judge","skill":"/crucible:verify","score":0.88,"verdict":"promote","dimensions":{}}
+{"ts":"2026-04-16T11:30:00Z","type":"qa_judge","skill":"/crucible:plan","score":0.35,"verdict":"reject","dimensions":{}}
+{"ts":"2026-04-16T12:00:00Z","type":"axis_skip","axis":5,"acknowledged":true,"reason":"urgent prototype"}
+{"ts":"2026-04-16T12:30:00Z","type":"axis_skip","axis":5,"acknowledged":true,"reason":"urgent prototype"}
+{"ts":"2026-04-17T09:00:00Z","type":"axis_skip","axis":3,"acknowledged":true,"reason":"spike exploration"}
+{"ts":"2026-04-17T14:00:00Z","type":"note","category":"pain","text":"/crucible:plan 에서 weight 합 검증 오류 메시지가 모호해서 어디 숫자 고쳐야 하는지 찾기 어려움"}
+{"ts":"2026-04-17T14:05:00Z","type":"note","category":"pain","text":"/crucible:plan ambiguity gate pass 조건이 안 보여서 재실행 여부 판단 어려움"}
+{"ts":"2026-04-17T14:10:00Z","type":"note","category":"ambiguous","text":"/crucible:verify retry 판정 시 어떤 기준으로 재시도를 멈추는지 설명 부족"}
+{"ts":"2026-04-17T15:00:00Z","type":"note","category":"request","text":"/crucible:plan 에 Progress Tracking 섹션을 표준으로 포함시키고 싶음"}
+{"ts":"2026-04-17T15:10:00Z","type":"note","category":"request","text":"/crucible:plan 템플릿에 Exit Conditions 예시를 더 구체적으로 넣으면 좋겠음"}
+{"ts":"2026-04-17T15:20:00Z","type":"note","category":"good","text":"/crucible:verify 의 fresh-context evaluator 분리가 실제로 편향 줄이는 게 느껴짐"}
+{"ts":"2026-04-18T10:00:00Z","type":"promotion_gate","candidate_id":"bilingual-ux","response":"y","detector":"pattern_repeat"}
+{"ts":"2026-04-18T10:05:00Z","type":"promotion_gate","candidate_id":"progress-tracking","response":"y","detector":"pattern_repeat"}
+{"ts":"2026-04-18T11:00:00Z","type":"skill_call","skill":"/crucible:dogfood-digest","args_summary":"--last 10"}
