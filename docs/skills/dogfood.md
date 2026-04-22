@@ -28,11 +28,11 @@ Four qualitative categories selected by the user (multi-select):
 - **`ambiguous`** — unclear response, needed a re-ask.
 - **`request`** — feature wishlist.
 
-Recursion guard: `/crucible:log` invocations are dropped during extraction so repeated calls never see themselves in the log.
+Recursion guard: `/crucible:dogfood` invocations are dropped during extraction so repeated calls never see themselves in the log.
 
 ## Design Choices
 
-- **Manual trigger, not auto Stop-hook.** Auto-capture tried first; too many low-signal entries degraded the dataset. The user invokes `/crucible:log` when something worth recording happens. Fewer entries, higher signal.
+- **Manual trigger, not auto Stop-hook.** Auto-capture tried first; too many low-signal entries degraded the dataset. The user invokes `/crucible:dogfood` when something worth recording happens. Fewer entries, higher signal.
 - **Four fixed categories + free-form, not pure free-form.** Pure free-form makes aggregation impossible across months; pure categorical loses nuance. The hybrid lets queries like "all `pain` entries mentioning `/verify`" stay cheap while preserving context.
 - **Append-only JSONL, not a relational store.** JSONL is the simplest format that keeps the log git-diffable, shell-greppable, and trivial to stream into analysis notebooks. A schema change does not require a migration — old lines keep their old shape.
 - **Local primary + opt-in global mirror, not one or the other.** Local-only loses the cross-project aggregation this is designed for; global-only raises privacy questions on every write. Two targets with one opt-out env var (`CRUCIBLE_DOGFOOD_GLOBAL=0`) covers both needs without a plugin-level schema change.

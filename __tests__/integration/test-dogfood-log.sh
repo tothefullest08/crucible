@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 # __tests__/integration/test-dogfood-log.sh — SC-1 ~ SC-5 coverage for
-# the /crucible:log dogfooding skill.
+# the /crucible:dogfood dogfooding skill.
 #
 # SC-1: single call writes ≤ 2s on a fixture (≤ 30s budget).
 # SC-2: all four structured event types present in fixture are extracted.
 # SC-3: local + global mirror JSONL both parse line-by-line with `jq .`.
 # SC-4: .gitignore gains ".claude/dogfood/" exactly once (idempotent).
-# SC-5: second invocation does NOT include /crucible:log tool_use events.
+# SC-5: second invocation does NOT include /crucible:dogfood tool_use events.
 #
 # Exit 0 = all sub-tests PASS. Exit 1 = at least one failure.
 #
@@ -141,24 +141,24 @@ gi_count=$(grep -cxF '.claude/dogfood/' "$gitignore" || true)
 if [[ "$gi_count" -eq 1 ]]; then assert_pass "SC-4 gitignore idempotent on second call"; else assert_fail "SC-4 gitignore idempotency" "count=$gi_count"; fi
 
 # ----------------------------------------------------------------------------
-# SC-5 — recursion filter: /crucible:log invocations are dropped
+# SC-5 — recursion filter: /crucible:dogfood invocations are dropped
 # ----------------------------------------------------------------------------
 
 printf 'SC-5: recursion filter\n'
 
 recursion_fixture="$(mktemp -t dogfood-recursion.XXXXXX)"
 cat > "$recursion_fixture" << 'EOF'
-{"type":"user","timestamp":"2026-04-22T11:00:00Z","message":{"content":"/crucible:log"}}
-{"type":"assistant","timestamp":"2026-04-22T11:00:05Z","message":{"content":[{"type":"tool_use","id":"r1","name":"Skill","input":{"skill":"crucible:log","args":""}}]}}
-{"type":"user","timestamp":"2026-04-22T11:05:00Z","message":{"content":"/crucible:log"}}
+{"type":"user","timestamp":"2026-04-22T11:00:00Z","message":{"content":"/crucible:dogfood"}}
+{"type":"assistant","timestamp":"2026-04-22T11:00:05Z","message":{"content":[{"type":"tool_use","id":"r1","name":"Skill","input":{"skill":"crucible:dogfood","args":""}}]}}
+{"type":"user","timestamp":"2026-04-22T11:05:00Z","message":{"content":"/crucible:dogfood"}}
 {"type":"user","timestamp":"2026-04-22T11:05:05Z","message":{"content":"/crucible:plan"}}
 EOF
 
 recursion_out="$("$parser" "$recursion_fixture")"
-log_count=$(printf '%s\n' "$recursion_out" | jq -c 'select(.type=="skill_call" and (.skill | contains("crucible:log")))' | wc -l | tr -d ' ')
+log_count=$(printf '%s\n' "$recursion_out" | jq -c 'select(.type=="skill_call" and (.skill | contains("crucible:dogfood")))' | wc -l | tr -d ' ')
 plan_count=$(printf '%s\n' "$recursion_out" | jq -c 'select(.type=="skill_call" and .skill=="/crucible:plan")' | wc -l | tr -d ' ')
 
-if [[ "$log_count" -eq 0 ]]; then assert_pass "SC-5 /crucible:log events dropped (count=0)"; else assert_fail "SC-5 recursion" "leaked $log_count /crucible:log entries"; fi
+if [[ "$log_count" -eq 0 ]]; then assert_pass "SC-5 /crucible:dogfood events dropped (count=0)"; else assert_fail "SC-5 recursion" "leaked $log_count /crucible:dogfood entries"; fi
 if [[ "$plan_count" -eq 1 ]]; then assert_pass "SC-5 non-log events preserved (/crucible:plan count=1)"; else assert_fail "SC-5 preservation" "plan count=$plan_count"; fi
 
 rm -f "$recursion_fixture"
