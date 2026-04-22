@@ -33,7 +33,7 @@ Three failure modes repeatedly kill Claude Code sessions. `crucible` refuses to 
 /reload-plugins
 ```
 
-After `/reload-plugins`, the five slash commands (`/crucible:brainstorm` · `/crucible:plan` · `/crucible:verify` · `/crucible:compound` · `/crucible:orchestrate`) and the PreToolUse guard hooks are active in the current session. Confirm with:
+After `/reload-plugins`, the six slash commands (`/crucible:brainstorm` · `/crucible:plan` · `/crucible:verify` · `/crucible:compound` · `/crucible:orchestrate` · `/crucible:log`) and the PreToolUse guard hooks are active in the current session. Confirm with:
 
 ```
 /plugin list         # crucible@crucible should appear under Installed
@@ -67,13 +67,14 @@ Runtime requirements: `bash` (≥ 4), `jq` (≥ 1.6), `uuidgen`, `flock`. No Pyt
 
 ---
 
-## Skills (5)
+## Skills (6)
 
 - `/brainstorm` — Feature brainstorming with a 3-lens clarify pass (vague · unknown · metamedium). Emits a requirements doc at `.claude/plans/YYYY-MM-DD-{slug}-requirements.md`.
 - `/plan` — Hybrid Markdown + YAML-frontmatter plan built from a requirements doc. Includes acceptance criteria, evaluation principles with weights, and exit conditions.
 - `/verify` — Artifact scoring with `qa-judge`, Ralph Loop retries, and Charter Preflight.
 - `/compound` — Promotion gate for repeated patterns, user corrections, and session-wrap summaries. Only user-approved candidates reach `.claude/memory/`.
 - `/orchestrate` *(Stretch)* — End-to-end pipeline that chains the four skills above with CP-0 through CP-5 disk checkpoints for crash-safe resume.
+- `/log` — Manual dogfooding logger. Captures qualitative notes (4 categories: good · pain · ambiguous · request) plus auto-extracted structured events (skill_call · promotion_gate · axis_skip · qa_judge) to append-only JSONL at `.claude/dogfood/log.jsonl` (local) and `~/.claude/dogfood/crucible/{slug}-{hash}/log.jsonl` (opt-in global mirror). `.gitignore` is auto-updated; opt-out via `CRUCIBLE_DOGFOOD_GLOBAL=0`.
 
 **Details** → [`docs/skills/`](./docs/skills/) (per-skill paradigm, judgment, design choices).
 

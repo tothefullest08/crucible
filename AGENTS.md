@@ -1,7 +1,7 @@
 # AGENTS.md — Skill Compliance Checklist
 
 > Enforcement contract for every skill in `crucible`. Paired with [CLAUDE.md](./CLAUDE.md) project guidance.
-> All 5 skills must pass their applicable 6-axis checks **before** an artifact leaves `validate_prompt`.
+> All 6 skills must pass their applicable 6-axis checks **before** an artifact leaves `validate_prompt`.
 
 ---
 
@@ -68,6 +68,17 @@ Each `SKILL.md` frontmatter declares a `validate_prompt` block. The `hooks/valid
 4. `dispatch × work × verify` combinations collapse to one of the 3 allowed modes.
 5. Cross-axis artifact hand-off validates SHA256 payload integrity.
 6. On failure, the skill halts in-axis; earlier checkpoints are preserved for resume.
+
+### `/dogfood` (Dogfood 4-axis self-check · v1.1.0)
+
+1. The parser attempted extraction of all four structured event types (`skill_call` · `promotion_gate` · `axis_skip` · `qa_judge`) from the current session JSONL.
+2. At least one qualitative category (`good` / `pain` / `ambiguous` / `request`) was selected via `AskUserQuestion` multi-select.
+3. The local log `.claude/dogfood/log.jsonl` parses line-by-line with `jq .`.
+4. When `CRUCIBLE_DOGFOOD_GLOBAL` is unset or != `"0"`, the global mirror at `~/.claude/dogfood/crucible/{slug}-{hash}/log.jsonl` carries identical appended content.
+5. `.gitignore` contains `.claude/dogfood/` exactly once (auto-added on first run, idempotent thereafter).
+6. Recursion filter — `skill_call` events whose `skill` equals `/crucible:log` are dropped during extraction.
+
+6-axis scope: `/dogfood` emits **hint-level** signals on axis 2 (Context) and axis 6 (Improve). No hard gates — the skill is a user-driven data collector, not a release gate.
 
 ---
 
