@@ -3,21 +3,21 @@ name: dogfood
 description: |
   dogfooding 로그 수집 (한·영) / Manual dogfooding logger — captures qualitative notes (4 categories) plus auto-extracted structured events from the current Claude Code session and appends to local + optional global-mirror JSONL.
   Use when the user wants to record feedback about a crucible session (pain points, good moments, ambiguities, feature requests) as durable dogfooding data for threshold tuning and UX iteration.
-  트리거: "dogfood", "도그푸드", "로그 남겨", "/crucible:log", "feedback log", "세션 피드백", "dogfooding".
+  트리거: "dogfood", "도그푸드", "로그 남겨", "/crucible:dogfood", "feedback log", "세션 피드백", "dogfooding".
 when_to_use: "crucible 플러그인 사용 중 세션 피드백을 append-only JSONL 로 남기고 싶을 때. 자동 캡처 없음 — 사용자가 명시적으로 호출한다."
 input: "없음 (현재 세션 JSONL 자동 탐색) + AskUserQuestion 으로 4 카테고리 multiSelect + free-form 텍스트"
 output: "{PROJECT}/.claude/dogfood/log.jsonl (로컬 primary) · ~/.claude/dogfood/crucible/{slug}-{hash}/log.jsonl (opt-in 글로벌 mirror)"
 validate_prompt: |
-  /crucible:log 완료 시 자기검증 (Dogfood 4축):
+  /crucible:dogfood 완료 시 자기검증 (Dogfood 4축):
   1. 현재 세션 JSONL 에서 4 structured event (skill_call · promotion_gate · axis_skip · qa_judge) 추출을 시도했는가?
   2. Qualitative note 입력 시 최소 1개 이상 카테고리가 선택되었는가? (AskUserQuestion multiSelect)
   3. 로컬 `.claude/dogfood/log.jsonl` 에 append 되었고 line-by-line `jq .` 로 파싱되는가?
   4. `CRUCIBLE_DOGFOOD_GLOBAL` 이 "0" 이 아닐 때 글로벌 mirror `~/.claude/dogfood/crucible/{slug}-{hash}/log.jsonl` 에도 동일 내용이 append 되었는가?
   5. `.gitignore` 에 `.claude/dogfood/` 라인이 존재하는가? (없으면 1회만 추가)
-  6. 재귀 방지 — /crucible:log 자신의 skill_call 이벤트가 structured events 배열에 포함되지 않는가?
+  6. 재귀 방지 — /crucible:dogfood 자신의 skill_call 이벤트가 structured events 배열에 포함되지 않는가?
 ---
 
-# Dogfood — /crucible:log
+# Dogfood — /crucible:dogfood
 
 > crucible 세션 피드백 수동 수집 스킬. qualitative(4 카테고리 + free-form) + structured(4 자동 이벤트) → append-only JSONL.
 
@@ -27,7 +27,7 @@ validate_prompt: |
 
 ## When to Use
 
-- 유저가 `/crucible:log`, "dogfood", "로그 남겨", "세션 피드백" 등으로 명시 호출할 때.
+- 유저가 `/crucible:dogfood`, "dogfood", "로그 남겨", "세션 피드백" 등으로 명시 호출할 때.
 - 한 세션 내 여러 번 호출 가능 — 매 호출이 개별 로그 레코드 묶음으로 append 된다.
 - 자동 Stop hook 캡처는 **의도적으로 배제** (유저 큐레이션 철학).
 
@@ -48,7 +48,7 @@ Do **not** use when:
 ### Phase 2 — Collect
 
 1. **Structured events 추출**: `bash scripts/parse-current-session.sh` 실행 → stdout JSONL. 4 event type(skill_call · promotion_gate · axis_skip · qa_judge) 이 regex/jq 기반으로 추출된다.
-2. **재귀 필터**: `skill_call` 이벤트 중 `skill == "/crucible:log"` 인 라인은 parser 내부에서 drop. SKILL.md `validate_prompt` #6 이 사후 확인.
+2. **재귀 필터**: `skill_call` 이벤트 중 `skill == "/crucible:dogfood"` 인 라인은 parser 내부에서 drop. SKILL.md `validate_prompt` #6 이 사후 확인.
 3. **Notes 조립**: Phase 1 입력을 `{"ts":"…","type":"note","category":"…","text":"…"}` JSONL 라인으로 변환.
 
 ### Phase 3 — Write
@@ -72,7 +72,7 @@ Do **not** use when:
 export CRUCIBLE_DOGFOOD_GLOBAL=0
 ```
 
-셋한 뒤 `/crucible:log` 를 호출하면 로컬 `.claude/dogfood/log.jsonl` 에만 기록된다. 기본값은 활성(1).
+셋한 뒤 `/crucible:dogfood` 를 호출하면 로컬 `.claude/dogfood/log.jsonl` 에만 기록된다. 기본값은 활성(1).
 
 `~/.claude/dogfood/` 디렉터리 자체를 비활성화하려면 위 env var 를 쉘 rc 파일에 영구 export.
 

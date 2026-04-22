@@ -6,7 +6,7 @@
 #
 #   skill_call      — user invocations of /crucible:* slash commands, and
 #                     tool_use entries with name == "Skill".
-#                     Recursion filter: /crucible:log itself is dropped so
+#                     Recursion filter: /crucible:dogfood itself is dropped so
 #                     repeated invocations don't pollute their own output.
 #   promotion_gate  — AskUserQuestion tool_use whose question mentions
 #                     "승격" / "promotion" / "저장할까요" (compound gate UX).
@@ -88,7 +88,7 @@ jq -rc '
         end;
 
     def emit_skill_call(ts; skill; summary):
-        if (skill | startswith("/crucible:log")) or skill == "/dogfood" or skill == "dogfood" then empty
+        if (skill | startswith("/crucible:dogfood")) or skill == "/dogfood" or skill == "dogfood" then empty
         else { ts: ts, type: "skill_call", skill: skill, args_summary: summary } end;
 
     # user-typed slash command invocations

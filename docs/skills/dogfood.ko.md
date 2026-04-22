@@ -28,11 +28,11 @@
 - **`ambiguous`** — 모호해서 되물은 것.
 - **`request`** — 추가 feature 요청.
 
-재귀 방지: `/crucible:log` 호출은 파싱 단계에서 drop → 반복 호출 시 자기 자신이 로그에 쌓이지 않음.
+재귀 방지: `/crucible:dogfood` 호출은 파싱 단계에서 drop → 반복 호출 시 자기 자신이 로그에 쌓이지 않음.
 
 ## 설계 선택 (Design Choices)
 
-- **수동 트리거, 자동 Stop-hook 아님.** 자동 캡처를 먼저 시도했으나 저신호 엔트리가 너무 많아 데이터셋 질이 낮아졌습니다. 유저가 기록할 만한 순간에 `/crucible:log` 를 직접 호출 — 엔트리 수는 적지만 신호 밀도는 높습니다.
+- **수동 트리거, 자동 Stop-hook 아님.** 자동 캡처를 먼저 시도했으나 저신호 엔트리가 너무 많아 데이터셋 질이 낮아졌습니다. 유저가 기록할 만한 순간에 `/crucible:dogfood` 를 직접 호출 — 엔트리 수는 적지만 신호 밀도는 높습니다.
 - **4 고정 카테고리 + free-form, 순수 free-form 아님.** 순수 free-form 은 몇 달 뒤 집계 불가, 순수 categorical 은 뉘앙스 손실. 하이브리드는 "모든 `pain` 중 `/verify` 언급된 건" 같은 쿼리를 저렴하게 유지하면서 맥락도 보존합니다.
 - **Append-only JSONL, RDB 아님.** JSONL 은 git-diff 가능 · 쉘 grep 가능 · 분석 노트북으로 스트림하기 단순함. 스키마 변경이 마이그레이션을 요구하지 않음 — 옛 라인은 옛 모양 그대로 유지.
 - **로컬 primary + opt-in 글로벌 mirror, 양자택일 아님.** 로컬 only 는 크로스 프로젝트 집계 상실, 글로벌 only 는 쓸 때마다 프라이버시 질문. 두 경로 + 단일 env var (`CRUCIBLE_DOGFOOD_GLOBAL=0`) opt-out 이 plugin-level 스키마 변경 없이 둘 다 커버합니다.

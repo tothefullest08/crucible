@@ -76,7 +76,7 @@ Each `SKILL.md` frontmatter declares a `validate_prompt` block. The `hooks/valid
 3. The local log `.claude/dogfood/log.jsonl` parses line-by-line with `jq .`.
 4. When `CRUCIBLE_DOGFOOD_GLOBAL` is unset or != `"0"`, the global mirror at `~/.claude/dogfood/crucible/{slug}-{hash}/log.jsonl` carries identical appended content.
 5. `.gitignore` contains `.claude/dogfood/` exactly once (auto-added on first run, idempotent thereafter).
-6. Recursion filter — `skill_call` events whose `skill` equals `/crucible:log` are dropped during extraction.
+6. Recursion filter — `skill_call` events whose `skill` equals `/crucible:dogfood` are dropped during extraction.
 
 6-axis scope: `/dogfood` emits **hint-level** signals on axis 2 (Context) and axis 6 (Improve). No hard gates — the skill is a user-driven data collector, not a release gate.
 
