@@ -38,7 +38,7 @@ Escape hatch `--skip-axis N` is permitted. **Skipping axis 5 requires `--acknowl
 
 ---
 
-## 5 skills — usage summary
+## 7 skills — usage summary
 
 | Skill | Trigger | Input | Output |
 |-------|---------|-------|--------|
@@ -47,8 +47,10 @@ Escape hatch `--skip-axis N` is permitted. **Skipping axis 5 requires `--acknowl
 | [`/verify`](./skills/verify/SKILL.md) | "verify", "검증해줘" | Artifact path `[--axis N]` | `qa-judge` JSON report |
 | [`/compound`](./skills/compound/SKILL.md) | "compound", pattern_repeat, `/session-wrap` | Candidate queue | `.claude/memory/{tacit,corrections,preferences}/*.md` |
 | [`/orchestrate`](./skills/orchestrate/SKILL.md) *(Stretch)* | "orchestrate", "4축 파이프라인" | Topic prompt | 4-axis pipeline + CP-0~CP-5 checkpoints |
+| [`/dogfood`](./skills/dogfood/SKILL.md) | "dogfood", "도그푸드", "/crucible:dogfood" | Current session JSONL + 4-cat note | `.claude/dogfood/log.jsonl` (+ opt-in global mirror) |
+| [`/dogfood-digest`](./skills/dogfood-digest/SKILL.md) | "dogfood digest", "도그푸드 리포트" | dogfood JSONL + window flags | `.claude/plans/YYYY-MM-DD-dogfood-digest-{window}.md` |
 
-Per-skill `SKILL.md` frontmatter (6 fields × 5 skills) is audited via the checklist in [AGENTS.md](./AGENTS.md).
+Per-skill `SKILL.md` frontmatter (6 fields × 7 skills) is audited via the checklist in [AGENTS.md](./AGENTS.md).
 
 ---
 
