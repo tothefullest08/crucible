@@ -38,9 +38,9 @@
 
 `/dogfood-digest`는 새 임계값을 도입하지 않습니다. 기존 문서의 임계값을 **소비하는 쪽**입니다:
 
-- `qa_judge` verdict 밴드 — [`../thresholds.md §1`](../thresholds.md#1-qa-judge-verdict-bands--promote--080-retry-040080-reject--040) 기준 p50/p95 요약.
-- `promotion_gate` y-response 빈도 — [`../thresholds.md §5`](../thresholds.md#5-promotion-gate-false-positive-rate---20-) 의 false-positive 예산과 비교.
-- `axis_skip` 정책 — [`../axes.md`](../axes.md) 과 cross-reference.
+- `qa_judge` verdict 밴드 — [`../thresholds.ko.md §1`](../thresholds.ko.md#1-qa-judge-verdict-bands--promote--080-retry-040080-reject--040) 기준 p50/p95 요약.
+- `promotion_gate` y-response 빈도 — [`../thresholds.ko.md §5`](../thresholds.ko.md#5-승격-게이트-오탐률--20-) 의 false-positive 예산과 비교.
+- `axis_skip` 정책 — [`../axes.ko.md`](../axes.ko.md) 과 cross-reference.
 - 관측수 하한(`--threshold-n`, 기본 3) — 본 스킬의 로컬 knob.
 
 ## 참조 (References)
