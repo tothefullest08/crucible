@@ -20,11 +20,39 @@
 #   --scope  <SCOPE>     scope label stored in frontmatter (default: both)
 #   --threshold-n <N>    minimum observation count for threshold suggestions
 #                        (default: 3; lower values mean quieter logs still emit)
+#   -h | --help          print usage
 # Output: Markdown on stdout.
+#
+# Exit codes:
+#   0  success (including empty or no-signal input)
+#   1  runtime failure (jq pipeline error, etc.)
+#   2  argument error
 #
 # Runtime: bash + jq. No Python / Node.
 
 set -uo pipefail
+
+print_help() {
+    cat <<'USAGE'
+Usage: dogfood-digest-render.sh --window LABEL [--scope SCOPE] [--threshold-n N]
+
+Reads filtered dogfood JSONL on stdin and emits a 3-section Markdown proposal
+report on stdout.
+
+Flags:
+  --window LABEL      window label used in frontmatter + filename (required)
+  --scope SCOPE       scope label stored in frontmatter (default: both)
+  --threshold-n N     positive integer; minimum observation count for threshold
+                      suggestions (default: 3; lower values mean quieter logs
+                      still emit)
+  -h | --help         print usage
+
+Exit codes:
+  0 — success (including empty or no-signal input)
+  1 — runtime failure (jq pipeline error, etc.)
+  2 — argument error
+USAGE
+}
 
 window_label=""
 scope_label="both"
@@ -44,8 +72,13 @@ while [[ $# -gt 0 ]]; do
             threshold_n="${2:-}"
             shift 2 || { printf 'render: --threshold-n requires a value\n' >&2; exit 2; }
             ;;
+        -h|--help)
+            print_help
+            exit 0
+            ;;
         *)
             printf 'render: unknown argument: %s\n' "$1" >&2
+            print_help >&2
             exit 2
             ;;
     esac
@@ -56,11 +89,20 @@ if [[ -z "$window_label" ]]; then
     exit 2
 fi
 
-tmp_in="$(mktemp -t dogfood-digest-in.XXXXXX)"
+if ! [[ "$threshold_n" =~ ^[0-9]+$ ]] || [[ "$threshold_n" -le 0 ]]; then
+    printf 'render: --threshold-n expects a positive integer (got: %s)\n' "$threshold_n" >&2
+    exit 2
+fi
+
+tmp_in="$(mktemp -t dogfood-digest-in.XXXXXX)" || {
+    printf 'render: mktemp failed\n' >&2
+    exit 2
+}
 trap 'rm -f "$tmp_in"' EXIT
 
 # Read stdin, drop blanks, filter recursion events at ingestion.
-jq -c 'select(if .type == "skill_call" then ((.skill // "") | test("crucible:dogfood-digest") | not) else true end)' > "$tmp_in" || true
+# Regex is anchored so sibling skills like `/crucible:dogfood-digest-v2` are NOT dropped.
+jq -c 'select(if .type == "skill_call" then ((.skill // "") | test("^/?crucible:dogfood-digest$") | not) else true end)' > "$tmp_in" || true
 
 total_events=$(wc -l < "$tmp_in" | tr -d ' ')
 
@@ -144,7 +186,9 @@ fi
 
 printf '## Protocol Improvements\n\n'
 
-if [[ "$pain_count" -eq 0 && "$skip_count" -eq 0 ]]; then
+# Guard must reflect the actual render thresholds: pain uses >0, skip uses >=2.
+# Otherwise e.g. skip_count==1 with no pain leaves the section body empty.
+if [[ "$pain_count" -eq 0 && "$skip_count" -lt 2 ]]; then
     printf '> no signal in window\n\n'
 else
     if [[ "$pain_count" -gt 0 ]]; then
@@ -194,7 +238,10 @@ fi
 
 printf '## Promotion Candidates\n\n'
 
-if [[ "$promo_notes_count" -eq 0 && "$gate_count" -eq 0 ]]; then
+# Guard must reflect the actual render thresholds: promo_notes uses >=1 via
+# map(select(.n>=1)), gate uses >=2. Otherwise gate_count==1 with no notes
+# leaves the section body empty.
+if [[ "$promo_notes_count" -eq 0 && "$gate_count" -lt 2 ]]; then
     printf '> no signal in window\n\n'
 else
     if [[ "$promo_notes_count" -gt 0 ]]; then
