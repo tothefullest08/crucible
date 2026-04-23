@@ -91,15 +91,38 @@ since_count=$("$aggregator" --since 2026-04-17 --scope local --project-root "$tm
 expected_since=$(jq -c --arg c "2026-04-17T00:00:00Z" 'select(.ts >= $c)' "$fixture" | wc -l | tr -d ' ')
 if [[ "$since_count" -eq "$expected_since" ]]; then pass "--since 2026-04-17 returns $since_count (expected $expected_since)"; else faile "SC-3 --since ABS" "got $since_count want $expected_since"; fi
 
-# --since Nd — fixture is from past, so "--since 1d" (yesterday-only) should return 0 because all events predate it.
-since_1d=$("$aggregator" --since 1d --scope local --project-root "$tmpproj" --home "$tmphome" | wc -l | tr -d ' ')
-if [[ "$since_1d" -eq 0 ]]; then pass "--since 1d returns 0 (fixture predates yesterday)"; else faile "SC-3 --since 1d" "got $since_1d want 0"; fi
+# --since future — pick a cutoff far enough ahead that no fixture event can
+# ever match (date-stable; no dependency on `date -v-1d` vs today's clock).
+since_future=$("$aggregator" --since 2099-01-01 --scope local --project-root "$tmpproj" --home "$tmphome" | wc -l | tr -d ' ')
+if [[ "$since_future" -eq 0 ]]; then pass "--since 2099-01-01 returns 0 (future cutoff never matches fixture)"; else faile "SC-3 --since future" "got $since_future want 0"; fi
 
 all_count=$("$aggregator" --all --scope local --project-root "$tmpproj" --home "$tmphome" | wc -l | tr -d ' ')
 if [[ "$all_count" -eq "$fixture_lines" ]]; then pass "--all returns $all_count events"; else faile "SC-3 --all" "got $all_count"; fi
 
-# mutually exclusive flags — aggregator treats --last after --since as override (last wins),
-# which is the documented behavior. No hard error needed.
+# Mutex — --last and --since cannot be combined (exit 2). --all overrides both.
+printf 'SC-3/MUTEX: --last + --since mutual exclusion\n'
+set +e
+"$aggregator" --last 5 --since 2099-01-01 --scope local \
+    --project-root "$tmpproj" --home "$tmphome" >/dev/null 2>&1
+mutex_rc=$?
+set -e
+if [[ "$mutex_rc" -eq 2 ]]; then pass "mutex --last + --since exits 2"; else faile "mutex exit" "got $mutex_rc want 2"; fi
+set +e
+"$aggregator" --last 5 --since 2099-01-01 --all --scope local \
+    --project-root "$tmpproj" --home "$tmphome" >/dev/null 2>&1
+mutex_all_rc=$?
+set -e
+if [[ "$mutex_all_rc" -eq 0 ]]; then pass "mutex + --all overrides to 0"; else faile "mutex+all exit" "got $mutex_all_rc want 0"; fi
+
+# --threshold-n validation — non-integer / zero / negative rejected (exit 2).
+printf 'THRESHOLD-N: validation\n'
+for bad in abc 0 -1 ""; do
+    set +e
+    echo '' | "$renderer" --window t --threshold-n "$bad" >/dev/null 2>&1
+    rc=$?
+    set -e
+    if [[ "$rc" -eq 2 ]]; then pass "--threshold-n '$bad' rejected (exit 2)"; else faile "--threshold-n '$bad'" "got $rc want 2"; fi
+done
 
 # ----------------------------------------------------------------------------
 # End-to-end render + save (SC-1, SC-2, SC-5)
@@ -217,19 +240,136 @@ else
 fi
 
 # ----------------------------------------------------------------------------
-# Recursion filter — SKILL.md validate_prompt #4 semantic check
+# Threshold Calibration + skip_reasons — full-fixture render coverage
+# ----------------------------------------------------------------------------
+#
+# The --last 10 render above only captures qa_count=0 and skip_count=1 so the
+# Threshold "else" branch and the Protocol skip_reasons sub-block never fire.
+# Render the full fixture here to exercise p50/p95 awk, verdict histogram,
+# axis_skip frequency, and recurring skip-reason grouping.
+
+printf 'THRESHOLD+SKIP: full-fixture render coverage\n'
+
+full_outfile="$tmpproj/.claude/plans/${today}-dogfood-digest-all.md"
+"$aggregator" --all --scope local --project-root "$tmpproj" --home "$tmphome" \
+    | "$renderer" --window "all" --scope local > "$full_outfile"
+
+if grep -q 'qa_judge score distribution' "$full_outfile" \
+    && grep -q 'p50=' "$full_outfile" \
+    && grep -q 'verdicts:' "$full_outfile"; then
+    pass "Threshold else branch renders qa_judge distribution + p50/p95 + verdicts"
+else
+    faile "Threshold else branch coverage"
+fi
+
+if grep -q 'axis_skip 빈도' "$full_outfile"; then
+    pass "Threshold else branch renders axis_skip histogram"
+else
+    faile "axis_skip histogram coverage"
+fi
+
+# skip_reasons sub-block requires skip_count >= 2 AND a reason with n >= 2.
+# Fixture has two "urgent prototype" axis_skip events.
+if grep -q '반복 skip reason.*urgent prototype' "$full_outfile"; then
+    pass "Protocol skip_reasons sub-block renders recurring reason"
+else
+    faile "skip_reasons sub-block coverage"
+fi
+
+# Back-reference density — at least 3 path:line citations in the full render.
+back_refs=$(grep -cE '`[^`]+:[0-9]+`' "$full_outfile" || true)
+if [[ "$back_refs" -ge 3 ]]; then
+    pass "Full render has >= 3 back-references ($back_refs found)"
+else
+    faile "back-reference density" "got $back_refs want >=3"
+fi
+
+# ----------------------------------------------------------------------------
+# --threshold-n render effects — n=1 surfaces signal, n=99 suppresses it.
 # ----------------------------------------------------------------------------
 
-printf 'RECURSION: self-skill_call is dropped from sections\n'
+printf 'THRESHOLD-N: render effect at boundary values\n'
 
-# The fixture contains one /crucible:dogfood-digest skill_call event. It
-# should NOT appear as a back-reference inside the Protocol / Promotion
-# sections. We check that no suggestion line cites a /crucible:dogfood-digest
-# text token.
-if grep -E -q '\*\*/crucible:dogfood-digest\*\*' "$outfile"; then
-    faile "recursion filter" "self skill_call leaked into a section key"
+tn1_outfile="$tmpproj/.claude/plans/${today}-dogfood-digest-all-tn1.md"
+"$aggregator" --all --scope local --project-root "$tmpproj" --home "$tmphome" \
+    | "$renderer" --window "all" --scope local --threshold-n 1 > "$tn1_outfile"
+if grep -q 'qa_judge score distribution' "$tn1_outfile"; then
+    pass "--threshold-n 1 surfaces qa_judge block even at low sample counts"
 else
-    pass "recursion filter drops self skill_call events"
+    faile "--threshold-n 1 effect"
+fi
+
+tn99_outfile="$tmpproj/.claude/plans/${today}-dogfood-digest-all-tn99.md"
+"$aggregator" --all --scope local --project-root "$tmpproj" --home "$tmphome" \
+    | "$renderer" --window "all" --scope local --threshold-n 99 > "$tn99_outfile"
+if grep -q 'no signal in window (qa_judge n=.*threshold-n=99' "$tn99_outfile"; then
+    pass "--threshold-n 99 suppresses Threshold section (no signal)"
+else
+    faile "--threshold-n 99 effect"
+fi
+
+# ----------------------------------------------------------------------------
+# Malformed JSONL resilience — jq must NOT drop rows after a bad line.
+# ----------------------------------------------------------------------------
+
+printf 'MALFORMED: per-line parsing survives bad rows\n'
+
+mal_proj="$(mktemp -d -t dfd-mal.XXXXXX)"
+mkdir -p "$mal_proj/.claude/dogfood"
+cat > "$mal_proj/.claude/dogfood/log.jsonl" <<'BAD_JSONL'
+{"ts":"2020-01-01T00:00:00Z","type":"note","category":"pain","text":"before bad row"}
+THIS_IS_NOT_JSON
+{"ts":"2020-01-02T00:00:00Z","type":"note","category":"good","text":"after bad row"}
+BAD_JSONL
+mal_count=$("$aggregator" --all --scope local --project-root "$mal_proj" --home "$tmphome" 2>/dev/null | wc -l | tr -d ' ')
+if [[ "$mal_count" -eq 2 ]]; then
+    pass "malformed row skipped, 2 valid rows survive"
+else
+    faile "malformed JSONL survivorship" "got $mal_count want 2"
+fi
+
+# Warning on malformed row goes to stderr.
+mal_stderr=$("$aggregator" --all --scope local --project-root "$mal_proj" --home "$tmphome" 2>&1 >/dev/null)
+if printf '%s' "$mal_stderr" | grep -q 'warn: skipping malformed row'; then
+    pass "malformed row emits stderr warning"
+else
+    faile "malformed stderr warning" "no warning found"
+fi
+rm -rf "$mal_proj"
+
+# ----------------------------------------------------------------------------
+# Recursion filter — SKILL.md validate_prompt #4 semantic check
+# ----------------------------------------------------------------------------
+#
+# Anchored regex ^/?crucible:dogfood-digest$ drops exactly one self-call from
+# fixture (line 17 with skill="/crucible:dogfood-digest") and must PRESERVE
+# sibling-skill calls like /crucible:dogfood-digest-v2 (fixture line 18).
+# total_events in the full render should therefore equal (fixture_lines - 1).
+
+printf 'RECURSION: self-skill_call dropped, sibling skills preserved\n'
+
+total_events=$(grep -E '^total_events: ' "$full_outfile" | awk '{print $2}')
+expected_total=$((fixture_lines - 1))
+if [[ "$total_events" -eq "$expected_total" ]]; then
+    pass "total_events=$total_events matches (fixture_lines - 1 recursion drop)"
+else
+    faile "recursion total_events" "got $total_events want $expected_total"
+fi
+
+# Sanity: the sibling-skill event must still be countable in the aggregator output.
+sibling_present=$("$aggregator" --all --scope local --project-root "$tmpproj" --home "$tmphome" \
+    | grep -c 'crucible:dogfood-digest-v2' || true)
+if [[ "$sibling_present" -ge 1 ]]; then
+    pass "anchored regex preserves crucible:dogfood-digest-v2 event"
+else
+    faile "anchored regex false positive" "sibling skill dropped"
+fi
+
+# Self-skill_call must NOT leak into a section key (keeps the original assertion).
+if grep -E -q '\*\*/crucible:dogfood-digest\*\*' "$outfile"; then
+    faile "recursion section leak" "self skill_call appeared as a section key"
+else
+    pass "recursion filter keeps self skill_call out of section keys"
 fi
 
 # ----------------------------------------------------------------------------
