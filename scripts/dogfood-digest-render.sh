@@ -117,10 +117,14 @@ trap 'rm -f "$tmp_in"' EXIT INT TERM HUP
 
 # Read stdin, drop blanks, filter recursion events at ingestion.
 # Regex is anchored so sibling skills like `/crucible:dogfood-digest-v2` are NOT dropped.
+# Case-insensitive: upstream wrappers / non-canonical emitters may carry mixed
+# case (`/CRUCIBLE:DOGFOOD-DIGEST`). ascii_downcase normalises before the test
+# AND the `i` flag is kept as belt-and-braces — either alone is sufficient,
+# both together survive even if one side regresses.
 # A jq failure here would silently truncate $tmp_in and every downstream
 # count would degrade to "no signal in window" with exit 0 — a "success
 # but wrong answer" failure mode. Surface jq errors instead of swallowing.
-if ! jq -c 'select(if .type == "skill_call" then ((.skill // "") | test("^/?crucible:dogfood-digest$") | not) else true end)' > "$tmp_in"; then
+if ! jq -c 'select(if .type == "skill_call" then ((.skill // "") | ascii_downcase | test("^/?crucible:dogfood-digest$"; "i") | not) else true end)' > "$tmp_in"; then
     printf 'render: ingestion jq failed (malformed JSONL on stdin?)\n' >&2
     exit 1
 fi
@@ -129,8 +133,15 @@ total_events=$(wc -l < "$tmp_in" | tr -d ' ')
 
 # ----- per-type aggregates ---------------------------------------------------
 
-# qa_judge: score list + verdict histogram
-qa_json="$(jq -sc '[.[] | select(.type=="qa_judge")]' "$tmp_in")"
+# qa_judge: score list + verdict histogram.
+# Filter to events where .score is numeric — non-numeric scores poison
+# percentile statistics (string-with-comma splits awk records; nested
+# objects render as literal "{}" in the report). Dropping the entire row
+# when score is malformed is the conservative call: a future skill that
+# logs score as object/string would otherwise corrupt every digest
+# forever (issue #12). Verdict counts and references therefore reflect
+# well-formed events only.
+qa_json="$(jq -sc '[.[] | select(.type=="qa_judge" and (.score | type == "number"))]' "$tmp_in")"
 qa_count=$(printf '%s' "$qa_json" | jq 'length')
 
 # axis_skip: axis histogram (only "acknowledged" true)
@@ -182,10 +193,26 @@ else
         promote_n=$(printf '%s' "$qa_json" | jq '[.[] | select(.verdict=="promote")] | length')
         retry_n=$(printf '%s' "$qa_json" | jq '[.[] | select(.verdict=="retry")] | length')
         reject_n=$(printf '%s' "$qa_json" | jq '[.[] | select(.verdict=="reject")] | length')
-        # percentiles via bash sort (scores are floats ≤ 3 digits)
-        scores_sorted=$(printf '%s' "$qa_json" | jq -r '[.[].score] | sort | .[]' | paste -sd',' -)
-        p50=$(printf '%s' "$scores_sorted" | tr ',' '\n' | awk 'BEGIN{c=0}{a[c++]=$1}END{ if(c==0){print "n/a"} else {print a[int((c-1)/2)]} }')
-        p95=$(printf '%s' "$scores_sorted" | tr ',' '\n' | awk 'BEGIN{c=0}{a[c++]=$1}END{ if(c==0){print "n/a"} else { i=int((c-1)*0.95+0.5); if(i>=c)i=c-1; print a[i] } }')
+        # Percentiles computed inside jq — stay in numeric domain instead of
+        # round-tripping through awk's stringly-typed split on commas (which
+        # is what poisoned p50/p95 when .score carried a "0.5,0.7" string in
+        # issue #12). Index math mirrors the prior awk: p50 = floor((n-1)/2),
+        # p95 = floor((n-1)*0.95 + 0.5), clamped to the last index.
+        p50=$(printf '%s' "$qa_json" | jq -r '
+            if length == 0 then "n/a"
+            else ([.[].score] | sort) as $s
+                | ($s | length) as $n
+                | $s[(($n - 1) / 2) | floor]
+            end
+        ')
+        p95=$(printf '%s' "$qa_json" | jq -r '
+            if length == 0 then "n/a"
+            else ([.[].score] | sort) as $s
+                | ($s | length) as $n
+                | ((($n - 1) * 0.95 + 0.5) | floor) as $i
+                | $s[if $i >= $n then $n - 1 else $i end]
+            end
+        ')
         refs=$(printf '%s' "$qa_json" | jq -r '.[] | "\(._source_path):\(._line)"' | head -3 | awk '{printf "`%s` ", $0}')
         printf -- '- **qa_judge score distribution** — n=%s · p50=%s · p95=%s · verdicts: promote=%s · retry=%s · reject=%s — 근거(샘플 3건): %s\n' \
             "$qa_count" "$p50" "$p95" "$promote_n" "$retry_n" "$reject_n" "$refs"

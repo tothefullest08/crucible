@@ -155,7 +155,10 @@ Do **not** use when:
 2. 파일 경로 조립: `.claude/plans/${date}-dogfood-digest-${window_label}.md`. slug `dogfood-digest` 는 고정 문자열이라 별도 sanitize 불필요 — `{window_label}` 만 `[a-zA-Z0-9_-]` 화이트리스트 내에 있는지 확인.
 3. `.claude/plans/` 디렉토리 부재 시 `mkdir -p`.
 4. **이미 같은 경로의 파일이 있으면** 덮어쓰지 말고 `{window}-v2` / `{window}-v3` … 처럼 suffix 를 바꿔 재호출할 것. 재조회가 필요하면 Phase 1 부터 다시 돈다. (스크립트에 `--out` / `--force` flag 는 의도적으로 두지 않음 — 충돌 처리는 호출자 문맥에서 판단.)
-5. 저장 후 최종 응답 마지막 줄에 저장 경로 echo.
+5. **호출 패턴 (필수)** — `aggregator | renderer` 직결 파이프 대신 **wrapper-via-tempfile** 패턴을 사용한다. aggregator 가 `jq sort` / `mktemp` 등으로 실패해도 renderer 는 EOF 까지 읽고 깨끗한 "no signal in window" 리포트를 exit 0 으로 뱉기 때문에, 직결 파이프는 "성공처럼 보이는 잘못된 결과(success but wrong answer)" 실패를 만든다(issue #11). 회피책 두 가지를 **함께** 적용한다:
+   - `set -o pipefail` 을 호출 전에 켠다 (직결 파이프를 쓸 때 aggregator 실패가 전체 exit code 로 전파되도록).
+   - aggregator 출력을 `mktemp` 임시파일로 받고 renderer 에 stdin 으로 주입한다 (각 단계 exit code 를 독립적으로 검사 가능).
+6. 저장 후 최종 응답 마지막 줄에 저장 경로 echo.
 
 **출력**: 디스크 상의 리포트 파일 1건.
 
@@ -163,11 +166,21 @@ Do **not** use when:
 
 **예시 호출 (bash)**:
 ```bash
+set -o pipefail   # aggregator 실패가 빈 리포트로 가려지지 않도록 (issue #11).
+
 win=last10
 date=$(date -u +%Y-%m-%d)
 mkdir -p .claude/plans
-bash scripts/dogfood-digest.sh --last 10 --scope both \
-    | bash scripts/dogfood-digest-render.sh --window "$win" --scope both \
+
+# wrapper-via-tempfile: aggregator 와 renderer 사이에 tempfile 을 끼워 각
+# 단계의 exit code 를 독립적으로 검사할 수 있게 한다. 직결 파이프는
+# pipefail 만으로도 막히지만, tempfile 패턴은 디버깅/재시도가 더 쉽다.
+tmp_raw="$(mktemp -t dogfood-digest-raw.XXXXXX)"
+trap 'rm -f "$tmp_raw"' EXIT INT TERM HUP
+
+bash scripts/dogfood-digest.sh --last 10 --scope both > "$tmp_raw"
+bash scripts/dogfood-digest-render.sh --window "$win" --scope both \
+    < "$tmp_raw" \
     > ".claude/plans/${date}-dogfood-digest-${win}.md"
 ```
 
