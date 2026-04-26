@@ -129,10 +129,10 @@ Do **not** use when:
 **입력**: Phase 2 stream + `{window, scope}`.
 
 **동작**:
-1. `bash scripts/dogfood-digest-render.sh --window {window} --scope {scope}` 에 stdin pipe.
-2. 재귀 필터: 입력 중 `.type == "skill_call" && .skill == "/crucible:dogfood-digest"` (앵커 regex `^/?crucible:dogfood-digest$`) 는 ingestion 단계에서 drop. 자기 호출이 Protocol/Promotion 섹션을 오염시키지 않도록 한다. 앵커가 있어 `crucible:dogfood-digest-v2` 같은 미래 형제 스킬 호출은 보존된다.
+1. renderer (`bash scripts/dogfood-digest-render.sh --window {window} --scope {scope}`) 가 Phase 2 의 filtered JSONL 을 **stdin** 으로 읽어 변환한다. 호출형(직결 파이프 vs wrapper-via-tempfile) 은 Phase 3 의 책임이 아니라 Phase 4 가 정의한다 — 둘 다 renderer 입장에서는 동일한 stdin 입력이다.
+2. 재귀 필터: 입력 중 `.type == "skill_call" && .skill == "/crucible:dogfood-digest"` (앵커 regex `^/?crucible:dogfood-digest$`, 대소문자 무시) 는 ingestion 단계에서 drop. 자기 호출이 Protocol/Promotion 섹션을 오염시키지 않도록 한다. 앵커가 있어 `crucible:dogfood-digest-v2` 같은 미래 형제 스킬 호출은 보존된다. `.skill` 이 string 이 아닌 malformed 행은 self-call 로 단정할 수 없으므로 통과 처리(schema-drift tolerance).
 3. 섹션별 휴리스틱 — 관측수 하한은 `--threshold-n N`(기본 3, 양의 정수) 로 조정 가능:
-   - **Threshold Calibration**: `qa_judge` n≥threshold-n 이면 p50/p95 + verdict 분포, `axis_skip` n≥threshold-n 이면 축별 histogram. 둘 다 관측수 미만이면 `no signal in window (qa_judge n=X, axis_skip n=Y, threshold-n=N)`.
+   - **Threshold Calibration**: `qa_judge` 중 `.score` 가 `[0,1]` 범위의 number 인 행만 카운트한다 (n=numeric-and-in-range). n≥threshold-n 이면 p50/p95 + verdict 분포. 문자열·중첩 객체·범위 밖 score 는 통계 오염 방지를 위해 ingestion 단계에서 drop 되며 `total_events` 에는 남고 `qa_judge n` 에서는 빠진다 (issue #12 + 추가 hardening). `axis_skip` n≥threshold-n 이면 축별 histogram. 둘 다 관측수 미만이면 `no signal in window (qa_judge n=X, axis_skip n=Y, threshold-n=N)`.
    - **Protocol Improvements**: `note` 중 category ∈ {pain, ambiguous} 를 text 내 첫 `/crucible:*` 토큰 기준 그룹핑 (미매치는 `general`) + `axis_skip.reason` 동일 키 ≥ 2. 상위 5건만.
    - **Promotion Candidates**: `note` 중 category ∈ {request, good} 을 같은 방식으로 그룹핑 + `promotion_gate.response == "y"` 빈도 ≥ 2.
 4. 각 제안 라인은 `- **{key}** ({cats}, n={count}) — {sample}\n  - 근거: \`{path}:{line}\` …` 형식. 최소 1건의 back-reference 를 반드시 포함.
@@ -155,26 +155,28 @@ Do **not** use when:
 2. 파일 경로 조립: `.claude/plans/${date}-dogfood-digest-${window_label}.md`. slug `dogfood-digest` 는 고정 문자열이라 별도 sanitize 불필요 — `{window_label}` 만 `[a-zA-Z0-9_-]` 화이트리스트 내에 있는지 확인.
 3. `.claude/plans/` 디렉토리 부재 시 `mkdir -p`.
 4. **이미 같은 경로의 파일이 있으면** 덮어쓰지 말고 `{window}-v2` / `{window}-v3` … 처럼 suffix 를 바꿔 재호출할 것. 재조회가 필요하면 Phase 1 부터 다시 돈다. (스크립트에 `--out` / `--force` flag 는 의도적으로 두지 않음 — 충돌 처리는 호출자 문맥에서 판단.)
-5. **호출 패턴 (필수)** — `aggregator | renderer` 직결 파이프 대신 **wrapper-via-tempfile** 패턴을 사용한다. aggregator 가 `jq sort` / `mktemp` 등으로 실패해도 renderer 는 EOF 까지 읽고 깨끗한 "no signal in window" 리포트를 exit 0 으로 뱉기 때문에, 직결 파이프는 "성공처럼 보이는 잘못된 결과(success but wrong answer)" 실패를 만든다(issue #11). 회피책 두 가지를 **함께** 적용한다:
-   - `set -o pipefail` 을 호출 전에 켠다 (직결 파이프를 쓸 때 aggregator 실패가 전체 exit code 로 전파되도록).
-   - aggregator 출력을 `mktemp` 임시파일로 받고 renderer 에 stdin 으로 주입한다 (각 단계 exit code 를 독립적으로 검사 가능).
+5. **호출 패턴 (필수)** — aggregator → renderer 단계 분리 없이 호출하면 aggregator 가 `jq sort` / `mktemp` 등으로 실패해도 renderer 는 EOF 까지 읽고 깨끗한 "no signal in window" 리포트를 exit 0 으로 뱉어 "성공처럼 보이는 잘못된 결과(success but wrong answer)" 실패를 만든다(issue #11). 두 가지 호출형 모두 **aggregator 실패가 호출자 exit code 로 surface 되도록** 보호장치를 따로 둬야 한다:
+   - **wrapper-via-tempfile (권장)**: aggregator 출력을 `mktemp` 임시파일로 받고 renderer 에 stdin 으로 주입한다. **`set -e`** 또는 aggregator 호출 직후 `if ! ... ; then exit 1; fi` 명시 rc 체크가 **필수** — 둘 중 하나라도 없으면 aggregator 가 exit 2 로 죽어도 renderer 가 빈 입력으로 정상 리포트를 만들어 issue #11 회귀가 된다. 단계별 exit code 를 독립 검사할 수 있는 게 추가 이점.
+   - **direct pipe**: `set -o pipefail` 을 호출 전에 켠다. aggregator 실패가 전체 exit code 로 전파된다(테스트는 ADV-007 참조). 단, 단계별 디버깅이 어렵다.
 6. 저장 후 최종 응답 마지막 줄에 저장 경로 echo.
 
 **출력**: 디스크 상의 리포트 파일 1건.
 
 **실패 시 fallback**: 파일 쓰기 실패 → 에러 원문을 사용자에게 노출하고 중단. 부분 쓰기 잔해 제거. 스크립트 자체의 exit code 는 출력 섹션 참조 (0/1/2).
 
-**예시 호출 (bash)**:
+**예시 호출 (bash, wrapper-via-tempfile)**:
 ```bash
-set -o pipefail   # aggregator 실패가 빈 리포트로 가려지지 않도록 (issue #11).
+set -e   # aggregator 실패가 빈 리포트로 가려지지 않도록 (issue #11).
+         # set -o pipefail 은 이 형태에서 파이프가 없어 무효 — set -e 가 핵심.
 
 win=last10
 date=$(date -u +%Y-%m-%d)
 mkdir -p .claude/plans
 
-# wrapper-via-tempfile: aggregator 와 renderer 사이에 tempfile 을 끼워 각
-# 단계의 exit code 를 독립적으로 검사할 수 있게 한다. 직결 파이프는
-# pipefail 만으로도 막히지만, tempfile 패턴은 디버깅/재시도가 더 쉽다.
+# wrapper-via-tempfile: aggregator → tempfile → renderer.
+# 각 단계 exit code 를 독립 검사 가능. 위 `set -e` 가 없으면 aggregator
+# 가 exit 2 로 죽어도 다음 줄의 renderer 가 빈 입력으로 정상 리포트를
+# 저장한다.
 tmp_raw="$(mktemp -t dogfood-digest-raw.XXXXXX)"
 trap 'rm -f "$tmp_raw"' EXIT INT TERM HUP
 
@@ -182,6 +184,14 @@ bash scripts/dogfood-digest.sh --last 10 --scope both > "$tmp_raw"
 bash scripts/dogfood-digest-render.sh --window "$win" --scope both \
     < "$tmp_raw" \
     > ".claude/plans/${date}-dogfood-digest-${win}.md"
+```
+
+**대체 호출 (direct pipe, ADV-007 검증 형태)**:
+```bash
+set -o pipefail   # 직결 파이프에서 aggregator 실패를 전체 exit code 로 전파.
+bash scripts/dogfood-digest.sh --last 10 --scope both \
+    | bash scripts/dogfood-digest-render.sh --window last10 --scope both \
+    > ".claude/plans/${date}-dogfood-digest-last10.md"
 ```
 
 ---

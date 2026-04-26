@@ -121,10 +121,15 @@ trap 'rm -f "$tmp_in"' EXIT INT TERM HUP
 # case (`/CRUCIBLE:DOGFOOD-DIGEST`). ascii_downcase normalises before the test
 # AND the `i` flag is kept as belt-and-braces — either alone is sufficient,
 # both together survive even if one side regresses.
+# Non-string `.skill` values (number, object, null) cannot be self-call
+# candidates and would crash `ascii_downcase` ("explode input must be a
+# string"), killing the entire render for the batch. Pass them through so
+# one malformed row does not poison all downstream sections — schema drift
+# tolerance over recursion-filter strictness.
 # A jq failure here would silently truncate $tmp_in and every downstream
 # count would degrade to "no signal in window" with exit 0 — a "success
 # but wrong answer" failure mode. Surface jq errors instead of swallowing.
-if ! jq -c 'select(if .type == "skill_call" then ((.skill // "") | ascii_downcase | test("^/?crucible:dogfood-digest$"; "i") | not) else true end)' > "$tmp_in"; then
+if ! jq -c 'select(if .type == "skill_call" then (if (.skill | type) == "string" then ((.skill | ascii_downcase) | test("^/?crucible:dogfood-digest$"; "i") | not) else true end) else true end)' > "$tmp_in"; then
     printf 'render: ingestion jq failed (malformed JSONL on stdin?)\n' >&2
     exit 1
 fi
@@ -134,14 +139,17 @@ total_events=$(wc -l < "$tmp_in" | tr -d ' ')
 # ----- per-type aggregates ---------------------------------------------------
 
 # qa_judge: score list + verdict histogram.
-# Filter to events where .score is numeric — non-numeric scores poison
-# percentile statistics (string-with-comma splits awk records; nested
-# objects render as literal "{}" in the report). Dropping the entire row
+# Filter to events where .score is numeric AND inside the [0,1] contract —
+# non-numeric scores poison percentile statistics (string-with-comma splits
+# awk records; nested objects render as literal "{}" in the report), and
+# out-of-range numbers (e.g. -1, 2) silently corrupt p50/p95 even though
+# they pass `type == "number"`. The score contract is [0,1]; any other
+# value is schema drift and dropped at ingestion. Dropping the entire row
 # when score is malformed is the conservative call: a future skill that
-# logs score as object/string would otherwise corrupt every digest
-# forever (issue #12). Verdict counts and references therefore reflect
-# well-formed events only.
-qa_json="$(jq -sc '[.[] | select(.type=="qa_judge" and (.score | type == "number"))]' "$tmp_in")"
+# logs score as object/string would otherwise corrupt every digest forever
+# (issue #12). Verdict counts and references therefore reflect well-formed
+# in-range events only.
+qa_json="$(jq -sc '[.[] | select(.type=="qa_judge" and (.score | type == "number") and .score >= 0 and .score <= 1)]' "$tmp_in")"
 qa_count=$(printf '%s' "$qa_json" | jq 'length')
 
 # axis_skip: axis histogram (only "acknowledged" true)
