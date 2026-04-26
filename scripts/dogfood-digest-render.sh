@@ -107,6 +107,15 @@ if ! [[ "$threshold_n" =~ ^[0-9]+$ ]] || [[ "$threshold_n" -le 0 ]]; then
     exit 2
 fi
 
+# Best-effort cleanup of stale orphans from prior SIGKILL/OOM-kill runs.
+# The EXIT/INT/TERM/HUP trap below handles graceful exits, but SIGKILL is
+# untrappable by design — every kill -9 leaks a dogfood-digest-in.XXXXXX of
+# size O(JSONL bytes) into $TMPDIR. Long-lived dev/CI environments accumulate
+# these until mktemp itself errors out. 60-minute window is far longer than
+# any real render run; stderr suppression + `|| true` keep the prune
+# best-effort so any pruning failure never blocks a legitimate run.
+find "${TMPDIR:-/tmp}" -maxdepth 1 -name 'dogfood-digest-in.*' -mmin +60 -delete 2>/dev/null || true
+
 tmp_in="$(mktemp -t dogfood-digest-in.XXXXXX)" || {
     printf 'render: mktemp failed\n' >&2
     exit 2
