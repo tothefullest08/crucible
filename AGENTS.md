@@ -1,7 +1,7 @@
 # AGENTS.md — Skill Compliance Checklist
 
 > Enforcement contract for every skill in `crucible`. Paired with [CLAUDE.md](./CLAUDE.md) project guidance.
-> All 6 skills must pass their applicable 6-axis checks **before** an artifact leaves `validate_prompt`.
+> All 7 skills must pass their applicable 6-axis checks **before** an artifact leaves `validate_prompt`.
 
 ---
 
@@ -79,6 +79,15 @@ Each `SKILL.md` frontmatter declares a `validate_prompt` block. The `hooks/valid
 6. Recursion filter — `skill_call` events whose `skill` equals `/crucible:dogfood` are dropped during extraction.
 
 6-axis scope: `/dogfood` emits **hint-level** signals on axis 2 (Context) and axis 6 (Improve). No hard gates — the skill is a user-driven data collector, not a release gate.
+
+### `/dogfood-digest` (Dogfood-Digest 4-axis self-check · v1.2.0)
+
+1. Output path matches `.claude/plans/YYYY-MM-DD-dogfood-digest-{window}.md` and `{window}` stays inside the `[a-zA-Z0-9_-]` whitelist.
+2. Read-only invariant — the `git status --short` diff before vs. after the skill run contains **only** the freshly generated report line under `.claude/plans/`. Zero changes to `.claude/memory/`, `skills/*/SKILL.md`, or `.claude-plugin/plugin.json`.
+3. The body has all three fixed sections (Threshold Calibration · Protocol Improvements · Promotion Candidates); every non-empty suggestion cites at least one `` `path:line` `` back-reference; empty sections are explicitly replaced with `> no signal in window`.
+4. Recursion filter — no `skill_call` event whose `skill` matches `^/?crucible:dogfood-digest$` is retained as a back-reference source in the Protocol/Promotion sections (anchored regex, so sibling skills like `/crucible:dogfood-digest-v2` are NOT dropped).
+
+6-axis scope: `/dogfood-digest` emits **hint-level** signals on axis 1 (Structure — output path convention) and axis 2 (Context — reading-source enumeration). **No hard gates** — proposal-only; never mutates SKILL.md, thresholds, memory, or plugin.json.
 
 ---
 

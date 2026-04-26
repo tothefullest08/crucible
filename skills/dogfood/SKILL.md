@@ -8,7 +8,7 @@ when_to_use: "crucible 플러그인 사용 중 세션 피드백을 append-only J
 input: "없음 (현재 세션 JSONL 자동 탐색) + AskUserQuestion 으로 4 카테고리 multiSelect + free-form 텍스트"
 output: "{PROJECT}/.claude/dogfood/log.jsonl (로컬 primary) · ~/.claude/dogfood/crucible/{slug}-{hash}/log.jsonl (opt-in 글로벌 mirror)"
 validate_prompt: |
-  /crucible:dogfood 완료 시 자기검증 (Dogfood 4축):
+  /crucible:dogfood 완료 시 자기검증 (Dogfood 6축):
   1. 현재 세션 JSONL 에서 4 structured event (skill_call · promotion_gate · axis_skip · qa_judge) 추출을 시도했는가?
   2. Qualitative note 입력 시 최소 1개 이상 카테고리가 선택되었는가? (AskUserQuestion multiSelect)
   3. 로컬 `.claude/dogfood/log.jsonl` 에 append 되었고 line-by-line `jq .` 로 파싱되는가?
@@ -132,7 +132,7 @@ export CRUCIBLE_DOGFOOD_GLOBAL=0
 - **입력**: 현재 세션 JSONL (`~/.claude/projects/<encoded-cwd>/*.jsonl`) + AskUserQuestion 응답.
 - **출력**: 로컬 `.claude/dogfood/log.jsonl` + 글로벌 mirror(opt-in).
 - **재사용**: `scripts/lib/project-id.sh::project_id_for` (SHA-256 8자 해시), `scripts/extract-session.sh` (세션 경로 인코딩).
-- **다음 단계**: 누적된 로그는 향후 `/crucible:dogfood-report` (v1.2+) 또는 수동 분석에 사용.
+- **다음 단계**: 누적된 로그는 [`/crucible:dogfood-digest`](../dogfood-digest/SKILL.md) (v1.2+) 로 3섹션 제안 리포트로 정리하거나 수동 분석에 사용.
 
 ---
 
