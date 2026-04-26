@@ -133,6 +133,13 @@ if [[ "$saw_all" -eq 0 && "$saw_last" -eq 1 && "$saw_since" -eq 1 ]]; then
     exit 2
 fi
 
+# --all must dominate regardless of flag order. The case loop above writes
+# window_mode unconditionally on every flag match, so `--all --last 5` ended
+# up windowed instead of full. Re-assert the documented contract here.
+if [[ "$saw_all" -eq 1 ]]; then
+    window_mode="all"
+fi
+
 case "$scope" in
     local|global|both) ;;
     *)
@@ -146,6 +153,11 @@ if [[ "$window_mode" == "last" ]]; then
         printf 'dogfood-digest: --last expects a positive integer (got: %s)\n' "$window_last" >&2
         exit 2
     fi
+    # Force base-10 so values like "010" are not interpreted as octal in
+    # arithmetic contexts. Bash arithmetic treats a leading-zero literal as
+    # octal, which causes "08"/"09" to error and "010" to silently mean 8 —
+    # diverging from the value tail(1) actually receives downstream.
+    window_last=$((10#$window_last))
 fi
 
 # ----- cutoff resolution for --since -----------------------------------------
@@ -158,10 +170,20 @@ if [[ "$window_mode" == "since" ]]; then
     fi
     if [[ "$window_since" =~ ^([0-9]+)d$ ]]; then
         days="${BASH_REMATCH[1]}"
+        # Capture date(1) exit so out-of-range durations like 99999d don't
+        # silently produce an empty cutoff_iso (which then matches every
+        # event in jq's lexicographic comparison) — that path looked like a
+        # successful "--since-99999d" run while returning the entire log.
         if date -v-1d +%Y-%m-%d >/dev/null 2>&1; then
-            cutoff_iso="$(date -u -v-"${days}"d +%Y-%m-%dT%H:%M:%SZ)"
+            if ! cutoff_iso="$(date -u -v-"${days}"d +%Y-%m-%dT%H:%M:%SZ 2>/dev/null)" || [[ -z "$cutoff_iso" ]]; then
+                printf 'dogfood-digest: --since %sd is out of range for date(1)\n' "$days" >&2
+                exit 2
+            fi
         else
-            cutoff_iso="$(date -u -d "${days} days ago" +%Y-%m-%dT%H:%M:%SZ)"
+            if ! cutoff_iso="$(date -u -d "${days} days ago" +%Y-%m-%dT%H:%M:%SZ 2>/dev/null)" || [[ -z "$cutoff_iso" ]]; then
+                printf 'dogfood-digest: --since %sd is out of range for date(1)\n' "$days" >&2
+                exit 2
+            fi
         fi
     elif [[ "$window_since" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]; then
         cutoff_iso="${window_since}T00:00:00Z"
@@ -221,7 +243,10 @@ tmp_raw="$(mktemp -t dogfood-digest-raw.XXXXXX)" || {
     exit 2
 }
 # Clean up both the raw buffer and its transient .sorted sibling on exit.
-trap 'rm -f "$tmp_raw" "${tmp_raw}.sorted"' EXIT
+# EXIT alone misses the SIGINT/SIGTERM/SIGHUP path on some shells, so the
+# trap explicitly enumerates them. SIGKILL is not trappable; that case is
+# left to the OS.
+trap 'rm -f "$tmp_raw" "${tmp_raw}.sorted"' EXIT INT TERM HUP
 
 for src in "${sources[@]}"; do
     # Process line-by-line so a single malformed row does NOT drop every
@@ -247,7 +272,14 @@ if ! jq -sc 'sort_by(.ts // "") | .[]' "$tmp_raw" > "${tmp_raw}.sorted"; then
     printf 'dogfood-digest: sort pipeline failed\n' >&2
     exit 1
 fi
-mv "${tmp_raw}.sorted" "$tmp_raw"
+# Without this guard, an mv failure (e.g. disk full between sort and rename)
+# would silently leave the unsorted buffer in place; --last N would then
+# return the last N rows by file order, not by timestamp — silent semantic
+# drift instead of a visible failure.
+if ! mv "${tmp_raw}.sorted" "$tmp_raw"; then
+    printf 'dogfood-digest: failed to swap sorted buffer into place\n' >&2
+    exit 1
+fi
 
 # Apply window filter.
 case "$window_mode" in

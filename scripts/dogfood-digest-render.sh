@@ -17,7 +17,8 @@
 # Input : JSONL on stdin (each line has _source_path, _line, ts, type, …).
 # Args  :
 #   --window <LABEL>     window label used in frontmatter + filename (required)
-#   --scope  <SCOPE>     scope label stored in frontmatter (default: both)
+#   --scope  <SCOPE>     local | global | both — written to frontmatter
+#                        (default: both); validated to mirror the aggregator
 #   --threshold-n <N>    minimum observation count for threshold suggestions
 #                        (default: 3; lower values mean quieter logs still emit)
 #   -h | --help          print usage
@@ -41,7 +42,9 @@ report on stdout.
 
 Flags:
   --window LABEL      window label used in frontmatter + filename (required)
-  --scope SCOPE       scope label stored in frontmatter (default: both)
+  --scope SCOPE       local | global | both (default both); validated, mirrors
+                      the aggregator's contract so the YAML frontmatter cannot
+                      carry an out-of-domain label
   --threshold-n N     positive integer; minimum observation count for threshold
                       suggestions (default: 3; lower values mean quieter logs
                       still emit)
@@ -89,6 +92,16 @@ if [[ -z "$window_label" ]]; then
     exit 2
 fi
 
+# Mirror the aggregator's --scope validation so the renderer cannot silently
+# write a garbage `scope:` label into the report frontmatter (cli-readiness #2).
+case "$scope_label" in
+    local|global|both) ;;
+    *)
+        printf 'render: --scope must be local, global, or both (got: %s)\n' "$scope_label" >&2
+        exit 2
+        ;;
+esac
+
 if ! [[ "$threshold_n" =~ ^[0-9]+$ ]] || [[ "$threshold_n" -le 0 ]]; then
     printf 'render: --threshold-n expects a positive integer (got: %s)\n' "$threshold_n" >&2
     exit 2
@@ -98,11 +111,19 @@ tmp_in="$(mktemp -t dogfood-digest-in.XXXXXX)" || {
     printf 'render: mktemp failed\n' >&2
     exit 2
 }
-trap 'rm -f "$tmp_in"' EXIT
+# EXIT covers normal exit; INT/TERM/HUP cover SIGINT/SIGTERM/SIGHUP so the
+# tempfile does not leak when the renderer is interrupted mid-pipeline.
+trap 'rm -f "$tmp_in"' EXIT INT TERM HUP
 
 # Read stdin, drop blanks, filter recursion events at ingestion.
 # Regex is anchored so sibling skills like `/crucible:dogfood-digest-v2` are NOT dropped.
-jq -c 'select(if .type == "skill_call" then ((.skill // "") | test("^/?crucible:dogfood-digest$") | not) else true end)' > "$tmp_in" || true
+# A jq failure here would silently truncate $tmp_in and every downstream
+# count would degrade to "no signal in window" with exit 0 — a "success
+# but wrong answer" failure mode. Surface jq errors instead of swallowing.
+if ! jq -c 'select(if .type == "skill_call" then ((.skill // "") | test("^/?crucible:dogfood-digest$") | not) else true end)' > "$tmp_in"; then
+    printf 'render: ingestion jq failed (malformed JSONL on stdin?)\n' >&2
+    exit 1
+fi
 
 total_events=$(wc -l < "$tmp_in" | tr -d ' ')
 
@@ -188,9 +209,14 @@ printf '## Protocol Improvements\n\n'
 
 # Guard must reflect the actual render thresholds: pain uses >0, skip uses >=2.
 # Otherwise e.g. skip_count==1 with no pain leaves the section body empty.
+# Inner blocks can ALSO collapse to empty (groups_json length==0 when all
+# pain notes share an unmatched key, or skip_reasons map(select(.n>=2))
+# filters out all unique reasons). Track whether anything was emitted so
+# the section never ends up as just a header followed by the next section.
 if [[ "$pain_count" -eq 0 && "$skip_count" -lt 2 ]]; then
     printf '> no signal in window\n\n'
 else
+    section_emitted=0
     if [[ "$pain_count" -gt 0 ]]; then
         # Group pain/ambiguous notes by first /crucible:* token in text; else bucket as "general".
         # Emit up to 5 grouped items.
@@ -212,11 +238,10 @@ else
             | sort_by(-.n)
             | .[0:5]
         ')"
-        if [[ "$(printf '%s' "$groups_json" | jq 'length')" -eq 0 ]]; then
-            printf '> no signal in window\n\n'
-        else
+        if [[ "$(printf '%s' "$groups_json" | jq 'length')" -gt 0 ]]; then
             printf '%s' "$groups_json" | jq -r '.[] | "- **\(.key)** (\(.cats), n=\(.n)) — \(.samples[0] // "")\n  - 근거: \(.refs | map("`\(.)`") | join(" "))"'
             printf '\n\n'
+            section_emitted=1
         fi
     fi
     if [[ "$skip_count" -ge 2 ]]; then
@@ -230,7 +255,11 @@ else
         if [[ "$(printf '%s' "$skip_reasons" | jq 'length')" -gt 0 ]]; then
             printf '%s' "$skip_reasons" | jq -r '.[] | "- **반복 skip reason**: \(.reason) (n=\(.n)) — 근거: \(.refs | map("`\(.)`") | join(" "))"'
             printf '\n\n'
+            section_emitted=1
         fi
+    fi
+    if [[ "$section_emitted" -eq 0 ]]; then
+        printf '> no signal in window\n\n'
     fi
 fi
 
@@ -240,10 +269,12 @@ printf '## Promotion Candidates\n\n'
 
 # Guard must reflect the actual render thresholds: promo_notes uses >=1 via
 # map(select(.n>=1)), gate uses >=2. Otherwise gate_count==1 with no notes
-# leaves the section body empty.
+# leaves the section body empty. Inner blocks can also collapse, so track
+# emission and fall back to "no signal" if both inner blocks emit nothing.
 if [[ "$promo_notes_count" -eq 0 && "$gate_count" -lt 2 ]]; then
     printf '> no signal in window\n\n'
 else
+    section_emitted=0
     if [[ "$promo_notes_count" -gt 0 ]]; then
         # Group request/good by first /crucible:* token.
         promo_groups="$(printf '%s' "$promo_notes_json" | jq -c '
@@ -268,12 +299,17 @@ else
         if [[ "$(printf '%s' "$promo_groups" | jq 'length')" -gt 0 ]]; then
             printf '%s' "$promo_groups" | jq -r '.[] | "- **\(.key)** (\(.cats), n=\(.n)) — \(.samples[0] // "")\n  - 근거: \(.refs | map("`\(.)`") | join(" "))"'
             printf '\n\n'
+            section_emitted=1
         fi
     fi
     if [[ "$gate_count" -ge 2 ]]; then
         gate_refs=$(printf '%s' "$gate_json" | jq -r '.[] | "\(._source_path):\(._line)"' | head -3 | awk '{printf "`%s` ", $0}')
         printf -- '- **promotion_gate y-response ≥ 2** — n=%s — 근거: %s\n' "$gate_count" "$gate_refs"
         printf '  - 권고: 유저가 반복 승인한 패턴은 `/compound` 스킬의 기본 제안 후보로 앞당길 가치.\n\n'
+        section_emitted=1
+    fi
+    if [[ "$section_emitted" -eq 0 ]]; then
+        printf '> no signal in window\n\n'
     fi
 fi
 
