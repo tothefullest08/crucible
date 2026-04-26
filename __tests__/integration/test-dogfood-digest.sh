@@ -124,6 +124,64 @@ for bad in abc 0 -1 ""; do
     if [[ "$rc" -eq 2 ]]; then pass "--threshold-n '$bad' rejected (exit 2)"; else faile "--threshold-n '$bad'" "got $rc want 2"; fi
 done
 
+# ADV-001: --all must dominate window_mode regardless of flag order.
+# Without the post-parse override, "--all --last 5" used to silently
+# narrow to the last 5 events instead of returning the full window.
+printf 'ADV-001: --all dominates regardless of flag order\n'
+all_first=$("$aggregator" --all --last 5 --scope local --project-root "$tmpproj" --home "$tmphome" | wc -l | tr -d ' ')
+last_first=$("$aggregator" --last 5 --all --scope local --project-root "$tmpproj" --home "$tmphome" | wc -l | tr -d ' ')
+if [[ "$all_first" -eq "$fixture_lines" && "$last_first" -eq "$fixture_lines" ]]; then
+    pass "--all dominates --last regardless of order ($all_first / $last_first events)"
+else
+    faile "--all order dominance" "all-first=$all_first last-first=$last_first want $fixture_lines"
+fi
+
+# ADV-004: --last 010 must not be misread as octal 8 by bash arithmetic.
+# Force base-10 means "010" is treated as decimal 10 (== fixture_lines if
+# fixture has at least 10 events). The validator no longer errors on "08"/"09".
+printf 'ADV-004: --last force-base-10\n'
+set +e
+last010_count=$("$aggregator" --last 010 --scope local --project-root "$tmpproj" --home "$tmphome" 2>/dev/null | wc -l | tr -d ' ')
+last010_rc=$?
+set -e
+if [[ "$last010_rc" -eq 0 && "$last010_count" -eq 10 ]]; then
+    pass "--last 010 treated as decimal 10 (got $last010_count events)"
+else
+    faile "--last 010 base-10" "rc=$last010_rc count=$last010_count want rc=0 count=10"
+fi
+set +e
+"$aggregator" --last 09 --scope local --project-root "$tmpproj" --home "$tmphome" >/dev/null 2>&1
+last09_rc=$?
+set -e
+if [[ "$last09_rc" -eq 0 ]]; then pass "--last 09 accepted as decimal 9"; else faile "--last 09 base-10" "rc=$last09_rc want 0"; fi
+
+# ADV-002: --since with an unreasonable Nd value must surface a clear error
+# instead of silently returning every event with exit 0.
+printf 'ADV-002: --since out-of-range surfaces error\n'
+set +e
+"$aggregator" --since 99999d --scope local --project-root "$tmpproj" --home "$tmphome" >/dev/null 2>&1
+since_rc=$?
+set -e
+if [[ "$since_rc" -eq 2 ]]; then
+    pass "--since 99999d exits 2 (out of range)"
+else
+    faile "--since 99999d" "got $since_rc want 2"
+fi
+
+# cli-readiness #2: render.sh must validate --scope, mirroring the aggregator.
+# Without it, --scope foo silently lands as "scope: foo" in the YAML
+# frontmatter — divergent semantics across the two scripts.
+printf 'CLI: render --scope validation\n'
+set +e
+echo '' | "$renderer" --window t --scope bogus >/dev/null 2>&1
+render_scope_rc=$?
+set -e
+if [[ "$render_scope_rc" -eq 2 ]]; then
+    pass "render --scope bogus rejected (exit 2)"
+else
+    faile "render --scope validation" "got $render_scope_rc want 2"
+fi
+
 # ----------------------------------------------------------------------------
 # End-to-end render + save (SC-1, SC-2, SC-5)
 # ----------------------------------------------------------------------------
@@ -188,6 +246,39 @@ if grep -q 'no signal in window' "$empty_file"; then
 else
     faile "SC-5 empty-section fallback"
 fi
+
+# ----------------------------------------------------------------------------
+# Section inner-block-empty fallback — Protocol & Promotion sections must
+# emit "no signal in window" when the outer guard passes (e.g. skip_count >= 2)
+# but EVERY inner block produces zero rows (e.g. all skip reasons are unique).
+# Without the section_emitted tracker, this leaves a header followed
+# immediately by the next section's header with no body — an SC-5 violation.
+# ----------------------------------------------------------------------------
+
+printf 'SECTION INNER-EMPTY: Protocol/Promotion fall back to "no signal"\n'
+
+inner_proj="$(mktemp -d -t dfd-inner.XXXXXX)"
+mkdir -p "$inner_proj/.claude/dogfood"
+cat > "$inner_proj/.claude/dogfood/log.jsonl" <<'INNER_FIXTURE'
+{"ts":"2026-04-20T00:00:00Z","type":"axis_skip","axis":"plan","reason":"unique-reason-a","acknowledged":true}
+{"ts":"2026-04-20T00:00:01Z","type":"axis_skip","axis":"plan","reason":"unique-reason-b","acknowledged":true}
+{"ts":"2026-04-20T00:00:02Z","type":"axis_skip","axis":"plan","reason":"unique-reason-c","acknowledged":true}
+INNER_FIXTURE
+
+inner_outfile="$inner_proj/digest.md"
+"$aggregator" --all --scope local --project-root "$inner_proj" --home "$inner_proj" \
+    | "$renderer" --window "all" --scope local > "$inner_outfile"
+
+# Protocol section must NOT be empty body. Capture text between
+# "## Protocol Improvements" and the next "##" header.
+proto_body=$(awk '/^## Protocol Improvements$/{flag=1;next}/^## /{flag=0}flag' "$inner_outfile")
+proto_signal=$(printf '%s\n' "$proto_body" | grep -c 'no signal in window' || true)
+if [[ "$proto_signal" -ge 1 ]]; then
+    pass "Protocol section emits 'no signal' when all skip reasons are unique"
+else
+    faile "Protocol inner-empty fallback" "section body missing 'no signal' marker"
+fi
+rm -rf "$inner_proj"
 
 # ----------------------------------------------------------------------------
 # SC-6 — zero-event input yields clean exit 0
