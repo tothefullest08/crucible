@@ -702,11 +702,44 @@ rm -rf "$nonstr_proj"
 rm -rf "$bad_proj"
 
 # ----------------------------------------------------------------------------
+# Issue #15 — aggregator/renderer flag-grouping cross-reference
+# (cli-readiness cli-1 + agent-native F1)
+# ----------------------------------------------------------------------------
+
+printf 'ISSUE-15: aggregator rejects --threshold-n with renderer cross-ref hint\n'
+
+# (a) aggregator must exit 2 on --threshold-n AND emit a stderr hint that
+#     mentions dogfood-digest-render.sh so a naive agent can self-recover.
+i15_stderr="$(mktemp -t dfd-i15-err.XXXXXX)"
+i15_rc=0
+"$aggregator" --threshold-n 5 --project-root "$tmpproj" --home "$tmphome" >/dev/null 2>"$i15_stderr" || i15_rc=$?
+if [[ "$i15_rc" -eq 2 ]]; then
+    pass "aggregator exits 2 when --threshold-n is passed"
+else
+    faile "issue-15 exit code" "expected 2, got $i15_rc"
+fi
+if grep -q 'dogfood-digest-render.sh' "$i15_stderr"; then
+    pass "aggregator stderr hints at dogfood-digest-render.sh on --threshold-n"
+else
+    faile "issue-15 stderr hint" "expected 'dogfood-digest-render.sh' in stderr; got: $(tr '\n' '|' < "$i15_stderr")"
+fi
+rm -f "$i15_stderr"
+
+# (b) aggregator --help must cross-reference renderer for render-time flags so
+#     agents discover --threshold-n placement without reading source.
+i15_help="$("$aggregator" --help 2>&1)"
+if grep -qE 'render-time flags|dogfood-digest-render\.sh --help' <<<"$i15_help"; then
+    pass "aggregator --help cross-references renderer for render-time flags"
+else
+    faile "issue-15 help cross-ref" "expected 'render-time flags' or 'dogfood-digest-render.sh --help' in --help output"
+fi
+
+# ----------------------------------------------------------------------------
 # Summary
 # ----------------------------------------------------------------------------
 
 if [[ "$fail" -eq 0 ]]; then
-    printf '\ntest-dogfood-digest: ALL PASS (SC-1~7 + recursion filter + ADV-006/007/008)\n'
+    printf '\ntest-dogfood-digest: ALL PASS (SC-1~7 + recursion filter + ADV-006/007/008 + issue-15)\n'
     exit 0
 else
     printf '\ntest-dogfood-digest: FAIL\n'

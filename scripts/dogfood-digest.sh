@@ -65,6 +65,9 @@ Exit codes:
   0  success
   1  runtime failure
   2  argument error
+
+For render-time flags (--window, --threshold-n), see:
+  bash scripts/dogfood-digest-render.sh --help
 USAGE
 }
 
@@ -120,6 +123,11 @@ while [[ $# -gt 0 ]]; do
             ;;
         *)
             printf 'dogfood-digest: unknown argument: %s\n' "$1" >&2
+            case "$1" in
+                --window|--threshold-n)
+                    printf 'dogfood-digest: hint — %s is a render-time flag; pass it to scripts/dogfood-digest-render.sh instead.\n' "$1" >&2
+                    ;;
+            esac
             print_help >&2
             exit 2
             ;;
