@@ -22,7 +22,7 @@
   "harness": {
     "payload_sha256": {
       "skills/using-harness/SKILL.md": "0d32d65ef798e5b9a8cbc5377746894c4ab0581bf600859a5647714adac2500c",
-      "skills/dogfood-digest/SKILL.md": "e9d5fc372b998632bb3e077d950bd15113a79315096a918b352a3e49e90807d3",
+      "skills/dogfood-digest/SKILL.md": "1ce1b72137a920ed218cf0ff03ed709c9d9b45eb64036b432738eeffef6a4111",
       "hooks/session-start.sh": "09795e5837949d475e3567ef65d003f9776c89e9c1407dc06e14d935377e098a",
       "hooks/validate-output.sh": "5050f0a6b2ff42ace188c161d8297543ba1ee0e456558a2aa05ea6ed4c8bd82d"
     },

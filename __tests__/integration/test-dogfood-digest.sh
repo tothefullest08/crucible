@@ -464,11 +464,249 @@ else
 fi
 
 # ----------------------------------------------------------------------------
+# ADV-006 (issue #10) — recursion filter is case-insensitive.
+# Mixed-case skill_call values from non-canonical upstream emitters must be
+# dropped just like the lowercase canonical form. Sibling skills that happen
+# to be uppercase must NOT be dropped.
+# ----------------------------------------------------------------------------
+
+printf 'ADV-006: case-insensitive recursion filter\n'
+
+case_proj="$(mktemp -d -t dfd-case.XXXXXX)"
+mkdir -p "$case_proj/.claude/dogfood"
+cat > "$case_proj/.claude/dogfood/log.jsonl" <<'CASE_FIXTURE'
+{"ts":"2026-04-20T00:00:00Z","type":"skill_call","skill":"/CRUCIBLE:DOGFOOD-DIGEST","args_summary":"upper"}
+{"ts":"2026-04-20T00:00:01Z","type":"skill_call","skill":"/Crucible:Dogfood-Digest","args_summary":"mixed"}
+{"ts":"2026-04-20T00:00:02Z","type":"skill_call","skill":"/crucible:dogfood-digest","args_summary":"lower"}
+{"ts":"2026-04-20T00:00:03Z","type":"skill_call","skill":"/CRUCIBLE:DOGFOOD-DIGEST-V2","args_summary":"sibling upper"}
+{"ts":"2026-04-20T00:00:04Z","type":"note","category":"pain","text":"/crucible:plan some pain"}
+CASE_FIXTURE
+
+case_outfile="$case_proj/digest.md"
+"$aggregator" --all --scope local --project-root "$case_proj" --home "$case_proj" \
+    | "$renderer" --window "all" --scope local > "$case_outfile"
+
+# 5 input → 3 case-variants of self dropped → 2 surviving (sibling + note).
+case_total=$(grep -E '^total_events: ' "$case_outfile" | awk '{print $2}')
+if [[ "$case_total" -eq 2 ]]; then
+    pass "ADV-006 lowercase + UPPER + Mixed self-calls all dropped (total_events=$case_total)"
+else
+    faile "ADV-006 case-insensitive recursion" "got $case_total want 2"
+fi
+
+# Sibling upper-case variant must survive in the rendered report (frontmatter
+# total reflects post-recursion-filter count, so 2 includes the sibling row).
+# Aggregator preserves all 5 (recursion filter lives in renderer); after
+# render, the v2 sibling event is still represented.
+case_section_leak=$(grep -cE '\*\*/[Cc][Rr][Uu][Cc][Ii][Bb][Ll][Ee]:[Dd][Oo][Gg][Ff][Oo][Oo][Dd]-[Dd][Ii][Gg][Ee][Ss][Tt]\*\*' "$case_outfile" || true)
+if [[ "$case_section_leak" -eq 0 ]]; then
+    pass "ADV-006 no case-variant of self leaked into section keys"
+else
+    faile "ADV-006 case-variant leak" "$case_section_leak self-call section keys present"
+fi
+rm -rf "$case_proj"
+
+# ----------------------------------------------------------------------------
+# ADV-007 (issue #11) — pipefail propagates aggregator failure.
+# Without `set -o pipefail`, a failing aggregator (jq sort error, mktemp
+# error, bad-args exit 2, etc.) is masked by the renderer's exit 0 — the
+# pipeline reports success while emitting an empty 3-section "no signal in
+# window" report. With pipefail enabled, the failure must surface as a
+# non-zero exit code from the pipeline as a whole.
+# ----------------------------------------------------------------------------
+
+printf 'ADV-007: pipefail surfaces aggregator failure\n'
+
+# The outer test file enables `set -uo pipefail` AND `set -e` further down,
+# so we must use the same `set +e ... set -e` bracket pattern other tests
+# use to capture expected non-zero exits. We also toggle pipefail itself
+# between arms — without that toggle, the parent's pipefail would already
+# mask the issue-#11 failure mode in the "without" arm.
+# Without pipefail: bad-args aggregator exits 2; renderer reads no input,
+# emits empty 3-section report, exits 0; pipeline returns 0 — the
+# "success but wrong answer" failure mode this guard exists to prevent.
+set +e
+set +o pipefail
+( "$aggregator" --bogus-flag 2>/dev/null \
+    | "$renderer" --window "all" --scope local >/dev/null 2>&1 )
+no_pipefail_rc=$?
+
+# With pipefail: aggregator exit 2 must propagate as the pipeline exit code.
+set -o pipefail
+( "$aggregator" --bogus-flag 2>/dev/null \
+    | "$renderer" --window "all" --scope local >/dev/null 2>&1 )
+pipefail_rc=$?
+set -e
+
+if [[ "$no_pipefail_rc" -eq 0 && "$pipefail_rc" -ne 0 ]]; then
+    pass "pipefail surfaces aggregator failure (without=$no_pipefail_rc → with=$pipefail_rc)"
+else
+    faile "ADV-007 pipefail propagation" "without=$no_pipefail_rc with=$pipefail_rc (want without=0 with≠0)"
+fi
+
+# SKILL.md Phase 4 must document both pipefail AND wrapper-via-tempfile —
+# pipefail alone is the social-contract minimum, the wrapper pattern is
+# the agent-resilient invocation form (issue #11 chose option 1+3).
+skill_md="$repo_root/skills/dogfood-digest/SKILL.md"
+if grep -q 'set -o pipefail' "$skill_md" \
+    && grep -qi 'wrapper-via-tempfile' "$skill_md"; then
+    pass "SKILL.md Phase 4 documents pipefail + wrapper-via-tempfile invocation pattern"
+else
+    faile "ADV-007 SKILL.md docs" "missing 'set -o pipefail' and/or 'wrapper-via-tempfile' guidance"
+fi
+
+# The wrapper-via-tempfile example must also include `set -e` (or an
+# equivalent rc check) — without it, aggregator exit ≠ 0 still leaves the
+# next line's renderer running on an empty tempfile, writing a clean
+# "no signal" report and returning 0. That is exactly the issue #11
+# regression. pipefail alone is no-op in the wrapper form (no pipe).
+if grep -A3 -i 'wrapper-via-tempfile' "$skill_md" | grep -q 'set -e'; then
+    pass "SKILL.md wrapper-via-tempfile example includes set -e"
+else
+    faile "ADV-007 SKILL.md set -e" "wrapper-via-tempfile example missing 'set -e' — aggregator failure would silently produce empty digest"
+fi
+
+# Runtime check: the wrapper-via-tempfile pattern from SKILL.md must
+# itself surface aggregator failure. Replays the documented example with
+# a forced aggregator failure (--bogus-flag → exit 2) and asserts the
+# wrapper exits non-zero AND no clean "no signal" digest is written.
+# Without this assertion, ADV-007 only verified the pipefail path (which
+# the SKILL.md example does not actually use).
+wrap_proj="$(mktemp -d -t dfd-wrapper.XXXXXX)"
+wrap_raw="$wrap_proj/raw"
+wrap_out="$wrap_proj/out.md"
+
+set +e
+(
+    set -e
+    "$aggregator" --bogus-flag > "$wrap_raw" 2>/dev/null
+    "$renderer" --window "all" --scope local < "$wrap_raw" > "$wrap_out"
+)
+wrap_rc=$?
+set -e
+
+if [[ "$wrap_rc" -ne 0 ]]; then
+    pass "wrapper-via-tempfile + set -e surfaces aggregator failure (rc=$wrap_rc)"
+else
+    faile "ADV-007 wrapper rc" "wrapper returned 0 despite aggregator --bogus-flag failure (silent wrong-answer regression)"
+fi
+
+# The renderer must NOT have produced a "clean empty digest" report
+# (issue #11 silent-success). Either no file or no markdown body.
+if [[ ! -s "$wrap_out" ]]; then
+    pass "wrapper-via-tempfile wrote no digest body after aggregator failure"
+elif grep -q 'no signal in window' "$wrap_out"; then
+    faile "ADV-007 wrapper output" "renderer wrote 'no signal' digest after aggregator failure (issue #11 regression)"
+else
+    pass "wrapper-via-tempfile produced no clean-empty-digest output"
+fi
+rm -rf "$wrap_proj"
+
+# ----------------------------------------------------------------------------
+# ADV-008 (issue #12) — malformed .score values are filtered before
+# percentile computation. String-with-comma scores must NOT split into
+# extra awk records; nested-object scores must NOT produce literal "{"/"}"
+# garbage in p50/p95. Out-of-range numeric scores (e.g. -1, 2) also pass
+# `type == "number"` but violate the [0,1] contract — they must be dropped
+# before the percentile / verdict aggregation runs.
+# ----------------------------------------------------------------------------
+
+printf 'ADV-008: malformed .score filtering\n'
+
+bad_proj="$(mktemp -d -t dfd-bad-score.XXXXXX)"
+mkdir -p "$bad_proj/.claude/dogfood"
+cat > "$bad_proj/.claude/dogfood/log.jsonl" <<'BAD_SCORE_FIXTURE'
+{"ts":"2026-04-20T00:00:00Z","type":"qa_judge","skill":"/crucible:plan","score":0.5,"verdict":"retry"}
+{"ts":"2026-04-20T00:00:01Z","type":"qa_judge","skill":"/crucible:plan","score":"0.5,0.7","verdict":"retry"}
+{"ts":"2026-04-20T00:00:02Z","type":"qa_judge","skill":"/crucible:plan","score":{"nested":1},"verdict":"retry"}
+{"ts":"2026-04-20T00:00:03Z","type":"qa_judge","skill":"/crucible:plan","score":0.7,"verdict":"promote"}
+{"ts":"2026-04-20T00:00:04Z","type":"qa_judge","skill":"/crucible:plan","score":0.9,"verdict":"promote"}
+{"ts":"2026-04-20T00:00:05Z","type":"qa_judge","skill":"/crucible:plan","score":-1,"verdict":"reject"}
+{"ts":"2026-04-20T00:00:06Z","type":"qa_judge","skill":"/crucible:plan","score":2,"verdict":"promote"}
+BAD_SCORE_FIXTURE
+
+bad_outfile="$bad_proj/digest.md"
+"$aggregator" --all --scope local --project-root "$bad_proj" --home "$bad_proj" \
+    | "$renderer" --window "all" --scope local --threshold-n 3 > "$bad_outfile"
+
+# n must equal 3 (only the three numeric-and-in-range events), not 5 or 7.
+qa_line=$(grep 'qa_judge score distribution' "$bad_outfile" || true)
+if printf '%s' "$qa_line" | grep -qE 'n=3 '; then
+    pass "ADV-008 malformed-and-out-of-range score events filtered: n=3"
+else
+    faile "ADV-008 score filter count" "expected n=3, got: $qa_line"
+fi
+
+# Sorted in-range numeric scores: [0.5, 0.7, 0.9]. p50_idx=floor((3-1)/2)=1 → 0.7.
+if printf '%s' "$qa_line" | grep -qE 'p50=0\.7\b'; then
+    pass "ADV-008 p50=0.7 reflects only in-range numeric scores"
+else
+    faile "ADV-008 p50 value" "expected p50=0.7, got: $qa_line"
+fi
+
+# p95_idx=floor((3-1)*0.95+0.5)=floor(2.4)=2 → 0.9.
+if printf '%s' "$qa_line" | grep -qE 'p95=0\.9\b'; then
+    pass "ADV-008 p95=0.9 reflects only in-range numeric scores"
+else
+    faile "ADV-008 p95 value" "expected p95=0.9, got: $qa_line"
+fi
+
+# Most importantly: no literal "{" garbage from object-typed scores.
+if grep -qE 'p50=\{|p95=\{' "$bad_outfile"; then
+    faile "ADV-008 object-score garbage" "report contains literal '{' from object score"
+else
+    pass "ADV-008 no literal '{' garbage from object scores"
+fi
+
+# Out-of-range scores (-1, 2) must not appear in p50/p95 either.
+if printf '%s' "$qa_line" | grep -qE 'p(50|95)=(-1|2)\b'; then
+    faile "ADV-008 out-of-range leak" "report contains -1 or 2 in p50/p95: $qa_line"
+else
+    pass "ADV-008 out-of-range scores (-1, 2) excluded from percentiles"
+fi
+
+# Verdict counts must reflect the same in-range filter — the rejected
+# `score=-1` and the bogus `score=2 verdict=promote` rows must NOT bump
+# the verdict histogram. Expected: promote=2, retry=1, reject=0.
+if printf '%s' "$qa_line" | grep -qE 'promote=2 · retry=1 · reject=0'; then
+    pass "ADV-008 verdict histogram matches in-range filter (promote=2 retry=1 reject=0)"
+else
+    faile "ADV-008 verdict counts" "expected promote=2 retry=1 reject=0, got: $qa_line"
+fi
+
+# Recursion filter resilience (P2 hardening): non-string `.skill` must
+# pass through ascii_downcase without aborting the entire render. Before
+# this fix, `{"skill": 12, "type": "skill_call"}` crashed with "explode
+# input must be a string" and dropped every event in the batch.
+nonstr_proj="$(mktemp -d -t dfd-nonstr-skill.XXXXXX)"
+mkdir -p "$nonstr_proj/.claude/dogfood"
+cat > "$nonstr_proj/.claude/dogfood/log.jsonl" <<'NONSTR_FIXTURE'
+{"ts":"2026-04-20T00:00:00Z","type":"note","category":"pain","text":"/crucible:plan ok"}
+{"ts":"2026-04-20T00:00:01Z","type":"skill_call","skill":12,"args_summary":"numeric"}
+{"ts":"2026-04-20T00:00:02Z","type":"skill_call","skill":{"obj":1},"args_summary":"object"}
+{"ts":"2026-04-20T00:00:03Z","type":"skill_call","skill":null,"args_summary":"null"}
+NONSTR_FIXTURE
+
+nonstr_outfile="$nonstr_proj/digest.md"
+"$aggregator" --all --scope local --project-root "$nonstr_proj" --home "$nonstr_proj" \
+    | "$renderer" --window "all" --scope local > "$nonstr_outfile"
+nonstr_total=$(grep -E '^total_events: ' "$nonstr_outfile" | awk '{print $2}')
+# All 4 events must survive — none are self-calls, the malformed skill
+# rows can't be self-call candidates, the note is the pain signal.
+if [[ "$nonstr_total" -eq 4 ]]; then
+    pass "ADV-008 non-string .skill rows pass through (total_events=4)"
+else
+    faile "ADV-008 non-string skill" "expected 4 events, got $nonstr_total — render likely aborted on malformed skill"
+fi
+rm -rf "$nonstr_proj"
+rm -rf "$bad_proj"
+
+# ----------------------------------------------------------------------------
 # Summary
 # ----------------------------------------------------------------------------
 
 if [[ "$fail" -eq 0 ]]; then
-    printf '\ntest-dogfood-digest: ALL PASS (SC-1~7 + recursion filter)\n'
+    printf '\ntest-dogfood-digest: ALL PASS (SC-1~7 + recursion filter + ADV-006/007/008)\n'
     exit 0
 else
     printf '\ntest-dogfood-digest: FAIL\n'
