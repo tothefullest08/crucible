@@ -168,6 +168,84 @@ else
     faile "--since 99999d" "got $since_rc want 2"
 fi
 
+# ADV-003 (issue #8): --since with TZ-offset ISO8601 must be rejected. Without
+# the regex tightening, `2099-01-01T00:00:00+09:00` flowed through to jq's
+# lexicographic compare, where '+' (0x2B) < 'Z' (0x5A) shifted the window by
+# hours and silently matched events the user did not intend.
+printf 'ADV-003: --since TZ-offset rejected, Z-suffix preserved\n'
+
+# Future TZ-offset cutoff: must be REJECTED with exit 2 (not silently accepted).
+set +e
+tz_stderr=$("$aggregator" --since '2099-01-01T00:00:00+09:00' --scope local \
+    --project-root "$tmpproj" --home "$tmphome" 2>&1 >/dev/null)
+tz_rc=$?
+set -e
+if [[ "$tz_rc" -eq 2 ]]; then
+    pass "--since TZ-offset (+09:00) exits 2"
+else
+    faile "ADV-003 TZ-offset rc" "got $tz_rc want 2"
+fi
+if printf '%s' "$tz_stderr" | grep -q 'Z (UTC) suffix'; then
+    pass "--since TZ-offset error names Z (UTC) suffix as the fix"
+else
+    faile "ADV-003 TZ-offset error message" "stderr did not mention Z (UTC) suffix"
+fi
+
+# Negative TZ-offset is the same failure class — must also exit 2.
+set +e
+"$aggregator" --since '2099-01-01T00:00:00-08:00' --scope local \
+    --project-root "$tmpproj" --home "$tmphome" >/dev/null 2>&1
+neg_rc=$?
+set -e
+if [[ "$neg_rc" -eq 2 ]]; then
+    pass "--since negative TZ-offset (-08:00) exits 2"
+else
+    faile "ADV-003 negative TZ-offset" "got $neg_rc want 2"
+fi
+
+# Naive datetime (no TZ designator at all) is ambiguous and must also be
+# rejected — same lexicographic-compare hazard, just less obvious.
+set +e
+"$aggregator" --since '2099-01-01T00:00:00' --scope local \
+    --project-root "$tmpproj" --home "$tmphome" >/dev/null 2>&1
+naive_rc=$?
+set -e
+if [[ "$naive_rc" -eq 2 ]]; then
+    pass "--since naive datetime (no TZ) exits 2"
+else
+    faile "ADV-003 naive datetime" "got $naive_rc want 2"
+fi
+
+# Z-suffix ISO8601 must continue to work — regression guard for the existing
+# accepted form. Use a future cutoff so the result is independent of fixture ts.
+z_count=$("$aggregator" --since '2099-01-01T00:00:00Z' --scope local \
+    --project-root "$tmpproj" --home "$tmphome" | wc -l | tr -d ' ')
+if [[ "$z_count" -eq 0 ]]; then
+    pass "--since Z-suffix '2099-01-01T00:00:00Z' still accepted (returns 0 events)"
+else
+    faile "ADV-003 Z-suffix regression" "got $z_count want 0"
+fi
+
+# Date-only and Nd inputs must be unaffected by the regex tightening.
+date_only_count=$("$aggregator" --since 2099-01-01 --scope local \
+    --project-root "$tmpproj" --home "$tmphome" | wc -l | tr -d ' ')
+if [[ "$date_only_count" -eq 0 ]]; then
+    pass "--since date-only '2099-01-01' unaffected (returns 0 events)"
+else
+    faile "ADV-003 date-only regression" "got $date_only_count want 0"
+fi
+
+set +e
+"$aggregator" --since 7d --scope local \
+    --project-root "$tmpproj" --home "$tmphome" >/dev/null 2>&1
+dur_rc=$?
+set -e
+if [[ "$dur_rc" -eq 0 ]]; then
+    pass "--since duration '7d' unaffected (exit 0)"
+else
+    faile "ADV-003 duration regression" "got $dur_rc want 0"
+fi
+
 # cli-readiness #2: render.sh must validate --scope, mirroring the aggregator.
 # Without it, --scope foo silently lands as "scope: foo" in the YAML
 # frontmatter — divergent semantics across the two scripts.
@@ -752,7 +830,7 @@ fi
 # ----------------------------------------------------------------------------
 
 if [[ "$fail" -eq 0 ]]; then
-    printf '\ntest-dogfood-digest: ALL PASS (SC-1~7 + recursion filter + ADV-006/007/008 + issue-15)\n'
+    printf '\ntest-dogfood-digest: ALL PASS (SC-1~7 + recursion filter + ADV-003/006/007/008 + issue-15)\n'
     exit 0
 else
     printf '\ntest-dogfood-digest: FAIL\n'
