@@ -226,6 +226,45 @@ else
     faile "ADV-003 Z-suffix regression" "got $z_count want 0"
 fi
 
+# Z-suffix with fractional seconds must also be accepted — `date -u +...%NZ`
+# and `jq -n now | strftime` both produce this shape, and rejecting it forced
+# users into the wrong error path on PR #23 review (the rejection message told
+# them to add Z, which they had already done).
+z_frac_count=$("$aggregator" --since '2099-01-01T00:00:00.123Z' --scope local \
+    --project-root "$tmpproj" --home "$tmphome" | wc -l | tr -d ' ')
+if [[ "$z_frac_count" -eq 0 ]]; then
+    pass "--since Z-suffix with fractional seconds '2099-01-01T00:00:00.123Z' accepted (returns 0 events)"
+else
+    faile "ADV-003 Z-suffix fractional" "got $z_frac_count want 0"
+fi
+
+# Fractional seconds must NOT exit 2 — pin the contract so a future regex
+# tightening cannot silently regress to the rejection path.
+set +e
+"$aggregator" --since '2099-01-01T00:00:00.123Z' --scope local \
+    --project-root "$tmpproj" --home "$tmphome" >/dev/null 2>&1
+z_frac_rc=$?
+set -e
+if [[ "$z_frac_rc" -eq 0 ]]; then
+    pass "--since Z-suffix fractional exits 0 (regex accepts, no error path)"
+else
+    faile "ADV-003 Z-suffix fractional rc" "got $z_frac_rc want 0"
+fi
+
+# Error message for malformed datetimes must describe the expected shape
+# rather than impute "non-UTC datetime". The previous wording was misleading
+# for naive datetimes (no TZ marker at all) and contradicted user input on
+# fractional-Z (which is now accepted, but the contract should still hold).
+set +e
+shape_stderr=$("$aggregator" --since '2099-01-01T00:00:00+09:00' --scope local \
+    --project-root "$tmpproj" --home "$tmphome" 2>&1 >/dev/null)
+set -e
+if printf '%s' "$shape_stderr" | grep -q 'must be YYYY-MM-DDTHH:MM:SSZ'; then
+    pass "--since malformed-TZ error describes expected shape"
+else
+    faile "ADV-003 shape error" "stderr did not describe expected shape"
+fi
+
 # Date-only and Nd inputs must be unaffected by the regex tightening.
 date_only_count=$("$aggregator" --since 2099-01-01 --scope local \
     --project-root "$tmpproj" --home "$tmphome" | wc -l | tr -d ' ')

@@ -218,17 +218,29 @@ if [[ "$window_mode" == "since" ]]; then
         fi
     elif [[ "$window_since" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]; then
         cutoff_iso="${window_since}T00:00:00Z"
-    elif [[ "$window_since" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$ ]]; then
+    elif [[ "$window_since" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?Z$ ]]; then
+        # Accept optional fractional seconds (e.g. `T10:00:00.123Z`) — GNU
+        # `date -u +%Y-%m-%dT%H:%M:%S.%NZ` and `jq -n now | strftime` both
+        # produce this shape, and rejecting it forced users into the wrong
+        # error path on PR #23 review (codex). Lex compare against
+        # second-precision `.ts` strings stays safe: '.' (0x2E) sorts below
+        # 'Z' (0x5A), so a fractional cutoff only *widens* the inclusion
+        # window vs. the equivalent second-precision cutoff (more events
+        # included at the boundary second, never fewer) — no silent shift.
         cutoff_iso="$window_since"
     elif [[ "$window_since" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}T ]]; then
-        # Reject TZ-offset (`+HH:MM`, `-0800`, etc.) and naive datetimes.
-        # cutoff_iso feeds jq's lexicographic ts compare, where '+' (0x2B)
-        # sorts below 'Z' (0x5A) — silently shifting the window by hours.
-        # See issue #8 (ADV-003): `--since 2026-04-15T10:00:00+09:00` matched
-        # events ~9h earlier than intended. Force UTC form so the compare is
-        # unambiguous; date-only and Nd inputs are unaffected.
-        printf 'dogfood-digest: --since ISO8601 must use Z (UTC) suffix; got non-UTC datetime: %s\n' "$window_since" >&2
-        printf '  → rewrite as YYYY-MM-DDTHH:MM:SSZ (UTC) or YYYY-MM-DD\n' >&2
+        # Catches TZ-offset (`+HH:MM`, `-0800`, etc.) and naive datetimes
+        # (no TZ marker at all). cutoff_iso feeds jq's lexicographic ts
+        # compare, where '+' (0x2B) sorts below 'Z' (0x5A) — silently
+        # shifting the window by hours. See issue #8 (ADV-003):
+        # `--since 2026-04-15T10:00:00+09:00` matched events ~9h earlier
+        # than intended. Force UTC form so the compare is unambiguous;
+        # date-only and Nd inputs are unaffected. Message describes the
+        # expected shape (instead of imputing "non-UTC datetime") so the
+        # user can map the error to their input regardless of which
+        # malformed shape they passed.
+        printf 'dogfood-digest: --since ISO8601 must be YYYY-MM-DDTHH:MM:SSZ (UTC); got: %s\n' "$window_since" >&2
+        printf '  → rewrite with Z (UTC) suffix, or pass YYYY-MM-DD\n' >&2
         exit 2
     else
         printf 'dogfood-digest: --since must be YYYY-MM-DD, YYYY-MM-DDTHH:MM:SSZ, or Nd (got: %s)\n' "$window_since" >&2
