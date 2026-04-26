@@ -33,7 +33,7 @@ Three failure modes repeatedly kill Claude Code sessions. `crucible` refuses to 
 /reload-plugins
 ```
 
-After `/reload-plugins`, the six slash commands (`/crucible:brainstorm` · `/crucible:plan` · `/crucible:verify` · `/crucible:compound` · `/crucible:orchestrate` · `/crucible:dogfood`) and the PreToolUse guard hooks are active in the current session. Confirm with:
+After `/reload-plugins`, the seven slash commands (`/crucible:brainstorm` · `/crucible:plan` · `/crucible:verify` · `/crucible:compound` · `/crucible:orchestrate` · `/crucible:dogfood` · `/crucible:dogfood-digest`) and the PreToolUse guard hooks are active in the current session. Confirm with:
 
 ```
 /plugin list         # crucible@crucible should appear under Installed
@@ -67,7 +67,7 @@ Runtime requirements: `bash` (≥ 4), `jq` (≥ 1.6), `uuidgen`, `flock`. No Pyt
 
 ---
 
-## Skills (6)
+## Skills (7)
 
 - `/brainstorm` — Feature brainstorming with a 3-lens clarify pass (vague · unknown · metamedium). Emits a requirements doc at `.claude/plans/YYYY-MM-DD-{slug}-requirements.md`.
 - `/plan` — Hybrid Markdown + YAML-frontmatter plan built from a requirements doc. Includes acceptance criteria, evaluation principles with weights, and exit conditions.
@@ -75,6 +75,7 @@ Runtime requirements: `bash` (≥ 4), `jq` (≥ 1.6), `uuidgen`, `flock`. No Pyt
 - `/compound` — Promotion gate for repeated patterns, user corrections, and session-wrap summaries. Only user-approved candidates reach `.claude/memory/`.
 - `/orchestrate` *(Stretch)* — End-to-end pipeline that chains the four skills above with CP-0 through CP-5 disk checkpoints for crash-safe resume.
 - `/dogfood` — Manual dogfooding logger. Captures qualitative notes (4 categories: good · pain · ambiguous · request) plus auto-extracted structured events (skill_call · promotion_gate · axis_skip · qa_judge) to append-only JSONL at `.claude/dogfood/log.jsonl` (local) and `~/.claude/dogfood/crucible/{slug}-{hash}/log.jsonl` (opt-in global mirror). `.gitignore` is auto-updated; opt-out via `CRUCIBLE_DOGFOOD_GLOBAL=0`.
+- `/dogfood-digest` — Manual-only compounding digest skill. Aggregates dogfood JSONL within a window (`--last N` · `--since DATE|Nd` · `--all`) and renders a 3-section proposal report (Threshold Calibration · Protocol Improvements · Promotion Candidates) at `.claude/plans/YYYY-MM-DD-dogfood-digest-{window}.md`. Read-only — never mutates SKILL.md, memory, or the source JSONL.
 
 **Details** → [`docs/skills/`](./docs/skills/) (per-skill paradigm, judgment, design choices).
 

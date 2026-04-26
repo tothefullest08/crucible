@@ -6,19 +6,37 @@ description: |
   트리거: "dogfood digest", "도그푸드 다이제스트", "도그푸드 리포트", "dogfood report", "/crucible:dogfood-digest", "로그 집계 제안", "dogfood summary", "피드백 요약".
 when_to_use: "dogfood JSONL이 여러 건 누적된 뒤, 임계값·스킬 프로토콜·승격 후보 개선 아이디어를 사람이 읽고 판단할 수 있는 제안 리포트로 뽑아내고 싶을 때. 수동 호출 전용 — Stop hook / cron 자동 실행 없음."
 input: |
-  인자 플래그:
-    --last N           최근 N 이벤트 (기본 10)
-    --since DATE|Nd    절대 날짜(YYYY-MM-DD / ISO8601) 또는 상대 기간(예: 7d)
-    --all              전체 window
-    --scope local|global|both   기본 both
-  입력 소스:
-    로컬  `.claude/dogfood/log.jsonl`
-    글로벌 `~/.claude/dogfood/crucible/{slug}-{hash}/log.jsonl`
+  Window / scope 플래그 (user-facing):
+    --last N           최근 N 이벤트 (기본 10). 양의 정수.
+    --since DATE|Nd    절대 날짜(YYYY-MM-DD / ISO8601) 또는 상대 기간(예: 7d).
+    --all              전체 window. --last/--since 조합은 error(exit 2),
+                       --all 이 함께 오면 overrides.
+    --scope local|global|both   기본 both.
+
+  Render knob:
+    --threshold-n N    Threshold 섹션에서 qa_judge / axis_skip 관측수 하한
+                       (기본 3). 양의 정수만 허용. renderer 스크립트에 직접
+                       전달 가능.
+
+  Path overrides (CI/test only — 프로덕션 호출 시 미지정):
+    --project-root DIR        PWD 대신 사용할 로컬 로그 루트.
+    --home DIR                $HOME 대신 사용할 글로벌 mirror 루트.
+    env CRUCIBLE_DOGFOOD_ROOT  위 --project-root 보다 우선. 적용 시 stderr 에 info.
+    env CRUCIBLE_DOGFOOD_HOME  위 --home 보다 우선. 적용 시 stderr 에 info.
+
+  입력 소스 (최종 resolve):
+    로컬  `${CRUCIBLE_DOGFOOD_ROOT:-${PROJECT_ROOT}}/.claude/dogfood/log.jsonl`
+    글로벌 `${CRUCIBLE_DOGFOOD_HOME:-$HOME}/.claude/dogfood/crucible/{slug}-{hash}/log.jsonl`
 output: |
   `.claude/plans/YYYY-MM-DD-dogfood-digest-{window}.md`
   {window} ∈ { last{N}, since-{YYYY-MM-DD|Nd}, all }
   프론트매터(generated_at · window · scope · total_events · source_counts) + Markdown 본문 3섹션
   (Threshold Calibration · Protocol Improvements · Promotion Candidates).
+
+  Exit codes (aggregator + renderer 공통):
+    0  성공 (zero-source / zero-signal 포함)
+    1  런타임 실패 (jq/date/mv pipeline 에러)
+    2  인자 오류 (unknown flag, mutex 위반, 잘못된 값, mktemp 실패)
 validate_prompt: |
   /crucible:dogfood-digest 완료 시 자기검증 (Dogfood-Digest 4축):
   1. 산출 파일 경로가 `.claude/plans/YYYY-MM-DD-dogfood-digest-{window}.md` 규약을 만족하고 slug `[a-zA-Z0-9_-]` 화이트리스트 내인가?
@@ -112,9 +130,9 @@ Do **not** use when:
 
 **동작**:
 1. `bash scripts/dogfood-digest-render.sh --window {window} --scope {scope}` 에 stdin pipe.
-2. 재귀 필터: 입력 중 `.type == "skill_call" && .skill ~= "crucible:dogfood-digest"` 는 ingestion 단계에서 drop. 자기 호출이 Protocol/Promotion 섹션을 오염시키지 않도록 한다.
-3. 섹션별 휴리스틱:
-   - **Threshold Calibration**: `qa_judge` n≥3 이면 p50/p95 + verdict 분포, `axis_skip` n≥3 이면 축별 histogram. 둘 다 관측수 미만이면 `no signal in window (qa_judge n=X, axis_skip n=Y, threshold-n=3)`.
+2. 재귀 필터: 입력 중 `.type == "skill_call" && .skill == "/crucible:dogfood-digest"` (앵커 regex `^/?crucible:dogfood-digest$`) 는 ingestion 단계에서 drop. 자기 호출이 Protocol/Promotion 섹션을 오염시키지 않도록 한다. 앵커가 있어 `crucible:dogfood-digest-v2` 같은 미래 형제 스킬 호출은 보존된다.
+3. 섹션별 휴리스틱 — 관측수 하한은 `--threshold-n N`(기본 3, 양의 정수) 로 조정 가능:
+   - **Threshold Calibration**: `qa_judge` n≥threshold-n 이면 p50/p95 + verdict 분포, `axis_skip` n≥threshold-n 이면 축별 histogram. 둘 다 관측수 미만이면 `no signal in window (qa_judge n=X, axis_skip n=Y, threshold-n=N)`.
    - **Protocol Improvements**: `note` 중 category ∈ {pain, ambiguous} 를 text 내 첫 `/crucible:*` 토큰 기준 그룹핑 (미매치는 `general`) + `axis_skip.reason` 동일 키 ≥ 2. 상위 5건만.
    - **Promotion Candidates**: `note` 중 category ∈ {request, good} 을 같은 방식으로 그룹핑 + `promotion_gate.response == "y"` 빈도 ≥ 2.
 4. 각 제안 라인은 `- **{key}** ({cats}, n={count}) — {sample}\n  - 근거: \`{path}:{line}\` …` 형식. 최소 1건의 back-reference 를 반드시 포함.
@@ -128,21 +146,30 @@ Do **not** use when:
 
 ### Phase 4 — Save (single-file write)
 
-**목표**: `.claude/plans/{date}-dogfood-digest-{window}.md` 경로로 **단 1건**만 쓰고 종료한다.
+**목표**: Phase 3 Markdown 을 `.claude/plans/{date}-dogfood-digest-{window}.md` 경로로 **단 1건**만 저장. 스킬 자체는 쉘 스크립트 2개 (aggregator · renderer) 로만 구성돼 있고 이들은 stdout 으로 출력만 한다. **파일로 남기는 주체는 호출자(에이전트) 이다** — 호출자가 redirect (`> path`) 또는 Write 도구로 최종 파일을 남긴다.
 
-**입력**: Phase 3 Markdown + Phase 1 `{window}`.
+**입력**: Phase 3 Markdown (stdout) + Phase 1 `{window}`.
 
-**동작**:
-1. `date = $(date -u +%Y-%m-%d)`.
-2. 파일명: `.claude/plans/${date}-dogfood-digest-${window_label}.md`.
-3. slug `dogfood-digest` 는 `[a-zA-Z0-9_-]` 준수 — 별도 hook 불필요 (고정 문자열).
-4. 이미 파일이 존재하면 사용자에게 (overwrite / `-v2` suffix / abort) 3지선다 제시 후 대기.
-5. `.claude/plans/` 디렉토리 부재 시 `mkdir -p`.
-6. 저장 후 절대 경로를 최종 응답 마지막 줄에 echo.
+**호출자(에이전트) 책임**:
+1. `date = $(date -u +%Y-%m-%d)` 계산.
+2. 파일 경로 조립: `.claude/plans/${date}-dogfood-digest-${window_label}.md`. slug `dogfood-digest` 는 고정 문자열이라 별도 sanitize 불필요 — `{window_label}` 만 `[a-zA-Z0-9_-]` 화이트리스트 내에 있는지 확인.
+3. `.claude/plans/` 디렉토리 부재 시 `mkdir -p`.
+4. **이미 같은 경로의 파일이 있으면** 덮어쓰지 말고 `{window}-v2` / `{window}-v3` … 처럼 suffix 를 바꿔 재호출할 것. 재조회가 필요하면 Phase 1 부터 다시 돈다. (스크립트에 `--out` / `--force` flag 는 의도적으로 두지 않음 — 충돌 처리는 호출자 문맥에서 판단.)
+5. 저장 후 최종 응답 마지막 줄에 저장 경로 echo.
 
 **출력**: 디스크 상의 리포트 파일 1건.
 
-**실패 시 fallback**: 파일 쓰기 실패 → 에러 원문을 사용자에게 노출하고 중단. 부분 쓰기 잔해 제거.
+**실패 시 fallback**: 파일 쓰기 실패 → 에러 원문을 사용자에게 노출하고 중단. 부분 쓰기 잔해 제거. 스크립트 자체의 exit code 는 출력 섹션 참조 (0/1/2).
+
+**예시 호출 (bash)**:
+```bash
+win=last10
+date=$(date -u +%Y-%m-%d)
+mkdir -p .claude/plans
+bash scripts/dogfood-digest.sh --last 10 --scope both \
+    | bash scripts/dogfood-digest-render.sh --window "$win" --scope both \
+    > ".claude/plans/${date}-dogfood-digest-${win}.md"
+```
 
 ---
 

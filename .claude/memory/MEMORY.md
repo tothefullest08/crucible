@@ -11,6 +11,7 @@
 
 ## Corrections (정정 사항)
 <!-- corrections/ 하위 "틀렸다" 기록 -->
+- [docs-skills-pair-omission](corrections/docs-skills-pair-omission.md) — 새 스킬 추가 시 docs/skills/{name}.md + {name}.ko.md pair 생성 필수 (PR-5 유저 정정)
 
 ## Preferences (유저 선호)
 <!-- preferences/ 하위 작업 습관·스타일 -->

@@ -15,3 +15,4 @@
 {"ts":"2026-04-18T10:00:00Z","type":"promotion_gate","candidate_id":"bilingual-ux","response":"y","detector":"pattern_repeat"}
 {"ts":"2026-04-18T10:05:00Z","type":"promotion_gate","candidate_id":"progress-tracking","response":"y","detector":"pattern_repeat"}
 {"ts":"2026-04-18T11:00:00Z","type":"skill_call","skill":"/crucible:dogfood-digest","args_summary":"--last 10"}
+{"ts":"2026-04-18T11:30:00Z","type":"skill_call","skill":"/crucible:dogfood-digest-v2","args_summary":"hypothetical future sibling — must NOT be dropped by anchored recursion regex"}
