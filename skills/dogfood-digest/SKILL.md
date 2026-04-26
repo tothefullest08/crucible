@@ -6,25 +6,31 @@ description: |
   트리거: "dogfood digest", "도그푸드 다이제스트", "도그푸드 리포트", "dogfood report", "/crucible:dogfood-digest", "로그 집계 제안", "dogfood summary", "피드백 요약".
 when_to_use: "dogfood JSONL이 여러 건 누적된 뒤, 임계값·스킬 프로토콜·승격 후보 개선 아이디어를 사람이 읽고 판단할 수 있는 제안 리포트로 뽑아내고 싶을 때. 수동 호출 전용 — Stop hook / cron 자동 실행 없음."
 input: |
-  Window / scope 플래그 (user-facing):
+  플래그는 두 스크립트로 나뉘며, 잘못된 쪽에 패스하면 unknown-argument
+  로 exit 2 한다. `--scope` 만 양쪽이 공유한다.
+
+  Aggregator (`scripts/dogfood-digest.sh`) — window · scope · 경로 resolve:
     --last N           최근 N 이벤트 (기본 10). 양의 정수.
     --since DATE|Nd    절대 날짜(YYYY-MM-DD / ISO8601) 또는 상대 기간(예: 7d).
     --all              전체 window. --last/--since 조합은 error(exit 2),
                        --all 이 함께 오면 overrides.
     --scope local|global|both   기본 both.
-
-  Render knob:
-    --threshold-n N    Threshold 섹션에서 qa_judge / axis_skip 관측수 하한
-                       (기본 3). 양의 정수만 허용. renderer 스크립트에 직접
-                       전달 가능.
-
-  Path overrides (CI/test only — 프로덕션 호출 시 미지정):
-    --project-root DIR        PWD 대신 사용할 로컬 로그 루트.
-    --home DIR                $HOME 대신 사용할 글로벌 mirror 루트.
+    --project-root DIR (CI/test only) PWD 대신 사용할 로컬 로그 루트.
+    --home DIR         (CI/test only) $HOME 대신 사용할 글로벌 mirror 루트.
     env CRUCIBLE_DOGFOOD_ROOT  위 --project-root 보다 우선. 적용 시 stderr 에 info.
     env CRUCIBLE_DOGFOOD_HOME  위 --home 보다 우선. 적용 시 stderr 에 info.
 
-  입력 소스 (최종 resolve):
+  Renderer (`scripts/dogfood-digest-render.sh`) — Markdown 변환 단계 knob.
+  **`--threshold-n` 은 renderer 전용** — aggregator 에 전달하면 unknown
+  argument 로 exit 2 한다.
+    --window LABEL     window 라벨(파일명 + frontmatter, 필수). 호출자가
+                       aggregator 의 window 플래그에 맞춰 합성한다.
+    --scope local|global|both   기본 both. aggregator 의 --scope 와 동일하게
+                       검증되어 frontmatter 의 `scope:` 에 그대로 쓰인다.
+    --threshold-n N    Threshold 섹션에서 qa_judge / axis_skip 관측수 하한
+                       (기본 3). 양의 정수만 허용.
+
+  입력 소스 (aggregator 가 resolve, renderer 는 stdin 만 읽음):
     로컬  `${CRUCIBLE_DOGFOOD_ROOT:-${PROJECT_ROOT}}/.claude/dogfood/log.jsonl`
     글로벌 `${CRUCIBLE_DOGFOOD_HOME:-$HOME}/.claude/dogfood/crucible/{slug}-{hash}/log.jsonl`
 output: |
@@ -181,7 +187,8 @@ tmp_raw="$(mktemp -t dogfood-digest-raw.XXXXXX)"
 trap 'rm -f "$tmp_raw"' EXIT INT TERM HUP
 
 bash scripts/dogfood-digest.sh --last 10 --scope both > "$tmp_raw"
-bash scripts/dogfood-digest-render.sh --window "$win" --scope both \
+# --threshold-n 은 renderer 에만 — aggregator 에 패스하면 exit 2.
+bash scripts/dogfood-digest-render.sh --window "$win" --scope both --threshold-n 5 \
     < "$tmp_raw" \
     > ".claude/plans/${date}-dogfood-digest-${win}.md"
 ```
@@ -189,8 +196,9 @@ bash scripts/dogfood-digest-render.sh --window "$win" --scope both \
 **대체 호출 (direct pipe, ADV-007 검증 형태)**:
 ```bash
 set -o pipefail   # 직결 파이프에서 aggregator 실패를 전체 exit code 로 전파.
+# --threshold-n 은 파이프 오른쪽(renderer) 에만 둔다.
 bash scripts/dogfood-digest.sh --last 10 --scope both \
-    | bash scripts/dogfood-digest-render.sh --window last10 --scope both \
+    | bash scripts/dogfood-digest-render.sh --window last10 --scope both --threshold-n 5 \
     > ".claude/plans/${date}-dogfood-digest-last10.md"
 ```
 

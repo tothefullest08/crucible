@@ -65,6 +65,9 @@ Exit codes:
   0  success
   1  runtime failure
   2  argument error
+
+For render-time flags (--window, --threshold-n), see:
+  bash scripts/dogfood-digest-render.sh --help
 USAGE
 }
 
@@ -120,7 +123,21 @@ while [[ $# -gt 0 ]]; do
             ;;
         *)
             printf 'dogfood-digest: unknown argument: %s\n' "$1" >&2
-            print_help >&2
+            # Recognized misroute: render-time flag passed to the aggregator.
+            # Skip the ~40-line print_help dump and emit just the targeted
+            # hint plus a one-line pointer to --help. The wall of help text
+            # would scroll the actionable hint off screen on terminals with
+            # short scrollback (codex pr#21 review). For unrecognized flags
+            # the full help is still useful as a discovery aid.
+            case "$1" in
+                --window|--threshold-n)
+                    printf 'dogfood-digest: hint — %s is a render-time flag; pass it to scripts/dogfood-digest-render.sh instead.\n' "$1" >&2
+                    printf 'dogfood-digest: for full usage: bash scripts/dogfood-digest.sh --help\n' >&2
+                    ;;
+                *)
+                    print_help >&2
+                    ;;
+            esac
             exit 2
             ;;
     esac

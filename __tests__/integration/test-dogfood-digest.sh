@@ -702,11 +702,57 @@ rm -rf "$nonstr_proj"
 rm -rf "$bad_proj"
 
 # ----------------------------------------------------------------------------
+# Issue #15 — aggregator/renderer flag-grouping cross-reference
+# (cli-readiness cli-1 + agent-native F1)
+# ----------------------------------------------------------------------------
+
+printf 'ISSUE-15: aggregator rejects --threshold-n with renderer cross-ref hint\n'
+
+# (a) aggregator must exit 2 on --threshold-n AND emit a stderr hint that
+#     mentions dogfood-digest-render.sh so a naive agent can self-recover.
+i15_stderr="$(mktemp -t dfd-i15-err.XXXXXX)"
+i15_rc=0
+"$aggregator" --threshold-n 5 --project-root "$tmpproj" --home "$tmphome" >/dev/null 2>"$i15_stderr" || i15_rc=$?
+if [[ "$i15_rc" -eq 2 ]]; then
+    pass "aggregator exits 2 when --threshold-n is passed"
+else
+    faile "issue-15 exit code" "expected 2, got $i15_rc"
+fi
+# Anchor on the targeted-hint discriminator (`hint —` AND `render-time flag`)
+# so deleting the case "$1" in --window|--threshold-n) block in
+# scripts/dogfood-digest.sh actually breaks this assertion. The bare string
+# "dogfood-digest-render.sh" was satisfied by the print_help cross-reference
+# alone (see codex review on pr #21) — the assertion would have stayed green
+# even with the targeted hint removed.
+if grep -q 'hint —' "$i15_stderr" && grep -q 'is a render-time flag' "$i15_stderr"; then
+    pass "aggregator stderr emits targeted misroute hint on --threshold-n"
+else
+    faile "issue-15 stderr hint" "expected 'hint —' and 'is a render-time flag' in stderr; got: $(tr '\n' '|' < "$i15_stderr")"
+fi
+# Hint must reference the renderer script by name so a naive agent can
+# self-recover without re-reading the help text.
+if grep -q 'dogfood-digest-render.sh' "$i15_stderr"; then
+    pass "aggregator stderr hint names dogfood-digest-render.sh"
+else
+    faile "issue-15 hint script name" "expected 'dogfood-digest-render.sh' in stderr; got: $(tr '\n' '|' < "$i15_stderr")"
+fi
+rm -f "$i15_stderr"
+
+# (b) aggregator --help must cross-reference renderer for render-time flags so
+#     agents discover --threshold-n placement without reading source.
+i15_help="$("$aggregator" --help 2>&1)"
+if grep -qE 'render-time flags|dogfood-digest-render\.sh --help' <<<"$i15_help"; then
+    pass "aggregator --help cross-references renderer for render-time flags"
+else
+    faile "issue-15 help cross-ref" "expected 'render-time flags' or 'dogfood-digest-render.sh --help' in --help output"
+fi
+
+# ----------------------------------------------------------------------------
 # Summary
 # ----------------------------------------------------------------------------
 
 if [[ "$fail" -eq 0 ]]; then
-    printf '\ntest-dogfood-digest: ALL PASS (SC-1~7 + recursion filter + ADV-006/007/008)\n'
+    printf '\ntest-dogfood-digest: ALL PASS (SC-1~7 + recursion filter + ADV-006/007/008 + issue-15)\n'
     exit 0
 else
     printf '\ntest-dogfood-digest: FAIL\n'
