@@ -143,6 +143,19 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
+# Best-effort cleanup of stale orphans from prior SIGKILL/OOM-kill runs.
+# Placed right after argument parsing — *before* mutex/scope/cutoff/source
+# resolution — so the prune still fires on malformed-config invocations and
+# on arg-error retries that follow a SIGKILL'd run (the very paths that leak
+# tempfiles in the first place). The EXIT/INT/TERM/HUP trap below handles
+# graceful exits, but SIGKILL is untrappable by design — every kill -9 leaks
+# a dogfood-digest-raw.XXXXXX (and its .sorted sibling) of size O(JSONL
+# bytes) into $TMPDIR. 60-minute window is far longer than any real digest
+# run; -mmin is honoured by both BSD (macOS) and GNU find. Stderr suppression
+# + `|| true` keep the prune best-effort: any pruning failure (permission,
+# missing TMPDIR) must never block a legitimate run.
+find "${TMPDIR:-/tmp}" -maxdepth 1 -name 'dogfood-digest-raw.*' -mmin +60 -delete 2>/dev/null || true
+
 # Mutex: --last and --since cannot be combined. --all takes precedence and
 # collapses the conflict (documented as "--all overrides both").
 if [[ "$saw_all" -eq 0 && "$saw_last" -eq 1 && "$saw_since" -eq 1 ]]; then

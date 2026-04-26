@@ -87,6 +87,17 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
+# Best-effort cleanup of stale orphans from prior SIGKILL/OOM-kill runs.
+# Placed right after argument parsing — *before* --window/--scope/--threshold-n
+# validation — so the prune still fires on arg-error retries that follow a
+# SIGKILL'd run (the very paths that leak tempfiles in the first place). The
+# EXIT/INT/TERM/HUP trap below handles graceful exits, but SIGKILL is
+# untrappable by design — every kill -9 leaks a dogfood-digest-in.XXXXXX of
+# size O(JSONL bytes) into $TMPDIR. 60-minute window is far longer than any
+# real render run; stderr suppression + `|| true` keep the prune best-effort
+# so any pruning failure never blocks a legitimate run.
+find "${TMPDIR:-/tmp}" -maxdepth 1 -name 'dogfood-digest-in.*' -mmin +60 -delete 2>/dev/null || true
+
 if [[ -z "$window_label" ]]; then
     printf 'render: --window is required\n' >&2
     exit 2
