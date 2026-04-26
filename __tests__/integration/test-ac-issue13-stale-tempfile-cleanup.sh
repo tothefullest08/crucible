@@ -44,10 +44,23 @@ trap 'rm -rf "$tmproot" "$tmpproj" "$tmphome"' EXIT
 # want exercised — we are not testing aggregation here, only the prune.
 mkdir -p "$tmpproj/.claude/dogfood"
 
-# Pre-compute a ~120-min-ago mtime stamp portable across BSD (macOS) and GNU
-# date. -t accepts [[CC]YY]MMDDhhmm[.SS] on both BSD touch and GNU touch.
-stamp="$(date -u -r "$(( $(date -u +%s) - 7200 ))" +%Y%m%d%H%M.%S 2>/dev/null \
-        || date -u -d "@$(( $(date -u +%s) - 7200 ))" +%Y%m%d%H%M.%S)"
+# Pre-compute mtime stamps as ISO8601 UTC strings so `touch -d` interprets
+# them as absolute UTC instants. `touch -t` would parse the prior
+# YYYYMMDDhhmm.SS form in *local* time, which silently shifts the mtime by
+# the local TZ offset (e.g. KST=+9h pushed a 30-min stamp ~9.5h into the
+# past — surviving 60-min prunes for a different reason than intended).
+# Both BSD (macOS) and GNU touch accept the `-d ISO8601[Z]` form.
+stamp="$(date -u -r "$(( $(date -u +%s) - 7200 ))" +%Y-%m-%dT%H:%M:%SZ 2>/dev/null \
+        || date -u -d "@$(( $(date -u +%s) - 7200 ))" +%Y-%m-%dT%H:%M:%SZ)"
+
+# Pre-compute a ~30-min-ago mtime stamp for the lower-bound assertion: files
+# *just under* the 60-minute prune boundary must survive. This catches a
+# regression that flips `find ... -mmin +60` to `-mmin -60` (the opposite
+# condition), which would still pass the upper-bound (~120 min) and fresh
+# (current mtime) assertions but silently delete files inside the 60-minute
+# window — exactly the runs the prune is designed to spare.
+stamp_30="$(date -u -r "$(( $(date -u +%s) - 1800 ))" +%Y-%m-%dT%H:%M:%SZ 2>/dev/null \
+        || date -u -d "@$(( $(date -u +%s) - 1800 ))" +%Y-%m-%dT%H:%M:%SZ)"
 
 # ---------------------------------------------------------------------------
 # Aggregator: dogfood-digest-raw.* prune
@@ -58,12 +71,15 @@ printf '\n[1/2] dogfood-digest.sh — stale dogfood-digest-raw.* prune\n'
 stale_raw="$tmproot/dogfood-digest-raw.STALEXX"
 stale_sorted="$tmproot/dogfood-digest-raw.STALEYY.sorted"
 fresh_raw="$tmproot/dogfood-digest-raw.FRESHXX"
+recent_raw="$tmproot/dogfood-digest-raw.RECENT30"
 
 : > "$stale_raw"
 : > "$stale_sorted"
 : > "$fresh_raw"
+: > "$recent_raw"
 
-touch -t "$stamp" "$stale_raw" "$stale_sorted"
+touch -d "$stamp" "$stale_raw" "$stale_sorted"
+touch -d "$stamp_30" "$recent_raw"
 
 TMPDIR="$tmproot" "$aggregator" --all --scope local \
     --project-root "$tmpproj" --home "$tmphome" >/dev/null 2>&1
@@ -83,6 +99,11 @@ if [[ -e "$fresh_raw" ]]; then
 else
     faile "fresh dogfood-digest-raw.* incorrectly pruned" "missing $fresh_raw"
 fi
+if [[ -e "$recent_raw" ]]; then
+    pass "30-min-old dogfood-digest-raw.* preserved (lower-bound: just under 60min)"
+else
+    faile "30-min-old dogfood-digest-raw.* incorrectly pruned" "missing $recent_raw — find condition may have flipped from -mmin +60 to -mmin -60"
+fi
 
 # ---------------------------------------------------------------------------
 # Renderer: dogfood-digest-in.* prune
@@ -92,11 +113,14 @@ printf '\n[2/2] dogfood-digest-render.sh — stale dogfood-digest-in.* prune\n'
 
 stale_in="$tmproot/dogfood-digest-in.STALEXX"
 fresh_in="$tmproot/dogfood-digest-in.FRESHXX"
+recent_in="$tmproot/dogfood-digest-in.RECENT30"
 
 : > "$stale_in"
 : > "$fresh_in"
+: > "$recent_in"
 
-touch -t "$stamp" "$stale_in"
+touch -d "$stamp" "$stale_in"
+touch -d "$stamp_30" "$recent_in"
 
 # Renderer reads JSONL on stdin; pipe an empty stream so it produces an
 # empty-section report and exits 0. The startup cleanup runs before the
@@ -112,6 +136,11 @@ if [[ -e "$fresh_in" ]]; then
     pass "fresh dogfood-digest-in.* preserved (mtime within 60min window)"
 else
     faile "fresh dogfood-digest-in.* incorrectly pruned" "missing $fresh_in"
+fi
+if [[ -e "$recent_in" ]]; then
+    pass "30-min-old dogfood-digest-in.* preserved (lower-bound: just under 60min)"
+else
+    faile "30-min-old dogfood-digest-in.* incorrectly pruned" "missing $recent_in — find condition may have flipped from -mmin +60 to -mmin -60"
 fi
 
 printf '\n'
