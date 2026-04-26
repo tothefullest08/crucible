@@ -718,10 +718,23 @@ if [[ "$i15_rc" -eq 2 ]]; then
 else
     faile "issue-15 exit code" "expected 2, got $i15_rc"
 fi
-if grep -q 'dogfood-digest-render.sh' "$i15_stderr"; then
-    pass "aggregator stderr hints at dogfood-digest-render.sh on --threshold-n"
+# Anchor on the targeted-hint discriminator (`hint —` AND `render-time flag`)
+# so deleting the case "$1" in --window|--threshold-n) block in
+# scripts/dogfood-digest.sh actually breaks this assertion. The bare string
+# "dogfood-digest-render.sh" was satisfied by the print_help cross-reference
+# alone (see codex review on pr #21) — the assertion would have stayed green
+# even with the targeted hint removed.
+if grep -q 'hint —' "$i15_stderr" && grep -q 'is a render-time flag' "$i15_stderr"; then
+    pass "aggregator stderr emits targeted misroute hint on --threshold-n"
 else
-    faile "issue-15 stderr hint" "expected 'dogfood-digest-render.sh' in stderr; got: $(tr '\n' '|' < "$i15_stderr")"
+    faile "issue-15 stderr hint" "expected 'hint —' and 'is a render-time flag' in stderr; got: $(tr '\n' '|' < "$i15_stderr")"
+fi
+# Hint must reference the renderer script by name so a naive agent can
+# self-recover without re-reading the help text.
+if grep -q 'dogfood-digest-render.sh' "$i15_stderr"; then
+    pass "aggregator stderr hint names dogfood-digest-render.sh"
+else
+    faile "issue-15 hint script name" "expected 'dogfood-digest-render.sh' in stderr; got: $(tr '\n' '|' < "$i15_stderr")"
 fi
 rm -f "$i15_stderr"
 
