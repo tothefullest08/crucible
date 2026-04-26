@@ -1,7 +1,7 @@
 # AGENTS.md — Skill Compliance Checklist
 
 > Enforcement contract for every skill in `crucible`. Paired with [CLAUDE.md](./CLAUDE.md) project guidance.
-> All 6 skills must pass their applicable 6-axis checks **before** an artifact leaves `validate_prompt`.
+> All 7 skills must pass their applicable 6-axis checks **before** an artifact leaves `validate_prompt`.
 
 ---
 
