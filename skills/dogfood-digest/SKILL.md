@@ -198,6 +198,23 @@ Do **not** use when:
 
 **출력**: Markdown 문자열 (stdout).
 
+`--format json` 을 사용하는 경우 stdout 은 단일 JSON 객체다. 최상위 구조는 `{schema_version, frontmatter, sections[]}` 이고, 섹션 순서는 Threshold Calibration → Protocol Improvements → Promotion Candidates 로 고정된다. 각 section 은 `{title, items[]}` 이며, `note` 필드는 **`items` 가 비어 있을 때만 반드시 존재하고, `items` 가 1건 이상이면 반드시 부재한다** — 이 불변식은 `__tests__/integration/test-dogfood-digest.sh` ISSUE-19 블록이 강제하고 있다.
+
+> **`schema_version` 비교 주의**: `schema_version` 은 JSON **STRING** 이다 (`"1"`, 숫자 `1` 아님). 반드시 `.schema_version == "1"` (문자열 비교) 로 확인해야 하며, `.schema_version == 1` (정수 비교) 는 항상 `false` 를 반환해 wrapper 가 잘못된 fallback 경로로 흘러간다.
+
+각 item 은 `type` discriminator 를 들고 있다. 아래는 type 별 보장 필드 목록이다 (이 contract 를 깨는 변경은 `schema_version` bump 를 요구한다):
+
+| type | 보장 필드 |
+|------|-----------|
+| `qa_distribution` | `n` (int) · `p50` (number\|null) · `p95` (number\|null) · `verdicts.promote` / `.retry` / `.reject` (int) · `refs` (array of `"path:line"`) |
+| `axis_skip_freq` | `n` (int) · `histogram` (array of `{axis, n}`) · `refs` |
+| `pain_group` | `key` (string) · `n` (int) · `cats` (string) · `sample` (string) · `refs` |
+| `skip_reason` | `reason` (string) · `n` (int) · `refs` |
+| `promo_group` | `key` (string) · `n` (int) · `cats` (string) · `sample` (string) · `refs` |
+| `promotion_gate` | `n` (int) · `refs` |
+
+`refs` 는 `"<source_path>:<line>"` 문자열 배열로 직렬화된다 (최대 3건). 향후 객체 배열(`[{path,line}]`) 로 변경될 경우 `schema_version` bump 대상이다.
+
 **실패 시 fallback**: 섹션 휴리스틱이 모든 관측수 하한 미만 → 빈 섹션 대신 명시적 안내. jq 파이프 실패 → stderr 경고 후 섹션을 `> no signal in window` 로 채워 리포트 완결.
 
 ---
