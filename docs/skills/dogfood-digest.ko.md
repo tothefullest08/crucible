@@ -1,4 +1,4 @@
-# `/dogfood-digest` *(v1.2.0)*
+# `/dogfood-digest` *(v1.3.0)*
 
 > 누적된 `/crucible:dogfood` JSONL 을 read-only Markdown 제안 리포트 1건으로 정리 — 고정 3섹션(Threshold Calibration · Protocol Improvements · Promotion Candidates) + 인용된 모든 이벤트의 원본 위치 back-reference.
 
@@ -33,6 +33,41 @@
 - **`_source_path` + `_line` 메모리 주입.** back-reference 는 타협 불가 — 근거 없는 제안은 민담입니다. 집계 단계에서 jq 한 줄로 주입되고 원본 파일은 mutate 하지 않습니다.
 - **관측수 하한(`--threshold-n 3`).** 샘플 2개로 qa-judge 밴드를 튜닝하는 것은 튜닝하지 않는 것보다 나쁩니다 — 노이즈를 공식화하니까요. 주간 실행에서 실제 신호를 surfacing 할 만큼 낮고 n=1 우연을 억제할 만큼 높습니다. 조용한 로그를 위해 override 가능하도록 플래그로 노출.
 - **`/crucible:*` 그룹 토큰 + `general` 버킷.** 더 풍부한 NLP 그룹핑은 drift 합니다 — 토픽 벡터는 불만이 어느 스킬의 것인지 알려주지 않습니다. 슬래시 커맨드 토큰은 여전히 *이름이 붙은 스킬의 SKILL.md*라는 actionable 지점과 1:1 매핑되는 가장 거친 키입니다. 나머지는 `general` 로 흘러 silently drop 되지 않습니다.
+
+## 표준에러 & 종료 코드 (Stderr & Exit Codes) *(v1.3.0 추가, issues #16/#17/#18)*
+
+파이프라인의 두 절반 (`scripts/dogfood-digest.sh` 집계기, `scripts/dogfood-digest-render.sh` 렌더러) 모두 stderr 를 프로그램 호출자를 위한 구조화된 채널로 다룹니다. 세 가지 보장:
+
+**Severity prefix.** 스크립트 자체의 `err`/`warn`/`info` 헬퍼를 통해 방출되는 모든 stderr 라인은 `<script>: <severity>: <msg>` 형태이며 severity ∈ `{info, warn, error}`. 집계기는 `dogfood-digest:`, 렌더러는 `render:` 접두사. 통합 grep:
+
+```bash
+grep -E '^(dogfood-digest|render): (info|warn|error):'
+```
+
+복구 힌트는 `error:` 라인 뒤에 별도 `info: hint:` 라인으로 따라올 수 있습니다 (예: `--since` UTC 보정 힌트). `error:` 만 grep 하는 에이전트는 결함만 보고 권고는 놓치므로, 권고는 `info: hint:` 로 grep.
+
+**3-way 종료 코드 분리** (이전의 arg-vs-success 2-way 대체):
+
+| 코드 | 의미 | 호출자 액션 |
+|---|---|---|
+| 0 | 성공 (빈 입력 / no-signal 포함) | — |
+| 1 | 런타임 데이터-파이프라인 실패 (jq sort, mv swap, tail) | 데이터 형상 문제; 입력 점검 |
+| 2 | 인자 오류 (unknown flag, mutex, 잘못된 값, 중복) | 플래그 수정 후 재시도 |
+| 3 | 시스템 / 환경 실패 (디스크 가득, 도구 누락 시 mktemp) | 에스컬레이트, 동일 인자로 **재시도 금지** |
+
+`mktemp` 실패만 2 → 3 으로 이동. 다른 모든 인자 검증 사이트는 exit 2 유지.
+
+**Per-source warn rate-limit.** 수천 건의 malformed row 가 든 병적 JSONL 로그는 row 마다 `warn:` 한 줄을 방출해 에이전트 컨텍스트 예산을 폭파시키고 stderr 를 무시하도록 학습시켰습니다. 이제 source 당 verbatim `warn:` 5 줄로 cap; 그 이상은 단일 요약 라인으로 폴딩:
+
+```
+dogfood-digest: warn: N more malformed rows skipped in <path> (cap=5)
+```
+
+cap 값은 동적으로 보간(`(cap=5)`)되어 라인을 읽는 에이전트가 `--help` 없이도 cap 을 복원할 수 있습니다. Counter 는 source 마다 리셋되어 한 파일이 다른 파일의 warn 예산을 가리지 않습니다.
+
+**`CRUCIBLE_DOGFOOD_QUIET_OVERRIDE=1`.** 매 호출마다 `CRUCIBLE_DOGFOOD_ROOT` / `CRUCIBLE_DOGFOOD_HOME` 을 정상적으로 설정하는 CI 워크플로는 침묵을 opt-in 해서 env-override `info:` 라인이 stderr 를 흐리지 않도록 할 수 있습니다. **엄격한 리터럴 `"1"`** — `true`, `yes`, ` 1`(앞쪽 공백) 등 다른 값은 활성화되지 **않습니다**. **오직 `info:` env-override 라인만 억제**; `warn:` 와 `error:` 는 항상 방출됩니다 (opt-in 은 선택적 노이즈 감소이지 결함 마스킹이 아닙니다).
+
+**호환성 주의사항.** stderr 를 정확한 라인 일치로 파싱하거나 exit 2 를 "모든 실패"로 분기하던 wrapper 는 업데이트가 필요합니다. 부분 문자열 매칭(파일 경로, 오류 키워드)이나 exit-0 vs non-zero 매처는 영향 없음.
 
 ## 임계값 (Thresholds)
 

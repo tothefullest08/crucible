@@ -1304,8 +1304,12 @@ else
 fi
 
 # Renderer mktemp also routes to exit 3.
+# CRITICAL: `TMPDIR=val cmd1 | cmd2` scopes TMPDIR to cmd1 only (bash
+# pipeline env-var rule). Putting it before `echo` would set TMPDIR for
+# echo, not the renderer, and the renderer would inherit the parent's
+# TMPDIR — never exercising the exit-3 path. Set it on the renderer side.
 set +e
-TMPDIR=/no/such/dir/ever echo '' | "$renderer" --window t --scope local >/dev/null 2>&1
+echo '' | TMPDIR=/no/such/dir/ever "$renderer" --window t --scope local >/dev/null 2>&1
 ren_mktemp_rc=$?
 set -e
 # Renderer always creates a tempfile, so this almost always exercises mktemp.
@@ -1346,16 +1350,28 @@ done
 
 printf 'ISSUE-17: warn rate-limit per source\n'
 
+# Derive WARN_CAP from the aggregator script so a future cap change in
+# scripts/dogfood-digest.sh doesn't silently break four hardcoded test
+# assertions (was: literal `5` and derived `7` baked across the block).
+WARN_CAP=$(grep -E '^readonly WARN_CAP=' "$aggregator" | head -1 | cut -d= -f2)
+if ! [[ "$WARN_CAP" =~ ^[0-9]+$ ]] || [[ "$WARN_CAP" -lt 1 ]]; then
+    faile "issue-17 setup" "WARN_CAP could not be derived from aggregator (got: $WARN_CAP)"
+    WARN_CAP=5  # fallback so subsequent assertions still execute
+fi
+
 flood_proj="$(mktemp -d -t dfd-flood.XXXXXX)"
 mkdir -p "$flood_proj/.claude/dogfood"
-# Generate 12 malformed rows + 2 valid rows. Cap is 5, so we expect 5
-# verbatim warn lines + 1 summary line ("7 more malformed rows skipped").
+# Generate (WARN_CAP + 7) malformed rows + 2 valid rows. With cap=5 by
+# default that's 12 bad / 2 valid; expect WARN_CAP verbatim warn lines
+# + 1 summary line naming the fold count (7 when cap=5).
+flood_bad_total=$((WARN_CAP + 7))
+flood_fold_count=$((flood_bad_total - WARN_CAP))
 {
     for i in $(seq 1 7); do
         echo "BAD_ROW_${i}_NOT_JSON"
     done
     echo '{"ts":"2026-04-25T00:00:00Z","type":"note","category":"pain","text":"valid"}'
-    for i in $(seq 8 12); do
+    for i in $(seq 8 "$flood_bad_total"); do
         echo "BAD_ROW_${i}_NOT_JSON"
     done
     echo '{"ts":"2026-04-25T00:00:01Z","type":"note","category":"good","text":"valid"}'
@@ -1369,21 +1385,21 @@ set -e
 verbatim_count=$(printf '%s\n' "$flood_stderr" | grep -c 'warn: skipping malformed row' || true)
 summary_count=$(printf '%s\n' "$flood_stderr" | grep -c 'more malformed rows skipped' || true)
 
-if [[ "$verbatim_count" -eq 5 ]]; then
-    pass "warn cap honoured: exactly 5 verbatim 'warn: skipping' lines (got $verbatim_count)"
+if [[ "$verbatim_count" -eq "$WARN_CAP" ]]; then
+    pass "warn cap honoured: exactly $WARN_CAP verbatim 'warn: skipping' lines (got $verbatim_count)"
 else
-    faile "warn cap" "got $verbatim_count verbatim warn lines, want 5"
+    faile "warn cap" "got $verbatim_count verbatim warn lines, want $WARN_CAP"
 fi
 if [[ "$summary_count" -eq 1 ]]; then
     pass "warn summary line emitted exactly once"
 else
     faile "warn summary count" "got $summary_count summary lines, want 1"
 fi
-# 12 bad rows total, 5 emitted verbatim → 7 folded.
-if printf '%s' "$flood_stderr" | grep -F -q -- '7 more malformed rows skipped'; then
-    pass "warn summary names the correct fold count (7)"
+# (WARN_CAP + 7) bad rows total, WARN_CAP emitted verbatim → 7 folded.
+if printf '%s' "$flood_stderr" | grep -F -q -- "$flood_fold_count more malformed rows skipped"; then
+    pass "warn summary names the correct fold count ($flood_fold_count)"
 else
-    faile "warn summary count value" "expected '7 more malformed rows skipped', stderr=$(tr '\n' '|' <<<"$flood_stderr")"
+    faile "warn summary count value" "expected '$flood_fold_count more malformed rows skipped', stderr=$(tr '\n' '|' <<<"$flood_stderr")"
 fi
 # Valid rows must still survive — the flood doesn't drop downstream data.
 flood_count=$("$aggregator" --all --scope local --project-root "$flood_proj" \
@@ -1395,15 +1411,20 @@ else
 fi
 rm -rf "$flood_proj"
 
-# Below-cap case: 3 bad rows (under cap=5) emit 3 verbatim warn lines and
-# zero summary line. Pins the boundary so a future off-by-one regresses.
+# Below-cap case: (WARN_CAP - 2) bad rows emit (WARN_CAP - 2) verbatim
+# warn lines and zero summary line. Pins the boundary so a future
+# off-by-one regresses.
+under_bad_total=$((WARN_CAP - 2))
+if [[ "$under_bad_total" -lt 1 ]]; then
+    under_bad_total=1  # cap < 3 makes the boundary degenerate; floor at 1
+fi
 under_proj="$(mktemp -d -t dfd-under.XXXXXX)"
 mkdir -p "$under_proj/.claude/dogfood"
 {
-    echo 'BAD_1'
+    for i in $(seq 1 "$under_bad_total"); do
+        echo "BAD_${i}"
+    done
     echo '{"ts":"2026-04-25T00:00:00Z","type":"note","category":"pain","text":"a"}'
-    echo 'BAD_2'
-    echo 'BAD_3'
 } > "$under_proj/.claude/dogfood/log.jsonl"
 set +e
 under_stderr=$("$aggregator" --all --scope local --project-root "$under_proj" \
@@ -1411,12 +1432,38 @@ under_stderr=$("$aggregator" --all --scope local --project-root "$under_proj" \
 set -e
 under_verbatim=$(printf '%s\n' "$under_stderr" | grep -c 'warn: skipping malformed row' || true)
 under_summary=$(printf '%s\n' "$under_stderr" | grep -c 'more malformed rows skipped' || true)
-if [[ "$under_verbatim" -eq 3 && "$under_summary" -eq 0 ]]; then
-    pass "below-cap (3 bad rows) emits 3 verbatim, 0 summary"
+if [[ "$under_verbatim" -eq "$under_bad_total" && "$under_summary" -eq 0 ]]; then
+    pass "below-cap ($under_bad_total bad rows, cap=$WARN_CAP) emits $under_bad_total verbatim, 0 summary"
 else
-    faile "below-cap behavior" "verbatim=$under_verbatim summary=$under_summary want 3/0"
+    faile "below-cap behavior" "verbatim=$under_verbatim summary=$under_summary want $under_bad_total/0"
 fi
 rm -rf "$under_proj"
+
+# Singular-noun boundary: when fold count == 1, summary must read
+# "1 more malformed row skipped" (singular "row"), not "1 more
+# malformed rows skipped" (plural noun + singular subject mismatch).
+# Construct (WARN_CAP + 1) bad rows so exactly 1 row is folded.
+singular_bad_total=$((WARN_CAP + 1))
+sing_proj="$(mktemp -d -t dfd-sing.XXXXXX)"
+mkdir -p "$sing_proj/.claude/dogfood"
+{
+    for i in $(seq 1 "$singular_bad_total"); do
+        echo "BAD_${i}"
+    done
+    echo '{"ts":"2026-04-25T00:00:00Z","type":"note","category":"pain","text":"a"}'
+} > "$sing_proj/.claude/dogfood/log.jsonl"
+set +e
+sing_stderr=$("$aggregator" --all --scope local --project-root "$sing_proj" \
+    --home "$tmphome" 2>&1 >/dev/null)
+set -e
+if printf '%s' "$sing_stderr" | grep -F -q -- '1 more malformed row skipped'; then
+    pass "warn summary uses singular 'row' when fold count == 1"
+elif printf '%s' "$sing_stderr" | grep -F -q -- '1 more malformed rows skipped'; then
+    faile "warn summary plural-noun bug" "got '1 more malformed rows skipped' (plural noun + singular subject)"
+else
+    faile "warn summary singular case" "no '1 more malformed' line in: $(tr '\n' '|' <<<"$sing_stderr")"
+fi
+rm -rf "$sing_proj"
 
 # ----------------------------------------------------------------------------
 # Issue #18 — CRUCIBLE_DOGFOOD_QUIET_OVERRIDE suppresses env-override info
@@ -1464,6 +1511,44 @@ if printf '%s' "$explicit0_stderr" | grep -F -q -- 'info: CRUCIBLE_DOGFOOD_ROOT=
 else
     faile "QUIET_OVERRIDE=0" "stderr=$(tr '\n' '|' <<<"$explicit0_stderr")"
 fi
+
+# QUIET_OVERRIDE must apply symmetrically to the HOME branch, not just
+# ROOT. Without this, a future refactor splitting the two guards could
+# silently leak HOME info while ROOT stays suppressed.
+home_default_stderr=$(CRUCIBLE_DOGFOOD_HOME="$tmphome" "$aggregator" --all \
+    --scope local --project-root "$tmpproj" --home "/some/other/home" 2>&1 >/dev/null)
+if printf '%s' "$home_default_stderr" | grep -F -q -- 'info: CRUCIBLE_DOGFOOD_HOME='; then
+    pass "default: HOME env-override info line emitted"
+else
+    faile "default HOME info" "stderr=$(tr '\n' '|' <<<"$home_default_stderr")"
+fi
+home_quiet_stderr=$(CRUCIBLE_DOGFOOD_HOME="$tmphome" CRUCIBLE_DOGFOOD_QUIET_OVERRIDE=1 \
+    "$aggregator" --all --scope local --project-root "$tmpproj" --home "/some/other/home" 2>&1 >/dev/null)
+if ! printf '%s' "$home_quiet_stderr" | grep -F -q -- 'CRUCIBLE_DOGFOOD_HOME'; then
+    pass "QUIET_OVERRIDE=1 suppresses HOME env-override info line (symmetric with ROOT)"
+else
+    faile "QUIET_OVERRIDE HOME suppression" "stderr should be empty on info, got: $(tr '\n' '|' <<<"$home_quiet_stderr")"
+fi
+
+# QUIET_OVERRIDE=1 must NOT suppress warn: severity. The PR contract
+# states 'warn: and error: always emit'. Only the error: passthrough was
+# previously verified — add a malformed-row source under QUIET_OVERRIDE=1
+# and assert the warn: line still surfaces. A future refactor widening
+# the QUIET guard to also wrap warn() would land green without this.
+warn_quiet_proj="$(mktemp -d -t dfd-warnq.XXXXXX)"
+mkdir -p "$warn_quiet_proj/.claude/dogfood"
+{
+    echo 'BAD_ROW_NOT_JSON'
+    echo '{"ts":"2026-04-25T00:00:00Z","type":"note","category":"pain","text":"valid"}'
+} > "$warn_quiet_proj/.claude/dogfood/log.jsonl"
+warn_quiet_stderr=$(CRUCIBLE_DOGFOOD_QUIET_OVERRIDE=1 "$aggregator" --all \
+    --scope local --project-root "$warn_quiet_proj" --home "$tmphome" 2>&1 >/dev/null)
+if printf '%s' "$warn_quiet_stderr" | grep -F -q -- 'warn: skipping malformed row'; then
+    pass "QUIET_OVERRIDE=1 does NOT suppress warn: severity (warn still emitted)"
+else
+    faile "QUIET_OVERRIDE warn scope" "expected 'warn: skipping malformed row', stderr=$(tr '\n' '|' <<<"$warn_quiet_stderr")"
+fi
+rm -rf "$warn_quiet_proj"
 
 # ----------------------------------------------------------------------------
 # Summary

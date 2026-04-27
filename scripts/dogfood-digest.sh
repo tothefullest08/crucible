@@ -102,16 +102,27 @@ printed to stderr so the override is never silent.
 Exit codes (arg / runtime / system split, see issue #16):
   0  success
   1  runtime data-pipeline failure (jq/mv/tail)
-  2  argument error
-  3  system/environment failure (mktemp full disk, missing tools)
+  2  argument error — fix the flag and retry
+  3  system/environment failure (mktemp full disk, missing tools) —
+     escalate, do not retry the same args
 
 Stderr severity tagging:
-  Every stderr line is prefixed `dogfood-digest: <severity>: <msg>` where
-  severity ∈ {info, warn, error}. Per-source malformed-row warnings cap
-  at 5 with a summary line for any extras.
+  Every stderr line below the targeted error/warn/info helpers is prefixed
+  `dogfood-digest: <severity>: <msg>` where severity ∈ {info, warn, error}.
+  Per-source malformed-row warnings cap at 5 with a summary line for any
+  extras. Summary line format:
+      dogfood-digest: warn: N more malformed rows skipped in <path> (cap=5)
+  Recovery hints sometimes follow an `error:` line as a separate `info:`
+  line (e.g. the --since UTC fix-it hint). Agents that grep only `error:`
+  see the fault but not the suggested fix; grep `info: hint:` for guidance.
+  Renderer prefix is `render: <severity>:` — for unified pipeline grep:
+      grep -E '^(dogfood-digest|render): (info|warn|error):'
 
 Env var:
-  CRUCIBLE_DOGFOOD_QUIET_OVERRIDE=1  suppress env-override info line.
+  CRUCIBLE_DOGFOOD_QUIET_OVERRIDE=1  suppress the env-override info line
+                                     (info: severity only; warn:/error:
+                                     always emit). Strict literal "1" —
+                                     "true"/"yes"/" 1" do NOT enable.
 
 For render-time flags (--window, --threshold-n), see:
   bash scripts/dogfood-digest-render.sh --help
@@ -213,7 +224,14 @@ while [[ $# -gt 0 ]]; do
                     info 'for full usage: bash scripts/dogfood-digest.sh --help'
                     ;;
                 *)
-                    print_help >&2
+                    # Drop the unprefixed `print_help >&2` dump (~37 lines)
+                    # — it bypassed the err/warn/info helpers and broke the
+                    # `^dogfood-digest:` anchored-grep contract that issue
+                    # #16 enabled. Mirror the misroute pattern: one
+                    # actionable info line pointing at --help. Agents that
+                    # need the full usage grep `--help`; humans get the
+                    # same one-line pointer.
+                    info 'for full usage: bash scripts/dogfood-digest.sh --help'
                     ;;
             esac
             exit 2
@@ -336,7 +354,8 @@ if [[ "$window_mode" == "since" ]]; then
         # user can map the error to their input regardless of which
         # malformed shape they passed.
         err '--since ISO8601 must be YYYY-MM-DDTHH:MM:SSZ (UTC); got: %s' "$window_since"
-        info 'rewrite with Z (UTC) suffix, or pass YYYY-MM-DD'
+        info 'hint: rewrite with Z (UTC) suffix, or pass YYYY-MM-DD'
+        info 'hint: if this value is generated upstream, the source pipeline must emit UTC — retrying with the same generator will loop'
         exit 2
     else
         err '--since must be YYYY-MM-DD, YYYY-MM-DDTHH:MM:SSZ, or Nd (got: %s)' "$window_since"
@@ -443,8 +462,15 @@ for src in "${sources[@]}"; do
     # severity so it groups naturally with the verbatim lines under any
     # severity-based filter.
     if [[ "$src_warn_skipped" -gt 0 ]]; then
-        warn '%s more malformed rows skipped in %s (cap=%s)' \
-            "$src_warn_skipped" "$src" "$WARN_CAP"
+        # Pluralize-aware noun so the count==1 boundary doesn't read as
+        # "1 more malformed rows skipped" (singular subject + plural noun).
+        if [[ "$src_warn_skipped" -eq 1 ]]; then
+            row_word="row"
+        else
+            row_word="rows"
+        fi
+        warn '%s more malformed %s skipped in %s (cap=%s)' \
+            "$src_warn_skipped" "$row_word" "$src" "$WARN_CAP"
     fi
 done
 

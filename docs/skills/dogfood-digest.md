@@ -1,4 +1,4 @@
-# `/dogfood-digest` *(v1.2.0)*
+# `/dogfood-digest` *(v1.3.0)*
 
 > Turn accumulated `/crucible:dogfood` JSONL into a single read-only Markdown proposal report — three fixed sections (Threshold Calibration · Protocol Improvements · Promotion Candidates) with back-references to every source event cited.
 
@@ -33,6 +33,41 @@ Recursion guard: any `skill_call` event whose `skill` contains `crucible:dogfood
 - **`_source_path` + `_line` injected in-memory.** The back-reference is the non-negotiable piece: a suggestion without provenance is folklore. Injecting the fields at aggregation time costs one jq pipeline and never touches the source file.
 - **Observation-count floor (`--threshold-n 3`).** Tuning a qa-judge band off two samples is worse than tuning off none — it codifies noise. The floor is low enough to surface real signal in a weekly run and high enough to suppress n=1 flukes. It is explicitly exposed so power users can override for quiet logs.
 - **`/crucible:*` grouping token + `general` bucket.** A richer NLP grouping was tried and drifted: topic vectors don't tell the user which *skill* a complaint belongs to. The slash-command token is the coarsest key that still maps one-to-one to an actionable locus (the named skill's SKILL.md). Everything else falls into `general` so it isn't silently dropped.
+
+## Stderr & Exit Codes *(added in v1.3.0, issues #16/#17/#18)*
+
+Both pipeline halves (`scripts/dogfood-digest.sh` aggregator and `scripts/dogfood-digest-render.sh` renderer) treat stderr as a structured channel for programmatic consumers. Three guarantees:
+
+**Severity prefix.** Every stderr line emitted via the script's own `err`/`warn`/`info` helpers carries the shape `<script>: <severity>: <msg>` where severity ∈ `{info, warn, error}`. The aggregator prefixes with `dogfood-digest:`; the renderer with `render:`. Unified pipeline grep:
+
+```bash
+grep -E '^(dogfood-digest|render): (info|warn|error):'
+```
+
+Recovery hints sometimes follow an `error:` line as a separate `info: hint:` line (e.g. the `--since` UTC fix-it hint). Agents that grep only `error:` see the fault but not the suggested fix; grep `info: hint:` for guidance.
+
+**3-way exit code split** (replaces the prior 2-way arg-vs-success):
+
+| Code | Meaning | Caller action |
+|---|---|---|
+| 0 | success (including empty / no-signal input) | — |
+| 1 | runtime data-pipeline failure (jq sort, mv swap, tail) | data-shape issue; inspect input |
+| 2 | argument error (unknown flag, mutex, bad value, duplicate) | fix the flag and retry |
+| 3 | system / environment failure (mktemp on full disk, missing tools) | escalate, do **not** retry the same args |
+
+Only `mktemp` failures move from 2 → 3. Every other arg-validation site stays at exit 2.
+
+**Per-source warn rate-limit.** A pathological JSONL log with thousands of malformed rows used to emit one `warn:` line per bad row, blowing agent context budgets and training agents to ignore stderr entirely. Now capped at 5 verbatim `warn:` lines per source; anything beyond emits a single summary line:
+
+```
+dogfood-digest: warn: N more malformed rows skipped in <path> (cap=5)
+```
+
+The cap value is interpolated dynamically (`(cap=5)`), so an agent reading the line can recover the cap without consulting `--help`. Counters reset between sources so one bad file doesn't shadow the warn budget for others.
+
+**`CRUCIBLE_DOGFOOD_QUIET_OVERRIDE=1`.** CI workflows that legitimately set `CRUCIBLE_DOGFOOD_ROOT` / `CRUCIBLE_DOGFOOD_HOME` on every invocation can opt into silence so the env-override `info:` line doesn't flood stderr. **Strict literal `"1"`** — `true`, `yes`, ` 1` (leading space), or any other value does NOT enable. Suppresses **only** the `info:` env-override line; `warn:` and `error:` always emit (the opt-in is chosen-noise reduction, never failure masking).
+
+**Backward-compat caveat.** Wrappers that parse stderr by exact-line content or branch on exit 2 expecting "any failure" need to update. Substring matching (file paths, error keywords) is unaffected; exit-0 vs non-zero matchers are unaffected.
 
 ## Thresholds
 

@@ -76,14 +76,18 @@ Constraints:
   Each named flag may appear at most once (duplicate → exit 2).
 
 Stderr severity tagging:
-  Every stderr line is prefixed `render: <severity>: <msg>` where
-  severity ∈ {info, warn, error} (matches the aggregator's contract).
+  Every stderr line below the targeted error/warn/info helpers is prefixed
+  `render: <severity>: <msg>` where severity ∈ {info, warn, error}
+  (matches the aggregator's contract). Aggregator prefix is
+  `dogfood-digest: <severity>:` — for unified pipeline grep:
+      grep -E '^(dogfood-digest|render): (info|warn|error):'
 
 Exit codes (arg / runtime / system split, see issue #16):
   0  success (including empty or no-signal input)
   1  runtime data-pipeline failure (jq ingestion error)
-  2  argument error
-  3  system/environment failure (mktemp full disk, missing tools)
+  2  argument error — fix the flag and retry
+  3  system/environment failure (mktemp full disk, missing tools) —
+     escalate, do not retry the same args
 USAGE
 }
 
@@ -132,7 +136,12 @@ while [[ $# -gt 0 ]]; do
             ;;
         *)
             err 'unknown argument: %s' "$1"
-            print_help >&2
+            # Drop the unprefixed `print_help >&2` dump (~30 lines) — it
+            # bypassed the err/warn/info helpers and broke the
+            # `^render:` anchored-grep contract that issue #16 enabled.
+            # Mirror the aggregator: one actionable info line pointing
+            # at --help.
+            info 'for full usage: bash scripts/dogfood-digest-render.sh --help'
             exit 2
             ;;
     esac
