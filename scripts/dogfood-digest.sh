@@ -60,7 +60,10 @@ Defaults: --last 10 --scope both.
 Output: filtered JSONL on stdout, one event per line, each augmented with
 _source_path and _line back-reference fields.
 
-Mutually exclusive: --last and --since. --all overrides both.
+Constraints:
+  --last is a positive integer in [1, 1000000]; out-of-range → exit 2.
+  Each named flag may appear at most once (duplicate → exit 2).
+  --last and --since are mutually exclusive; --all overrides both.
 
 Test-only flags (not for production):
   --project-root DIR   override local log resolution root
@@ -225,8 +228,12 @@ if [[ "$window_mode" == "last" ]]; then
     # comparison, which under `set -uo pipefail` errors non-fatally and
     # leaves the bogus string to flow through to tail(1) — producing exit 0
     # with empty stdout, indistinguishable from a legitimate "no signal" run.
+    # Both branches emit the SAME message — they are the same semantic error
+    # ("out of contract"), just guarded at different stages. Two templates
+    # would force stderr scrapers to handle both; ASCII <= avoids non-UTF-8
+    # capture-pipeline corruption (PR #24 P3 #5 review).
     if [[ ${#window_last} -gt 7 ]]; then
-        printf 'dogfood-digest: --last must be a positive integer ≤ 1000000 (got: %s — too large)\n' "$window_last" >&2
+        printf 'dogfood-digest: --last must be a positive integer <= 1000000 (got: %s)\n' "$window_last" >&2
         exit 2
     fi
     # Force base-10 so values like "010" are not interpreted as octal in
@@ -235,7 +242,7 @@ if [[ "$window_mode" == "last" ]]; then
     # diverging from the value tail(1) actually receives downstream.
     window_last=$((10#$window_last))
     if [[ "$window_last" -le 0 ]] || [[ "$window_last" -gt 1000000 ]]; then
-        printf 'dogfood-digest: --last must be a positive integer ≤ 1000000 (got: %s)\n' "$window_last" >&2
+        printf 'dogfood-digest: --last must be a positive integer <= 1000000 (got: %s)\n' "$window_last" >&2
         exit 2
     fi
 fi

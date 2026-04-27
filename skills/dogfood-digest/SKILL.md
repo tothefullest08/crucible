@@ -33,7 +33,9 @@ input: |
     --scope local|global|both   기본 both. aggregator 의 --scope 와 동일하게
                        검증되어 frontmatter 의 `scope:` 에 그대로 쓰인다.
     --threshold-n N    Threshold 섹션에서 qa_judge / axis_skip 관측수 하한
-                       (기본 3). 양의 정수만 허용.
+                       (기본 3). 양의 정수, 최대 1_000_000.
+                       범위 밖 / 비숫자는 exit 2 (PR #24 ce-review P1 — same
+                       arithmetic-overflow surface as aggregator's --last).
 
   입력 소스 (aggregator 가 resolve, renderer 는 stdin 만 읽음):
     로컬  `${CRUCIBLE_DOGFOOD_ROOT:-${PROJECT_ROOT}}/.claude/dogfood/log.jsonl`

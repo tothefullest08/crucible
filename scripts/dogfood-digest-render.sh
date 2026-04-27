@@ -51,10 +51,14 @@ Flags:
   --scope SCOPE       local | global | both (default both); validated, mirrors
                       the aggregator's contract so the YAML frontmatter cannot
                       carry an out-of-domain label
-  --threshold-n N     positive integer; minimum observation count for threshold
-                      suggestions (default: 3; lower values mean quieter logs
-                      still emit)
+  --threshold-n N     positive integer in [1, 1000000]; minimum observation
+                      count for threshold suggestions (default: 3; lower values
+                      mean quieter logs still emit)
   -h | --help         print usage
+
+Constraints:
+  --threshold-n is a positive integer in [1, 1000000]; out-of-range → exit 2.
+  Each named flag may appear at most once (duplicate → exit 2).
 
 Exit codes:
   0 — success (including empty or no-signal input)
@@ -137,8 +141,25 @@ case "$scope_label" in
         ;;
 esac
 
-if ! [[ "$threshold_n" =~ ^[0-9]+$ ]] || [[ "$threshold_n" -le 0 ]]; then
+if ! [[ "$threshold_n" =~ ^[0-9]+$ ]]; then
     printf 'render: --threshold-n expects a positive integer (got: %s)\n' "$threshold_n" >&2
+    exit 2
+fi
+# Length-bound BEFORE arithmetic, mirroring the aggregator's --last guard
+# (issue #14 hardening). Without this, --threshold-n 99999999999999999999
+# overflows bash's signed-64-bit `[[ -le 0 ]]` compare and the value flows
+# into every `[[ qa_count -ge threshold_n ]]` test as a number too large for
+# any real signal — every section collapses to "no signal in window" with
+# exit 0, exactly the silent-empty-report failure issue #14 was meant to
+# close, just on a sibling flag. Cap is 1_000_000 (7 digits) to match the
+# aggregator's --last contract; both are observation-count knobs.
+if [[ ${#threshold_n} -gt 7 ]]; then
+    printf 'render: --threshold-n must be a positive integer <= 1000000 (got: %s)\n' "$threshold_n" >&2
+    exit 2
+fi
+threshold_n=$((10#$threshold_n))
+if [[ "$threshold_n" -le 0 ]] || [[ "$threshold_n" -gt 1000000 ]]; then
+    printf 'render: --threshold-n must be a positive integer <= 1000000 (got: %s)\n' "$threshold_n" >&2
     exit 2
 fi
 

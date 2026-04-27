@@ -1024,12 +1024,150 @@ fi
 # pre-pipefail capture path; the assertion lives in huge_pipe_rc above.
 : "$huge_pipe_out"
 
+# (e) Pinning the post-arithmetic upper bound: a 7-digit value that PASSES the
+#     length cap but EXCEEDS 1000000 must be rejected by the second guard.
+#     Without this, the two-layer defense degrades silently to single-layer
+#     when the length-bound check never fires (PR #24 review test gap).
+set +e
+"$aggregator" --last 9999999 --scope local --project-root "$tmpproj" --home "$tmphome" >/dev/null 2>&1
+worst7_rc=$?
+set -e
+if [[ "$worst7_rc" -eq 2 ]]; then
+    pass "--last 9999999 (7 digits, > cap) rejected by post-arithmetic guard (exit 2)"
+else
+    faile "ISSUE-14 7-digit overcap" "got $worst7_rc want 2 — second guard regressed"
+fi
+
+# (f) --last 0 (boundary at the bottom edge) must reject. The split
+#     regex/length/post-arithmetic path now routes 0 through the post-
+#     arithmetic `-le 0` branch, which the prior tests did not exercise.
+set +e
+"$aggregator" --last 0 --scope local --project-root "$tmpproj" --home "$tmphome" >/dev/null 2>&1
+zero_rc=$?
+set -e
+if [[ "$zero_rc" -eq 2 ]]; then
+    pass "--last 0 rejected (post-arithmetic -le 0 guard)"
+else
+    faile "ISSUE-14 --last 0" "got $zero_rc want 2"
+fi
+
+# (g) Unified error message: both the length-cap branch and the post-
+#     arithmetic branch must emit the SAME template (PR #24 P3 #5). Two
+#     templates force stderr scrapers to handle both. Anchor on the
+#     `<= 1000000` constraint (ASCII for non-UTF-8 capture safety) so a
+#     future divergence regresses to FAIL.
+for input in 99999999999999999999 1000001; do
+    set +e
+    err=$("$aggregator" --last "$input" --scope local --project-root "$tmpproj" --home "$tmphome" 2>&1 >/dev/null)
+    set -e
+    if printf '%s' "$err" | grep -F -q -- '<= 1000000' && \
+       ! printf '%s' "$err" | grep -F -q -- 'too large'; then
+        pass "--last $input emits unified ASCII '<= 1000000' template (no 'too large' divergence)"
+    else
+        faile "ISSUE-14 unified message for --last $input" "stderr=$(tr '\n' '|' <<<"$err")"
+    fi
+done
+
+# ----------------------------------------------------------------------------
+# Issue #14 (mirror) — renderer --threshold-n is the same arithmetic-overflow
+# surface as --last. PR #24 ce-review P1 #1 surfaced that the same
+# `99999999999999999999` overflow path that produces a silent empty digest on
+# the aggregator side ALSO produces a silent empty digest on the renderer
+# side: every `[[ qa_count -ge threshold_n ]]` becomes false, all sections
+# collapse to "no signal in window", exit 0. Mirror the cap + tests here so
+# the issue stays closed across both halves of the pipeline.
+# ----------------------------------------------------------------------------
+
+printf 'ISSUE-14-MIRROR: --threshold-n cap on renderer\n'
+
+# Overflow value rejected at parse time.
+set +e
+huge_tn_err=$(echo '' | "$renderer" --window t --scope local --threshold-n 99999999999999999999 2>&1 >/dev/null)
+huge_tn_rc=$?
+set -e
+if [[ "$huge_tn_rc" -eq 2 ]]; then
+    pass "--threshold-n 99999999999999999999 exits 2 (parse-time cap)"
+else
+    faile "ISSUE-14-MIRROR overflow rc" "got $huge_tn_rc want 2 — bash arithmetic likely silently failed"
+fi
+if printf '%s' "$huge_tn_err" | grep -F -q -- '<= 1000000'; then
+    pass "--threshold-n overflow error names the cap (1000000)"
+else
+    faile "ISSUE-14-MIRROR overflow message" "stderr did not name the 1000000 cap: $(tr '\n' '|' <<<"$huge_tn_err")"
+fi
+
+# Just-over-cap (1000001) rejected.
+set +e
+echo '' | "$renderer" --window t --scope local --threshold-n 1000001 >/dev/null 2>&1
+tn_over_rc=$?
+set -e
+if [[ "$tn_over_rc" -eq 2 ]]; then
+    pass "--threshold-n 1000001 exits 2 (cap+1)"
+else
+    faile "ISSUE-14-MIRROR cap+1" "got $tn_over_rc want 2"
+fi
+
+# At-cap (1000000) accepted (boundary regression guard).
+set +e
+echo '' | "$renderer" --window t --scope local --threshold-n 1000000 >/dev/null 2>&1
+tn_at_cap_rc=$?
+set -e
+if [[ "$tn_at_cap_rc" -eq 0 ]]; then
+    pass "--threshold-n 1000000 succeeds (cap inclusive)"
+else
+    faile "ISSUE-14-MIRROR at-cap" "got $tn_at_cap_rc want 0"
+fi
+
+# 7-digit value > cap rejected by post-arithmetic guard.
+set +e
+echo '' | "$renderer" --window t --scope local --threshold-n 9999999 >/dev/null 2>&1
+tn_worst7_rc=$?
+set -e
+if [[ "$tn_worst7_rc" -eq 2 ]]; then
+    pass "--threshold-n 9999999 rejected by post-arithmetic guard"
+else
+    faile "ISSUE-14-MIRROR 7-digit overcap" "got $tn_worst7_rc want 2"
+fi
+
+# ----------------------------------------------------------------------------
+# Help-text constraint exposure (PR #24 P2 #2 + #3) — agents that consult
+# `--help` must discover the cap and at-most-once contract there too. Without
+# these assertions, a future cleanup that strips the Constraints block from
+# print_help passes silently.
+# ----------------------------------------------------------------------------
+
+printf 'HELP-CONSTRAINTS: --help mentions cap + at-most-once\n'
+
+agg_help=$("$aggregator" --help 2>&1)
+if printf '%s' "$agg_help" | grep -F -q -- '1000000'; then
+    pass "aggregator --help mentions 1000000 cap"
+else
+    faile "agg --help cap" "no '1000000' in help output"
+fi
+if printf '%s' "$agg_help" | grep -F -q -- 'at most once'; then
+    pass "aggregator --help mentions at-most-once contract"
+else
+    faile "agg --help dedup" "no 'at most once' in help output"
+fi
+
+ren_help=$("$renderer" --help 2>&1)
+if printf '%s' "$ren_help" | grep -F -q -- '1000000'; then
+    pass "renderer --help mentions 1000000 cap"
+else
+    faile "render --help cap" "no '1000000' in help output"
+fi
+if printf '%s' "$ren_help" | grep -F -q -- 'at most once'; then
+    pass "renderer --help mentions at-most-once contract"
+else
+    faile "render --help dedup" "no 'at most once' in help output"
+fi
+
 # ----------------------------------------------------------------------------
 # Summary
 # ----------------------------------------------------------------------------
 
 if [[ "$fail" -eq 0 ]]; then
-    printf '\ntest-dogfood-digest: ALL PASS (SC-1~7 + recursion filter + ADV-003/006/007/008 + issue-9/14/15)\n'
+    printf '\ntest-dogfood-digest: ALL PASS (SC-1~7 + recursion filter + ADV-003/006/007/008 + issue-9/14/15 + 14-mirror + help-constraints)\n'
     exit 0
 else
     printf '\ntest-dogfood-digest: FAIL\n'
