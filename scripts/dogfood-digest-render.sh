@@ -24,10 +24,16 @@
 #   -h | --help          print usage
 # Output: Markdown on stdout.
 #
+# Each named flag may appear at most once; passing the same flag twice exits 2
+# (issue #9). Without this check, a wrapper concatenating user flags with its
+# own defaults would silently see "last value wins" — e.g.
+# `--threshold-n 1 --threshold-n 99` would suppress signal a caller intended
+# to surface.
+#
 # Exit codes:
 #   0  success (including empty or no-signal input)
 #   1  runtime failure (jq pipeline error, etc.)
-#   2  argument error
+#   2  argument error (unknown flag, duplicate flag, bad value, mktemp failure)
 #
 # Runtime: bash + jq. No Python / Node.
 
@@ -45,10 +51,14 @@ Flags:
   --scope SCOPE       local | global | both (default both); validated, mirrors
                       the aggregator's contract so the YAML frontmatter cannot
                       carry an out-of-domain label
-  --threshold-n N     positive integer; minimum observation count for threshold
-                      suggestions (default: 3; lower values mean quieter logs
-                      still emit)
+  --threshold-n N     positive integer in [1, 1000000]; minimum observation
+                      count for threshold suggestions (default: 3; lower values
+                      mean quieter logs still emit)
   -h | --help         print usage
+
+Constraints:
+  --threshold-n is a positive integer in [1, 1000000]; out-of-range → exit 2.
+  Each named flag may appear at most once (duplicate → exit 2).
 
 Exit codes:
   0 — success (including empty or no-signal input)
@@ -61,17 +71,38 @@ window_label=""
 scope_label="both"
 threshold_n=3
 
+# Track per-flag occurrence so `--threshold-n 1 --threshold-n 99` no longer
+# silently overwrites the first value (issue #9). Mirrors the aggregator's
+# dedup contract so wrappers see the same shape on both halves of a pipeline.
+saw_window=0
+saw_scope=0
+saw_threshold_n=0
+
+reject_duplicate() {
+    printf 'render: %s passed more than once — pass it at most once\n' "$1" >&2
+    exit 2
+}
+
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --window)
+            # `if [[ ]]; then …; fi` (not `[[ ]] && …`) so a future `set -e`
+            # cannot abort on the first occurrence (residual risk from PR
+            # #24 ce-review). Mirrors the aggregator's dedup pattern.
+            if [[ "$saw_window" -eq 1 ]]; then reject_duplicate --window; fi
+            saw_window=1
             window_label="${2:-}"
             shift 2 || { printf 'render: --window requires a value\n' >&2; exit 2; }
             ;;
         --scope)
+            if [[ "$saw_scope" -eq 1 ]]; then reject_duplicate --scope; fi
+            saw_scope=1
             scope_label="${2:-}"
             shift 2 || { printf 'render: --scope requires a value\n' >&2; exit 2; }
             ;;
         --threshold-n)
+            if [[ "$saw_threshold_n" -eq 1 ]]; then reject_duplicate --threshold-n; fi
+            saw_threshold_n=1
             threshold_n="${2:-}"
             shift 2 || { printf 'render: --threshold-n requires a value\n' >&2; exit 2; }
             ;;
@@ -113,8 +144,25 @@ case "$scope_label" in
         ;;
 esac
 
-if ! [[ "$threshold_n" =~ ^[0-9]+$ ]] || [[ "$threshold_n" -le 0 ]]; then
+if ! [[ "$threshold_n" =~ ^[0-9]+$ ]]; then
     printf 'render: --threshold-n expects a positive integer (got: %s)\n' "$threshold_n" >&2
+    exit 2
+fi
+# Length-bound BEFORE arithmetic, mirroring the aggregator's --last guard
+# (issue #14 hardening). Without this, --threshold-n 99999999999999999999
+# overflows bash's signed-64-bit `[[ -le 0 ]]` compare and the value flows
+# into every `[[ qa_count -ge threshold_n ]]` test as a number too large for
+# any real signal — every section collapses to "no signal in window" with
+# exit 0, exactly the silent-empty-report failure issue #14 was meant to
+# close, just on a sibling flag. Cap is 1_000_000 (7 digits) to match the
+# aggregator's --last contract; both are observation-count knobs.
+if [[ ${#threshold_n} -gt 7 ]]; then
+    printf 'render: --threshold-n must be a positive integer <= 1000000 (got: %s)\n' "$threshold_n" >&2
+    exit 2
+fi
+threshold_n=$((10#$threshold_n))
+if [[ "$threshold_n" -le 0 ]] || [[ "$threshold_n" -gt 1000000 ]]; then
+    printf 'render: --threshold-n must be a positive integer <= 1000000 (got: %s)\n' "$threshold_n" >&2
     exit 2
 fi
 
