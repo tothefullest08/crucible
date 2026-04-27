@@ -944,6 +944,72 @@ else
     faile "single-flag regression" "got $ok_count want 5"
 fi
 
+# Single-occurrence regression guard for the OTHER dedup'd flags. Without
+# these, a regression flipping `reject_duplicate`'s saw-check (`-eq 0`
+# instead of `-eq 1`) would only be caught on the --last path (PR #24
+# ce-review testing gap).
+set +e
+single_scope_rc=$("$aggregator" --scope local --last 3 --project-root "$tmpproj" --home "$tmphome" >/dev/null 2>&1; echo $?)
+set -e
+if [[ "$single_scope_rc" -eq 0 ]]; then
+    pass "single occurrence --scope still accepted (no false-positive dedup)"
+else
+    faile "single --scope regression" "got rc=$single_scope_rc want 0"
+fi
+set +e
+single_all_rc=$("$aggregator" --all --scope local --project-root "$tmpproj" --home "$tmphome" >/dev/null 2>&1; echo $?)
+set -e
+if [[ "$single_all_rc" -eq 0 ]]; then
+    pass "single occurrence --all still accepted"
+else
+    faile "single --all regression" "got rc=$single_all_rc want 0"
+fi
+set +e
+single_since_rc=$("$aggregator" --since 7d --scope local --project-root "$tmpproj" --home "$tmphome" >/dev/null 2>&1; echo $?)
+set -e
+if [[ "$single_since_rc" -eq 0 ]]; then
+    pass "single occurrence --since still accepted"
+else
+    faile "single --since regression" "got rc=$single_since_rc want 0"
+fi
+# --project-root and --home are exercised by every test above (passed once);
+# their single-use path is implicitly regression-guarded by the rest of the
+# suite running green.
+
+# Dedup must fire BEFORE other validations. If `--scope local --scope
+# global` ALSO has a value-validation issue (e.g. paired with `--since
+# garbage`), the dedup error must win — pinning ordering so a future
+# refactor cannot silently move the dedup check after value validation
+# (PR #24 ce-review testing gap).
+set +e
+order_err=$("$aggregator" --scope local --scope global --since invalid_value \
+    --project-root "$tmpproj" --home "$tmphome" 2>&1 >/dev/null)
+order_rc=$?
+set -e
+if [[ "$order_rc" -eq 2 ]] && printf '%s' "$order_err" | grep -F -q -- '--scope passed more than once'; then
+    pass "dedup fires before value validation (--scope dup wins over --since invalid)"
+else
+    faile "dedup ordering" "rc=$order_rc stderr=$(tr '\n' '|' <<<"$order_err")"
+fi
+
+# --last as the final positional arg: `shift 2 || …` guard must fire with
+# its own error message (not fall through to a confusing `unknown
+# argument: <next-flag>` after consuming the wrong value). PR #24
+# ce-review testing gap.
+set +e
+trailing_err=$("$aggregator" --scope local --last 2>&1 >/dev/null)
+trailing_rc=$?
+set -e
+# `--last` with no value → the case body assigns "${2:-}" which is empty,
+# `shift 2` fails on missing positional, the guard fires. Some shells
+# instead let the empty-string flow through to validation. Either way, the
+# script must exit 2 cleanly without a confusing unrelated error.
+if [[ "$trailing_rc" -eq 2 ]]; then
+    pass "--last as final arg exits 2 (shift guard or value validation)"
+else
+    faile "trailing --last" "got $trailing_rc want 2"
+fi
+
 # ----------------------------------------------------------------------------
 # Issue #14 — extreme --last and tail-failure surfacing
 # Two layers of defense: (1) parse-time cap rejects values bash arithmetic
@@ -984,15 +1050,19 @@ else
     faile "ISSUE-14 cap+1" "got $over_rc want 2"
 fi
 
-# (c) At-cap (1000000) must succeed (boundary regression guard).
+# (c) At-cap (1000000) must succeed (boundary regression guard) AND return
+#     the same number of events as --all (since fixture << 1M). Without the
+#     line-count assertion, a regression silently capping output to a
+#     smaller value (e.g. wrapping `tail` to a low constant) would still
+#     pass (PR #24 ce-review testing gap).
 set +e
-"$aggregator" --last 1000000 --scope local --project-root "$tmpproj" --home "$tmphome" >/dev/null 2>&1
+at_cap_count=$("$aggregator" --last 1000000 --scope local --project-root "$tmpproj" --home "$tmphome" 2>/dev/null | wc -l | tr -d ' ')
 at_cap_rc=$?
 set -e
-if [[ "$at_cap_rc" -eq 0 ]]; then
-    pass "--last 1000000 succeeds (cap is inclusive of 1000000)"
+if [[ "$at_cap_rc" -eq 0 && "$at_cap_count" -eq "$fixture_lines" ]]; then
+    pass "--last 1000000 succeeds and returns all $fixture_lines fixture rows"
 else
-    faile "ISSUE-14 at-cap" "got $at_cap_rc want 0"
+    faile "ISSUE-14 at-cap" "rc=$at_cap_rc count=$at_cap_count want rc=0 count=$fixture_lines"
 fi
 
 # (d) Pipeline empty-output sanity: --last with extreme value must NOT produce

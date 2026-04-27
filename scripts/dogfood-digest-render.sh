@@ -86,19 +86,22 @@ reject_duplicate() {
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --window)
-            [[ "$saw_window" -eq 1 ]] && reject_duplicate --window
+            # `if [[ ]]; then …; fi` (not `[[ ]] && …`) so a future `set -e`
+            # cannot abort on the first occurrence (residual risk from PR
+            # #24 ce-review). Mirrors the aggregator's dedup pattern.
+            if [[ "$saw_window" -eq 1 ]]; then reject_duplicate --window; fi
             saw_window=1
             window_label="${2:-}"
             shift 2 || { printf 'render: --window requires a value\n' >&2; exit 2; }
             ;;
         --scope)
-            [[ "$saw_scope" -eq 1 ]] && reject_duplicate --scope
+            if [[ "$saw_scope" -eq 1 ]]; then reject_duplicate --scope; fi
             saw_scope=1
             scope_label="${2:-}"
             shift 2 || { printf 'render: --scope requires a value\n' >&2; exit 2; }
             ;;
         --threshold-n)
-            [[ "$saw_threshold_n" -eq 1 ]] && reject_duplicate --threshold-n
+            if [[ "$saw_threshold_n" -eq 1 ]]; then reject_duplicate --threshold-n; fi
             saw_threshold_n=1
             threshold_n="${2:-}"
             shift 2 || { printf 'render: --threshold-n requires a value\n' >&2; exit 2; }

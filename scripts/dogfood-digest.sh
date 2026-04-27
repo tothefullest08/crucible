@@ -118,39 +118,42 @@ reject_duplicate() {
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --last)
-            [[ "$saw_last" -eq 1 ]] && reject_duplicate --last
+            if [[ "$saw_last" -eq 1 ]]; then reject_duplicate --last; fi
             saw_last=1
             window_mode="last"
             window_last="${2:-}"
             shift 2 || { printf 'dogfood-digest: --last requires a value\n' >&2; exit 2; }
             ;;
         --since)
-            [[ "$saw_since" -eq 1 ]] && reject_duplicate --since
+            # `if [[ ]]; then …; fi` (not `[[ ]] && …`) so a future `set -e`
+            # cannot abort on the first occurrence — pattern repeats across
+            # every dedup'd flag (residual risk from PR #24 ce-review).
+            if [[ "$saw_since" -eq 1 ]]; then reject_duplicate --since; fi
             saw_since=1
             window_mode="since"
             window_since="${2:-}"
             shift 2 || { printf 'dogfood-digest: --since requires a value\n' >&2; exit 2; }
             ;;
         --all)
-            [[ "$saw_all" -eq 1 ]] && reject_duplicate --all
+            if [[ "$saw_all" -eq 1 ]]; then reject_duplicate --all; fi
             saw_all=1
             window_mode="all"
             shift
             ;;
         --scope)
-            [[ "$saw_scope" -eq 1 ]] && reject_duplicate --scope
+            if [[ "$saw_scope" -eq 1 ]]; then reject_duplicate --scope; fi
             saw_scope=1
             scope="${2:-}"
             shift 2 || { printf 'dogfood-digest: --scope requires a value\n' >&2; exit 2; }
             ;;
         --project-root)
-            [[ "$saw_project_root" -eq 1 ]] && reject_duplicate --project-root
+            if [[ "$saw_project_root" -eq 1 ]]; then reject_duplicate --project-root; fi
             saw_project_root=1
             project_root="${2:-}"
             shift 2 || { printf 'dogfood-digest: --project-root requires a value\n' >&2; exit 2; }
             ;;
         --home)
-            [[ "$saw_home" -eq 1 ]] && reject_duplicate --home
+            if [[ "$saw_home" -eq 1 ]]; then reject_duplicate --home; fi
             saw_home=1
             home_dir="${2:-}"
             shift 2 || { printf 'dogfood-digest: --home requires a value\n' >&2; exit 2; }
