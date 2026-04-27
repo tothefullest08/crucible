@@ -10,7 +10,8 @@ input: |
   로 exit 2 한다. `--scope` 만 양쪽이 공유한다.
 
   Aggregator (`scripts/dogfood-digest.sh`) — window · scope · 경로 resolve:
-    --last N           최근 N 이벤트 (기본 10). 양의 정수.
+    --last N           최근 N 이벤트 (기본 10). 양의 정수, 최대 1_000_000.
+                       범위 밖 / 비숫자는 exit 2.
     --since DATE|Nd    절대 날짜(YYYY-MM-DD / ISO8601) 또는 상대 기간(예: 7d).
     --all              전체 window. --last/--since 조합은 error(exit 2),
                        --all 이 함께 오면 overrides.
@@ -19,10 +20,14 @@ input: |
     --home DIR         (CI/test only) $HOME 대신 사용할 글로벌 mirror 루트.
     env CRUCIBLE_DOGFOOD_ROOT  위 --project-root 보다 우선. 적용 시 stderr 에 info.
     env CRUCIBLE_DOGFOOD_HOME  위 --home 보다 우선. 적용 시 stderr 에 info.
+  같은 플래그를 두 번 패스하면 exit 2 — wrapper 가 사용자 인자를 자기
+  default 와 단순 concat 할 때 마지막 값이 조용히 이기는 footgun을 차단한다
+  (issue #9).
 
   Renderer (`scripts/dogfood-digest-render.sh`) — Markdown 변환 단계 knob.
   **`--threshold-n` 은 renderer 전용** — aggregator 에 전달하면 unknown
-  argument 로 exit 2 한다.
+  argument 로 exit 2 한다. aggregator 와 마찬가지로 같은 플래그를 두 번
+  패스하면 exit 2 (issue #9).
     --window LABEL     window 라벨(파일명 + frontmatter, 필수). 호출자가
                        aggregator 의 window 플래그에 맞춰 합성한다.
     --scope local|global|both   기본 both. aggregator 의 --scope 와 동일하게
@@ -41,8 +46,9 @@ output: |
 
   Exit codes (aggregator + renderer 공통):
     0  성공 (zero-source / zero-signal 포함)
-    1  런타임 실패 (jq/date/mv pipeline 에러)
-    2  인자 오류 (unknown flag, mutex 위반, 잘못된 값, mktemp 실패)
+    1  런타임 실패 (jq/date/mv/tail pipeline 에러)
+    2  인자 오류 (unknown flag, duplicate flag, mutex 위반, 잘못된 값,
+                  --last 범위 위반, mktemp 실패)
 validate_prompt: |
   /crucible:dogfood-digest 완료 시 자기검증 (Dogfood-Digest 4축):
   1. 산출 파일 경로가 `.claude/plans/YYYY-MM-DD-dogfood-digest-{window}.md` 규약을 만족하고 slug `[a-zA-Z0-9_-]` 화이트리스트 내인가?

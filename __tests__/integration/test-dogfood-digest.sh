@@ -865,11 +865,171 @@ else
 fi
 
 # ----------------------------------------------------------------------------
+# Issue #9 — duplicate single-flag rejection (aggregator + renderer)
+# Without dedup, `--scope local --scope global` silently kept the LAST value,
+# producing a digest whose frontmatter labelled it `scope: global` while the
+# wrapper believed scope was local — wrong-context attribution downstream.
+# ----------------------------------------------------------------------------
+
+printf 'ISSUE-9: duplicate single-flag rejection\n'
+
+# (a) aggregator: each named flag must be at-most-once.
+for flag_pair in '--scope local --scope global' \
+                 '--last 5 --last 10' \
+                 '--all --all' \
+                 '--project-root /tmp --project-root /var' \
+                 '--home /tmp --home /var'; do
+    set +e
+    # shellcheck disable=SC2086
+    err=$("$aggregator" $flag_pair --scope local 2>&1 >/dev/null)
+    rc=$?
+    set -e
+    # The duplicate-flag branch must fire BEFORE any other validation can
+    # mask it (e.g. --scope local + --scope global must reject as duplicate,
+    # not as "valid scope" silently overwritten).
+    case "$flag_pair" in
+        --scope*) flag_name="--scope" ;;
+        --last*)  flag_name="--last" ;;
+        --all*)   flag_name="--all" ;;
+        --project-root*) flag_name="--project-root" ;;
+        --home*)  flag_name="--home" ;;
+    esac
+    # `grep -F --` so flag-named patterns like `--scope passed more than once`
+    # are not interpreted as grep options (BSD grep on macOS rejects them).
+    if [[ "$rc" -eq 2 ]] && printf '%s' "$err" | grep -F -q -- "${flag_name} passed more than once"; then
+        pass "aggregator rejects duplicate $flag_name (exit 2 + named in stderr)"
+    else
+        faile "aggregator dup $flag_name" "rc=$rc stderr=$(tr '\n' '|' <<<"$err")"
+    fi
+done
+
+# --since duplicate (separate because it'd otherwise trip mutex with --last default).
+set +e
+since_dup_err=$("$aggregator" --since 2099-01-01 --since 2099-02-02 --scope local 2>&1 >/dev/null)
+since_dup_rc=$?
+set -e
+if [[ "$since_dup_rc" -eq 2 ]] && printf '%s' "$since_dup_err" | grep -F -q -- '--since passed more than once'; then
+    pass "aggregator rejects duplicate --since (exit 2 + named in stderr)"
+else
+    faile "aggregator dup --since" "rc=$since_dup_rc stderr=$(tr '\n' '|' <<<"$since_dup_err")"
+fi
+
+# (b) renderer: same contract on its own flags.
+for flag_pair in '--window a --window b' \
+                 '--scope local --scope global' \
+                 '--threshold-n 1 --threshold-n 99'; do
+    set +e
+    # shellcheck disable=SC2086
+    err=$(echo '' | "$renderer" $flag_pair 2>&1 >/dev/null)
+    rc=$?
+    set -e
+    case "$flag_pair" in
+        --window*) flag_name="--window" ;;
+        --scope*)  flag_name="--scope" ;;
+        --threshold-n*) flag_name="--threshold-n" ;;
+    esac
+    if [[ "$rc" -eq 2 ]] && printf '%s' "$err" | grep -F -q -- "${flag_name} passed more than once"; then
+        pass "renderer rejects duplicate $flag_name (exit 2 + named in stderr)"
+    else
+        faile "renderer dup $flag_name" "rc=$rc stderr=$(tr '\n' '|' <<<"$err")"
+    fi
+done
+
+# Single occurrence still works — regression guard so the dedup logic does
+# not accidentally treat the FIRST occurrence as "already seen".
+ok_count=$("$aggregator" --last 5 --scope local --project-root "$tmpproj" --home "$tmphome" | wc -l | tr -d ' ')
+if [[ "$ok_count" -eq 5 ]]; then
+    pass "single occurrence still works (--last 5 returns 5)"
+else
+    faile "single-flag regression" "got $ok_count want 5"
+fi
+
+# ----------------------------------------------------------------------------
+# Issue #14 — extreme --last and tail-failure surfacing
+# Two layers of defense: (1) parse-time cap rejects values bash arithmetic
+# would overflow; (2) explicit tail-exit check surfaces any future runtime
+# failure instead of silently emitting "no signal".
+# ----------------------------------------------------------------------------
+
+printf 'ISSUE-14: --last cap + tail exit surfacing\n'
+
+# (a) Out-of-range overflow value must exit 2 with a clear range message
+#     (previously: tail printed `illegal offset` to stderr but script still
+#     exited 0 with empty stdout — "quiet week" indistinguishable from a
+#     genuine no-signal run).
+set +e
+huge_err=$("$aggregator" --last 99999999999999999999 --scope local \
+    --project-root "$tmpproj" --home "$tmphome" 2>&1 >/dev/null)
+huge_rc=$?
+set -e
+if [[ "$huge_rc" -eq 2 ]]; then
+    pass "--last 99999999999999999999 exits 2 (parse-time cap)"
+else
+    faile "ISSUE-14 overflow rc" "got $huge_rc want 2 — bash arithmetic likely silently failed"
+fi
+if printf '%s' "$huge_err" | grep -qE 'too large|≤ 1000000|<= 1000000'; then
+    pass "--last overflow error names the cap (1000000)"
+else
+    faile "ISSUE-14 overflow message" "stderr did not name the 1000000 cap: $(tr '\n' '|' <<<"$huge_err")"
+fi
+
+# (b) Just-over-cap (1000001) must also exit 2.
+set +e
+"$aggregator" --last 1000001 --scope local --project-root "$tmpproj" --home "$tmphome" >/dev/null 2>&1
+over_rc=$?
+set -e
+if [[ "$over_rc" -eq 2 ]]; then
+    pass "--last 1000001 exits 2 (cap is exclusive of 1000001)"
+else
+    faile "ISSUE-14 cap+1" "got $over_rc want 2"
+fi
+
+# (c) At-cap (1000000) must succeed (boundary regression guard).
+set +e
+"$aggregator" --last 1000000 --scope local --project-root "$tmpproj" --home "$tmphome" >/dev/null 2>&1
+at_cap_rc=$?
+set -e
+if [[ "$at_cap_rc" -eq 0 ]]; then
+    pass "--last 1000000 succeeds (cap is inclusive of 1000000)"
+else
+    faile "ISSUE-14 at-cap" "got $at_cap_rc want 0"
+fi
+
+# (d) Pipeline empty-output sanity: --last with extreme value must NOT produce
+#     a "looks-like-success but empty stdout" pipeline. Confirms that the
+#     parse-time cap fires BEFORE the renderer ever sees the empty stream.
+set +e
+set +o pipefail
+huge_pipe_out=$( "$aggregator" --last 99999999999999999999 --scope local \
+    --project-root "$tmpproj" --home "$tmphome" 2>/dev/null \
+    | "$renderer" --window all --scope local 2>/dev/null )
+set -o pipefail
+set -e
+# Renderer always emits a header even on empty stdin, so empty pipe is
+# expected; the critical check is that the aggregator's exit 2 is not
+# masked. We re-run with pipefail to verify pipe rc.
+set +e
+( "$aggregator" --last 99999999999999999999 --scope local \
+    --project-root "$tmpproj" --home "$tmphome" 2>/dev/null \
+    | "$renderer" --window all --scope local >/dev/null 2>&1 )
+huge_pipe_rc=$?
+set -e
+if [[ "$huge_pipe_rc" -ne 0 ]]; then
+    pass "extreme --last propagates non-zero exit through pipefail (rc=$huge_pipe_rc)"
+else
+    faile "ISSUE-14 pipe propagation" "rc=0 — aggregator failure was masked"
+fi
+
+# Silence shellcheck about huge_pipe_out — it exists only to demonstrate the
+# pre-pipefail capture path; the assertion lives in huge_pipe_rc above.
+: "$huge_pipe_out"
+
+# ----------------------------------------------------------------------------
 # Summary
 # ----------------------------------------------------------------------------
 
 if [[ "$fail" -eq 0 ]]; then
-    printf '\ntest-dogfood-digest: ALL PASS (SC-1~7 + recursion filter + ADV-003/006/007/008 + issue-15)\n'
+    printf '\ntest-dogfood-digest: ALL PASS (SC-1~7 + recursion filter + ADV-003/006/007/008 + issue-9/14/15)\n'
     exit 0
 else
     printf '\ntest-dogfood-digest: FAIL\n'

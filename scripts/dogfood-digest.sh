@@ -24,6 +24,15 @@
 # --last and --since are mutually exclusive — passing both is an error (exit 2).
 # --all overrides both.
 #
+# --last is capped at 1_000_000 to prevent overflow of bash's signed-64-bit
+# arithmetic; values above the cap exit 2 with an actionable error instead of
+# silently falling through to tail(1) as an illegal offset (issue #14).
+#
+# Each named flag may appear at most once; passing the same flag twice exits 2
+# (issue #9). The "last value silently wins" footgun particularly bit
+# `--scope local --scope global` callers — the report frontmatter ended up
+# carrying the wrong context.
+#
 # Env vars (CI/test only, override --project-root / --home when set):
 #   CRUCIBLE_DOGFOOD_ROOT  overrides --project-root for local log resolution
 #   CRUCIBLE_DOGFOOD_HOME  overrides --home for global mirror resolution
@@ -34,8 +43,9 @@
 #
 # Exit codes:
 #   0  success (including empty input / zero sources)
-#   1  runtime failure (jq/date/mv pipeline error)
-#   2  argument error (unknown flag, mutex violation, bad value, mktemp failure)
+#   1  runtime failure (jq/date/mv/tail pipeline error)
+#   2  argument error (unknown flag, duplicate flag, mutex violation,
+#                       bad value, mktemp failure)
 #
 # Runtime: bash (>=4) + jq (>=1.6) + date. No Python / Node.
 
@@ -81,40 +91,64 @@ scope="both"
 project_root="${PWD}"
 home_dir="${HOME}"
 
-# Track which window flags were actually passed so --last + --since can be
-# rejected per the documented mutex contract (see header comment).
+# Track which flags were actually passed. saw_last/saw_since/saw_all are also
+# consulted for the --last/--since mutex below; the rest exist solely to
+# detect duplicate flags (issue #9 — "last-value-silently-wins" across all
+# named flags poisoned wrappers that concatenated user args without dedup,
+# and silently swapped --scope between aggregator and renderer halves of a
+# pipeline).
 saw_last=0
 saw_since=0
 saw_all=0
+saw_scope=0
+saw_project_root=0
+saw_home=0
+
+# Helper: reject a duplicate occurrence of $1 by exiting 2 with an actionable
+# message. Centralised so adding a new dedup'd flag stays one line in the
+# case branch instead of duplicating the printf.
+reject_duplicate() {
+    printf 'dogfood-digest: %s passed more than once — pass it at most once\n' "$1" >&2
+    exit 2
+}
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --last)
+            [[ "$saw_last" -eq 1 ]] && reject_duplicate --last
             saw_last=1
             window_mode="last"
             window_last="${2:-}"
             shift 2 || { printf 'dogfood-digest: --last requires a value\n' >&2; exit 2; }
             ;;
         --since)
+            [[ "$saw_since" -eq 1 ]] && reject_duplicate --since
             saw_since=1
             window_mode="since"
             window_since="${2:-}"
             shift 2 || { printf 'dogfood-digest: --since requires a value\n' >&2; exit 2; }
             ;;
         --all)
+            [[ "$saw_all" -eq 1 ]] && reject_duplicate --all
             saw_all=1
             window_mode="all"
             shift
             ;;
         --scope)
+            [[ "$saw_scope" -eq 1 ]] && reject_duplicate --scope
+            saw_scope=1
             scope="${2:-}"
             shift 2 || { printf 'dogfood-digest: --scope requires a value\n' >&2; exit 2; }
             ;;
         --project-root)
+            [[ "$saw_project_root" -eq 1 ]] && reject_duplicate --project-root
+            saw_project_root=1
             project_root="${2:-}"
             shift 2 || { printf 'dogfood-digest: --project-root requires a value\n' >&2; exit 2; }
             ;;
         --home)
+            [[ "$saw_home" -eq 1 ]] && reject_duplicate --home
+            saw_home=1
             home_dir="${2:-}"
             shift 2 || { printf 'dogfood-digest: --home requires a value\n' >&2; exit 2; }
             ;;
@@ -180,8 +214,19 @@ case "$scope" in
 esac
 
 if [[ "$window_mode" == "last" ]]; then
-    if ! [[ "$window_last" =~ ^[0-9]+$ ]] || [[ "$window_last" -le 0 ]]; then
+    if ! [[ "$window_last" =~ ^[0-9]+$ ]]; then
         printf 'dogfood-digest: --last expects a positive integer (got: %s)\n' "$window_last" >&2
+        exit 2
+    fi
+    # Length-bound the input BEFORE any bash arithmetic. The cap is 1_000_000
+    # (7 digits), so any string longer than 7 chars is out-of-range without
+    # needing to parse it. This guards against issue #14: values like
+    # `99999999999999999999` overflow bash's signed-64-bit `[[ -le 0 ]]`
+    # comparison, which under `set -uo pipefail` errors non-fatally and
+    # leaves the bogus string to flow through to tail(1) — producing exit 0
+    # with empty stdout, indistinguishable from a legitimate "no signal" run.
+    if [[ ${#window_last} -gt 7 ]]; then
+        printf 'dogfood-digest: --last must be a positive integer ≤ 1000000 (got: %s — too large)\n' "$window_last" >&2
         exit 2
     fi
     # Force base-10 so values like "010" are not interpreted as octal in
@@ -189,6 +234,10 @@ if [[ "$window_mode" == "last" ]]; then
     # octal, which causes "08"/"09" to error and "010" to silently mean 8 —
     # diverging from the value tail(1) actually receives downstream.
     window_last=$((10#$window_last))
+    if [[ "$window_last" -le 0 ]] || [[ "$window_last" -gt 1000000 ]]; then
+        printf 'dogfood-digest: --last must be a positive integer ≤ 1000000 (got: %s)\n' "$window_last" >&2
+        exit 2
+    fi
 fi
 
 # ----- cutoff resolution for --since -----------------------------------------
@@ -343,7 +392,16 @@ case "$window_mode" in
         jq -c --arg cut "$cutoff_iso" 'select((.ts // "") >= $cut)' "$tmp_raw"
         ;;
     last)
-        # Take last N lines (after sort). On BSD/GNU coreutils, tail behaves identically.
-        tail -n "$window_last" "$tmp_raw"
+        # Take last N lines (after sort). On BSD/GNU coreutils, tail behaves
+        # identically. Check tail's exit code explicitly — without `set -e`, a
+        # tail failure (e.g. internal arg-parse error from a value that snuck
+        # past the parse-time cap) would leave this case branch with exit 0
+        # and empty stdout, which the renderer indistinguishably reports as
+        # "no signal in window". The parse-time cap above already rejects
+        # extreme values; this is defense-in-depth (issue #14).
+        if ! tail -n "$window_last" "$tmp_raw"; then
+            printf 'dogfood-digest: tail failed for --last %s\n' "$window_last" >&2
+            exit 1
+        fi
         ;;
 esac

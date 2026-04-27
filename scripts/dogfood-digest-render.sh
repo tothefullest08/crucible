@@ -24,10 +24,16 @@
 #   -h | --help          print usage
 # Output: Markdown on stdout.
 #
+# Each named flag may appear at most once; passing the same flag twice exits 2
+# (issue #9). Without this check, a wrapper concatenating user flags with its
+# own defaults would silently see "last value wins" — e.g.
+# `--threshold-n 1 --threshold-n 99` would suppress signal a caller intended
+# to surface.
+#
 # Exit codes:
 #   0  success (including empty or no-signal input)
 #   1  runtime failure (jq pipeline error, etc.)
-#   2  argument error
+#   2  argument error (unknown flag, duplicate flag, bad value, mktemp failure)
 #
 # Runtime: bash + jq. No Python / Node.
 
@@ -61,17 +67,35 @@ window_label=""
 scope_label="both"
 threshold_n=3
 
+# Track per-flag occurrence so `--threshold-n 1 --threshold-n 99` no longer
+# silently overwrites the first value (issue #9). Mirrors the aggregator's
+# dedup contract so wrappers see the same shape on both halves of a pipeline.
+saw_window=0
+saw_scope=0
+saw_threshold_n=0
+
+reject_duplicate() {
+    printf 'render: %s passed more than once — pass it at most once\n' "$1" >&2
+    exit 2
+}
+
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --window)
+            [[ "$saw_window" -eq 1 ]] && reject_duplicate --window
+            saw_window=1
             window_label="${2:-}"
             shift 2 || { printf 'render: --window requires a value\n' >&2; exit 2; }
             ;;
         --scope)
+            [[ "$saw_scope" -eq 1 ]] && reject_duplicate --scope
+            saw_scope=1
             scope_label="${2:-}"
             shift 2 || { printf 'render: --scope requires a value\n' >&2; exit 2; }
             ;;
         --threshold-n)
+            [[ "$saw_threshold_n" -eq 1 ]] && reject_duplicate --threshold-n
+            saw_threshold_n=1
             threshold_n="${2:-}"
             shift 2 || { printf 'render: --threshold-n requires a value\n' >&2; exit 2; }
             ;;
