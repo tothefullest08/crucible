@@ -63,6 +63,26 @@ output: |
   관례는 `.claude/plans/YYYY-MM-DD-dogfood-digest-{window}.json` 이지만
   스크립트는 파일을 직접 쓰지 않는다 (Phase 4 와 동일).
 
+  schema_version 은 **JSON STRING** (`"1"`, 숫자 1 아님). 호출자는 반드시
+  `.schema_version == "1"` 로 비교해야 하며, 정수 비교 (`== 1`) 는 미래
+  bump 시점에 silent miss 한다.
+
+  item type 별 필드 contract — wrapper 가 type 으로 분기 후 안전하게
+  pin 할 수 있는 키 집합 (이 contract 를 깨는 변경은 schema_version bump
+  를 요구한다):
+
+  | type | required fields | optional fields |
+  |------|-----------------|-----------------|
+  | qa_distribution | n (int), p50 (number\|null), p95 (number\|null), verdicts.{promote,retry,reject} (int), refs (array of "path:line" strings) | — |
+  | axis_skip_freq | n (int), histogram (array of {axis,n}), refs (array) | — |
+  | pain_group | type, key, n, cats (string), sample (string), refs (array) | — |
+  | skip_reason | type, reason (string), n, refs (array) | — |
+  | promo_group | type, key, n, cats (string), sample (string), refs (array) | — |
+  | promotion_gate | type, n, refs (array) | — |
+
+  refs 는 현재 `"path:line"` 문자열 배열로 직렬화된다. 향후 객체 배열
+  (`[{path,line}]`) 로 옮길 가능성은 schema_version bump 의 후보.
+
   Stderr (issue #16): 모든 라인이 `<script>: <severity>: <msg>` 형식.
     severity ∈ {info, warn, error}. 에이전트가 자유 텍스트 파싱 없이
     severity 키워드만으로 분류 가능. 파일별 malformed-row warn 은 5건까지

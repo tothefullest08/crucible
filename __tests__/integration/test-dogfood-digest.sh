@@ -1599,6 +1599,20 @@ else
     faile "ISSUE-19 frontmatter" "window=$fm_window scope=$fm_scope total=$fm_total"
 fi
 
+# Frontmatter shape: source_counts is an object, generated_at + date are strings.
+# Schema docstring promises these; without an assertion a regression dropping
+# them would only surface as a missing-field bug in callers.
+fm_shape_ok=$(printf '%s' "$json_full" | jq '
+    (.frontmatter | has("source_counts")) and (.frontmatter.source_counts | type == "object")
+    and (.frontmatter | has("generated_at")) and (.frontmatter.generated_at | type == "string")
+    and (.frontmatter | has("date")) and (.frontmatter.date | type == "string")
+')
+if [[ "$fm_shape_ok" == "true" ]]; then
+    pass "ISSUE-19 frontmatter source_counts/generated_at/date present + correct types"
+else
+    faile "ISSUE-19 frontmatter shape" "expected object/string/string, jq=$fm_shape_ok"
+fi
+
 # Three sections in fixed order matching markdown branch.
 section_titles=$(printf '%s' "$json_full" | jq -r '.sections[].title' | tr '\n' '|')
 expected_titles='Threshold Calibration|Protocol Improvements|Promotion Candidates|'
@@ -1627,10 +1641,13 @@ fi
 qa_n=$(printf '%s' "$json_full" | jq '.sections[0].items[] | select(.type=="qa_distribution") | .n')
 qa_promote=$(printf '%s' "$json_full" | jq '.sections[0].items[] | select(.type=="qa_distribution") | .verdicts.promote')
 qa_p50=$(printf '%s' "$json_full" | jq '.sections[0].items[] | select(.type=="qa_distribution") | .p50')
-if [[ "$qa_n" == "3" && "$qa_promote" == "1" && "$qa_p50" == "0.42" ]]; then
-    pass "ISSUE-19 qa_distribution numeric fields (n=3, promote=1, p50=0.42)"
+# p95 with n=3 scores [0.30, 0.42, 0.85] using nearest-rank
+# `floor((n-1)*0.95 + 0.5)` = floor(2.4) = 2 → $s[2] = 0.85.
+qa_p95=$(printf '%s' "$json_full" | jq '.sections[0].items[] | select(.type=="qa_distribution") | .p95')
+if [[ "$qa_n" == "3" && "$qa_promote" == "1" && "$qa_p50" == "0.42" && "$qa_p95" == "0.85" ]]; then
+    pass "ISSUE-19 qa_distribution numeric fields (n=3, promote=1, p50=0.42, p95=0.85)"
 else
-    faile "ISSUE-19 qa numerics" "n=$qa_n promote=$qa_promote p50=$qa_p50"
+    faile "ISSUE-19 qa numerics" "n=$qa_n promote=$qa_promote p50=$qa_p50 p95=$qa_p95"
 fi
 
 # Empty input → items=[] + note string per section, never a missing field
@@ -1641,6 +1658,33 @@ if [[ "$empty_section_count" == "3" ]]; then
     pass "ISSUE-19 empty input: all 3 sections have items=[] and note string"
 else
     faile "ISSUE-19 empty sections" "sections matching items=[] + note: $empty_section_count want 3"
+fi
+
+# Per-discriminator field shape — pin the keys that wrappers may rely on
+# (TEST-1 from PR #26 ce-review). Each item type carries a documented
+# field contract in SKILL.md; if a future refactor renames a key, this
+# block fails before wrappers do.
+shape_ok=$(printf '%s' "$json_full" | jq -e '
+    def has_all(keys): . as $o | all(keys[]; . as $k | $o | has($k));
+    [.sections[].items[]
+        | (
+            (.type == "qa_distribution" and has_all(["n","p50","p95","verdicts","refs"])
+                and (.verdicts | has_all(["promote","retry","reject"]))
+                and ((.refs | type) == "array"))
+         or (.type == "axis_skip_freq" and has_all(["n","histogram","refs"])
+                and ((.histogram | type) == "array")
+                and ((.histogram[0] | has_all(["axis","n"])) // true))
+         or (.type == "pain_group" and has_all(["key","n","cats","sample","refs"]))
+         or (.type == "skip_reason" and has_all(["reason","n","refs"]))
+         or (.type == "promo_group" and has_all(["key","n","cats","sample","refs"]))
+         or (.type == "promotion_gate" and has_all(["n","refs"]))
+          )
+    ] | all
+' >/dev/null && echo true || echo false)
+if [[ "$shape_ok" == "true" ]]; then
+    pass "ISSUE-19 per-discriminator field shape contracts (all 6 types)"
+else
+    faile "ISSUE-19 item shape" "one or more items missing documented required fields"
 fi
 
 # refs preserved for back-reference auditability.
@@ -1678,6 +1722,21 @@ if [[ "$dup_fmt_rc" == "2" ]] && printf '%s' "$dup_fmt_err" | grep -F -q -- 'ren
     pass "ISSUE-19 duplicate --format → exit 2"
 else
     faile "ISSUE-19 dup format" "rc=$dup_fmt_rc stderr=$(tr '\n' '|' <<<"$dup_fmt_err")"
+fi
+
+# Missing-value error path: `--format` at end-of-args (shift 2 fails) must
+# exit 2 with the standard `--format requires a value` message. Tests cover
+# bad value and duplicate but not missing-value, leaving one branch of the
+# arg validator silently uncovered.
+set +e
+miss_fmt_err=$(echo "" | "$renderer" --window 7d --format 2>&1 >/dev/null)
+echo "" | "$renderer" --window 7d --format >/dev/null 2>/dev/null
+miss_fmt_rc=$?
+set -e
+if [[ "$miss_fmt_rc" == "2" ]] && printf '%s' "$miss_fmt_err" | grep -F -q -- 'render: error: --format requires a value'; then
+    pass "ISSUE-19 --format with no value → exit 2"
+else
+    faile "ISSUE-19 missing format value" "rc=$miss_fmt_rc stderr=$(tr '\n' '|' <<<"$miss_fmt_err")"
 fi
 
 # Default markdown unchanged — backward compat invariant. The first

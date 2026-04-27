@@ -74,6 +74,11 @@ Flags:
                       callers parse it with jq instead of regexing Markdown
                       sections (issue #19). Schema:
                         {schema_version, frontmatter, sections:[{title,items[],note?}]}
+                      schema_version is a JSON STRING ("1", not 1) — compare with
+                      `.schema_version == "1"`. Item types (.type discriminator):
+                      qa_distribution, axis_skip_freq, pain_group, skip_reason,
+                      promo_group, promotion_gate. Per-type field shape lives in
+                      skills/dogfood-digest/SKILL.md.
   -h | --help         print usage
 
 Constraints:
@@ -327,7 +332,7 @@ if [[ "$output_format" == "json" ]]; then
     else
         s1_items='[]'
         if [[ "$qa_count" -ge "$threshold_n" ]]; then
-            s1_qa_item=$(printf '%s' "$qa_json" | jq -c --argjson tn "$threshold_n" '
+            s1_qa_item=$(printf '%s' "$qa_json" | jq -c '
                 . as $rows
                 | ([.[] | select(.verdict=="promote")] | length) as $promote
                 | ([.[] | select(.verdict=="retry")] | length) as $retry
