@@ -37,19 +37,43 @@
 #   CRUCIBLE_DOGFOOD_ROOT  overrides --project-root for local log resolution
 #   CRUCIBLE_DOGFOOD_HOME  overrides --home for global mirror resolution
 # When either env var is applied, a one-line info message is written to stderr
-# so overrides are never silent.
+# so overrides are never silent. Set CRUCIBLE_DOGFOOD_QUIET_OVERRIDE=1 to
+# suppress that one info line in CI runs that legitimately set the env vars
+# on every invocation (issue #18).
 #
 # Output: JSONL on stdout. Empty input → no lines, exit 0.
 #
-# Exit codes:
+# Stderr: every line carries `dogfood-digest: <severity>: <message>` where
+# severity ∈ {info, warn, error} (issue #16). This lets agents keyword-match
+# severity without parsing free-form prose. Per-row malformed-line warnings
+# are rate-limited: first 5 per source emit verbatim, the rest are folded
+# into a one-line summary at end-of-source (issue #17).
+#
+# Exit codes (issue #16 — arg vs system split):
 #   0  success (including empty input / zero sources)
-#   1  runtime failure (jq/date/mv/tail pipeline error)
+#   1  runtime data-pipeline failure (jq sort, mv, tail) — input data shape
+#      violated an invariant
 #   2  argument error (unknown flag, duplicate flag, mutex violation,
-#                       bad value, mktemp failure)
+#                       bad value) — recoverable, retry with fixed args
+#   3  system / environment failure (mktemp on full disk, missing tools) —
+#      escalate, do NOT retry the same args
 #
 # Runtime: bash (>=4) + jq (>=1.6) + date. No Python / Node.
 
 set -uo pipefail
+
+# Severity-tagged stderr emitters (issue #16). Centralising the prefix
+# means future call sites stay consistent without re-typing the severity
+# token. Each takes a printf format string + args; appends \n. Usage:
+#   err  '--last expects a positive integer (got: %s)' "$x"
+#   warn 'skipping malformed row %s:%s' "$src" "$line_no"
+#   info 'CRUCIBLE_DOGFOOD_ROOT=%s overrides --project-root=%s' "$a" "$b"
+# shellcheck disable=SC2059  # fmt is an internal format string, not user input
+err() { local fmt="$1"; shift; printf "dogfood-digest: error: ${fmt}\\n" "$@" >&2; }
+# shellcheck disable=SC2059
+warn() { local fmt="$1"; shift; printf "dogfood-digest: warn: ${fmt}\\n" "$@" >&2; }
+# shellcheck disable=SC2059
+info() { local fmt="$1"; shift; printf "dogfood-digest: info: ${fmt}\\n" "$@" >&2; }
 
 print_help() {
     cat <<'USAGE'
@@ -75,10 +99,19 @@ Test-only env vars (take precedence over the matching flags when set):
 When either env var changes the resolved path, a one-line info message is
 printed to stderr so the override is never silent.
 
-Exit codes:
+Exit codes (arg / runtime / system split, see issue #16):
   0  success
-  1  runtime failure
+  1  runtime data-pipeline failure (jq/mv/tail)
   2  argument error
+  3  system/environment failure (mktemp full disk, missing tools)
+
+Stderr severity tagging:
+  Every stderr line is prefixed `dogfood-digest: <severity>: <msg>` where
+  severity ∈ {info, warn, error}. Per-source malformed-row warnings cap
+  at 5 with a summary line for any extras.
+
+Env var:
+  CRUCIBLE_DOGFOOD_QUIET_OVERRIDE=1  suppress env-override info line.
 
 For render-time flags (--window, --threshold-n), see:
   bash scripts/dogfood-digest-render.sh --help
@@ -111,7 +144,7 @@ saw_home=0
 # message. Centralised so adding a new dedup'd flag stays one line in the
 # case branch instead of duplicating the printf.
 reject_duplicate() {
-    printf 'dogfood-digest: %s passed more than once — pass it at most once\n' "$1" >&2
+    err '%s passed more than once — pass it at most once' "$1"
     exit 2
 }
 
@@ -122,7 +155,7 @@ while [[ $# -gt 0 ]]; do
             saw_last=1
             window_mode="last"
             window_last="${2:-}"
-            shift 2 || { printf 'dogfood-digest: --last requires a value\n' >&2; exit 2; }
+            shift 2 || { err '--last requires a value'; exit 2; }
             ;;
         --since)
             # `if [[ ]]; then …; fi` (not `[[ ]] && …`) so a future `set -e`
@@ -132,7 +165,7 @@ while [[ $# -gt 0 ]]; do
             saw_since=1
             window_mode="since"
             window_since="${2:-}"
-            shift 2 || { printf 'dogfood-digest: --since requires a value\n' >&2; exit 2; }
+            shift 2 || { err '--since requires a value'; exit 2; }
             ;;
         --all)
             if [[ "$saw_all" -eq 1 ]]; then reject_duplicate --all; fi
@@ -144,36 +177,40 @@ while [[ $# -gt 0 ]]; do
             if [[ "$saw_scope" -eq 1 ]]; then reject_duplicate --scope; fi
             saw_scope=1
             scope="${2:-}"
-            shift 2 || { printf 'dogfood-digest: --scope requires a value\n' >&2; exit 2; }
+            shift 2 || { err '--scope requires a value'; exit 2; }
             ;;
         --project-root)
             if [[ "$saw_project_root" -eq 1 ]]; then reject_duplicate --project-root; fi
             saw_project_root=1
             project_root="${2:-}"
-            shift 2 || { printf 'dogfood-digest: --project-root requires a value\n' >&2; exit 2; }
+            shift 2 || { err '--project-root requires a value'; exit 2; }
             ;;
         --home)
             if [[ "$saw_home" -eq 1 ]]; then reject_duplicate --home; fi
             saw_home=1
             home_dir="${2:-}"
-            shift 2 || { printf 'dogfood-digest: --home requires a value\n' >&2; exit 2; }
+            shift 2 || { err '--home requires a value'; exit 2; }
             ;;
         -h|--help)
             print_help
             exit 0
             ;;
         *)
-            printf 'dogfood-digest: unknown argument: %s\n' "$1" >&2
+            err 'unknown argument: %s' "$1"
             # Recognized misroute: render-time flag passed to the aggregator.
             # Skip the ~40-line print_help dump and emit just the targeted
             # hint plus a one-line pointer to --help. The wall of help text
             # would scroll the actionable hint off screen on terminals with
             # short scrollback (codex pr#21 review). For unrecognized flags
-            # the full help is still useful as a discovery aid.
+            # the full help is still useful as a discovery aid. The hint
+            # line stays `info:` severity because the ERROR is "unknown
+            # argument" (already emitted above) and the hint is recovery
+            # context — separating them lets agents grep `error:` for the
+            # fault line and `info:` for actionable guidance.
             case "$1" in
                 --window|--threshold-n)
-                    printf 'dogfood-digest: hint — %s is a render-time flag; pass it to scripts/dogfood-digest-render.sh instead.\n' "$1" >&2
-                    printf 'dogfood-digest: for full usage: bash scripts/dogfood-digest.sh --help\n' >&2
+                    info 'hint: %s is a render-time flag; pass it to scripts/dogfood-digest-render.sh instead.' "$1"
+                    info 'for full usage: bash scripts/dogfood-digest.sh --help'
                     ;;
                 *)
                     print_help >&2
@@ -200,7 +237,7 @@ find "${TMPDIR:-/tmp}" -maxdepth 1 -name 'dogfood-digest-raw.*' -mmin +60 -delet
 # Mutex: --last and --since cannot be combined. --all takes precedence and
 # collapses the conflict (documented as "--all overrides both").
 if [[ "$saw_all" -eq 0 && "$saw_last" -eq 1 && "$saw_since" -eq 1 ]]; then
-    printf 'dogfood-digest: --last and --since are mutually exclusive — pass one or use --all\n' >&2
+    err '--last and --since are mutually exclusive — pass one or use --all'
     exit 2
 fi
 
@@ -214,14 +251,14 @@ fi
 case "$scope" in
     local|global|both) ;;
     *)
-        printf 'dogfood-digest: --scope must be local, global, or both (got: %s)\n' "$scope" >&2
+        err '--scope must be local, global, or both (got: %s)' "$scope"
         exit 2
         ;;
 esac
 
 if [[ "$window_mode" == "last" ]]; then
     if ! [[ "$window_last" =~ ^[0-9]+$ ]]; then
-        printf 'dogfood-digest: --last expects a positive integer (got: %s)\n' "$window_last" >&2
+        err '--last expects a positive integer (got: %s)' "$window_last"
         exit 2
     fi
     # Length-bound the input BEFORE any bash arithmetic. The cap is 1_000_000
@@ -236,7 +273,7 @@ if [[ "$window_mode" == "last" ]]; then
     # would force stderr scrapers to handle both; ASCII <= avoids non-UTF-8
     # capture-pipeline corruption (PR #24 P3 #5 review).
     if [[ ${#window_last} -gt 7 ]]; then
-        printf 'dogfood-digest: --last must be a positive integer <= 1000000 (got: %s)\n' "$window_last" >&2
+        err '--last must be a positive integer <= 1000000 (got: %s)' "$window_last"
         exit 2
     fi
     # Force base-10 so values like "010" are not interpreted as octal in
@@ -245,7 +282,7 @@ if [[ "$window_mode" == "last" ]]; then
     # diverging from the value tail(1) actually receives downstream.
     window_last=$((10#$window_last))
     if [[ "$window_last" -le 0 ]] || [[ "$window_last" -gt 1000000 ]]; then
-        printf 'dogfood-digest: --last must be a positive integer <= 1000000 (got: %s)\n' "$window_last" >&2
+        err '--last must be a positive integer <= 1000000 (got: %s)' "$window_last"
         exit 2
     fi
 fi
@@ -255,7 +292,7 @@ fi
 cutoff_iso=""
 if [[ "$window_mode" == "since" ]]; then
     if [[ -z "$window_since" ]]; then
-        printf 'dogfood-digest: --since requires a DATE or Nd duration\n' >&2
+        err '--since requires a DATE or Nd duration'
         exit 2
     fi
     if [[ "$window_since" =~ ^([0-9]+)d$ ]]; then
@@ -266,12 +303,12 @@ if [[ "$window_mode" == "since" ]]; then
         # successful "--since-99999d" run while returning the entire log.
         if date -v-1d +%Y-%m-%d >/dev/null 2>&1; then
             if ! cutoff_iso="$(date -u -v-"${days}"d +%Y-%m-%dT%H:%M:%SZ 2>/dev/null)" || [[ -z "$cutoff_iso" ]]; then
-                printf 'dogfood-digest: --since %sd is out of range for date(1)\n' "$days" >&2
+                err '--since %sd is out of range for date(1)' "$days"
                 exit 2
             fi
         else
             if ! cutoff_iso="$(date -u -d "${days} days ago" +%Y-%m-%dT%H:%M:%SZ 2>/dev/null)" || [[ -z "$cutoff_iso" ]]; then
-                printf 'dogfood-digest: --since %sd is out of range for date(1)\n' "$days" >&2
+                err '--since %sd is out of range for date(1)' "$days"
                 exit 2
             fi
         fi
@@ -298,11 +335,11 @@ if [[ "$window_mode" == "since" ]]; then
         # expected shape (instead of imputing "non-UTC datetime") so the
         # user can map the error to their input regardless of which
         # malformed shape they passed.
-        printf 'dogfood-digest: --since ISO8601 must be YYYY-MM-DDTHH:MM:SSZ (UTC); got: %s\n' "$window_since" >&2
-        printf '  → rewrite with Z (UTC) suffix, or pass YYYY-MM-DD\n' >&2
+        err '--since ISO8601 must be YYYY-MM-DDTHH:MM:SSZ (UTC); got: %s' "$window_since"
+        info 'rewrite with Z (UTC) suffix, or pass YYYY-MM-DD'
         exit 2
     else
-        printf 'dogfood-digest: --since must be YYYY-MM-DD, YYYY-MM-DDTHH:MM:SSZ, or Nd (got: %s)\n' "$window_since" >&2
+        err '--since must be YYYY-MM-DD, YYYY-MM-DDTHH:MM:SSZ, or Nd (got: %s)' "$window_since"
         exit 2
     fi
 fi
@@ -312,14 +349,20 @@ fi
 # Root override for dogfood storage (CI/test hook). Falls back to project_root
 # for locals, and $home_dir/.claude/dogfood/crucible for globals. When an env
 # var actually changes the resolved path, emit a one-line stderr info so the
-# override is never silent.
-if [[ -n "${CRUCIBLE_DOGFOOD_ROOT:-}" && "${CRUCIBLE_DOGFOOD_ROOT}" != "$project_root" ]]; then
-    printf 'dogfood-digest: info: CRUCIBLE_DOGFOOD_ROOT=%s overrides --project-root=%s\n' \
-        "$CRUCIBLE_DOGFOOD_ROOT" "$project_root" >&2
-fi
-if [[ -n "${CRUCIBLE_DOGFOOD_HOME:-}" && "${CRUCIBLE_DOGFOOD_HOME}" != "$home_dir" ]]; then
-    printf 'dogfood-digest: info: CRUCIBLE_DOGFOOD_HOME=%s overrides --home=%s\n' \
-        "$CRUCIBLE_DOGFOOD_HOME" "$home_dir" >&2
+# override is never silent — UNLESS the caller has explicitly opted into
+# silence via CRUCIBLE_DOGFOOD_QUIET_OVERRIDE=1 (issue #18). The opt-in is
+# for CI workflows that legitimately set the env vars on every invocation
+# and don't want the info-line noise to push agents toward "ignore stderr
+# entirely" (which would mask the warn/error lines that DO matter).
+if [[ "${CRUCIBLE_DOGFOOD_QUIET_OVERRIDE:-0}" != "1" ]]; then
+    if [[ -n "${CRUCIBLE_DOGFOOD_ROOT:-}" && "${CRUCIBLE_DOGFOOD_ROOT}" != "$project_root" ]]; then
+        info 'CRUCIBLE_DOGFOOD_ROOT=%s overrides --project-root=%s' \
+            "$CRUCIBLE_DOGFOOD_ROOT" "$project_root"
+    fi
+    if [[ -n "${CRUCIBLE_DOGFOOD_HOME:-}" && "${CRUCIBLE_DOGFOOD_HOME}" != "$home_dir" ]]; then
+        info 'CRUCIBLE_DOGFOOD_HOME=%s overrides --home=%s' \
+            "$CRUCIBLE_DOGFOOD_HOME" "$home_dir"
+    fi
 fi
 local_log="${CRUCIBLE_DOGFOOD_ROOT:-$project_root}/.claude/dogfood/log.jsonl"
 global_glob="${CRUCIBLE_DOGFOOD_HOME:-$home_dir}/.claude/dogfood/crucible"
@@ -350,9 +393,13 @@ fi
 # Emit augmented JSONL: each line gets _source_path + _line. Filter by cutoff
 # when --since was provided; --last is applied after sort.
 
+# mktemp failure is a system / environment issue (full /tmp, permission, missing
+# /tmp altogether) — not a bad-arg condition. Issue #16 separates exit codes:
+# arg=2 vs system=3. Exiting 3 here lets retry-loop wrappers distinguish
+# "fix the flag and rerun" (2) from "escalate, do not retry the same args" (3).
 tmp_raw="$(mktemp -t dogfood-digest-raw.XXXXXX)" || {
-    printf 'dogfood-digest: mktemp failed\n' >&2
-    exit 2
+    err 'mktemp failed (system error — escalate, do not retry)'
+    exit 3
 }
 # Clean up both the raw buffer and its transient .sorted sibling on exit.
 # EXIT alone misses the SIGINT/SIGTERM/SIGHUP path on some shells, so the
@@ -360,12 +407,23 @@ tmp_raw="$(mktemp -t dogfood-digest-raw.XXXXXX)" || {
 # left to the OS.
 trap 'rm -f "$tmp_raw" "${tmp_raw}.sorted"' EXIT INT TERM HUP
 
+# Per-source warn rate-limit cap (issue #17). The first WARN_CAP malformed
+# rows in a source emit a verbatim `warn:` line; everything beyond that gets
+# folded into a single end-of-source summary. Without the cap, a corrupted
+# JSONL with thousands of bad rows blew through downstream agent context
+# budgets and trained agents to ignore stderr entirely (masking the
+# warnings that DO matter). 5 is a soft anchor: enough to surface a
+# diversity of bad-row shapes for diagnosis, low enough to bound the
+# stderr cost from a pathological log.
+readonly WARN_CAP=5
 for src in "${sources[@]}"; do
     # Process line-by-line so a single malformed row does NOT drop every
     # valid row after it. jq aborts the whole invocation on the first parse
     # error, so we must isolate each line. _source_path/_line are injected
     # per-line using the source's 1-based line number.
     line_no=0
+    src_warn_emitted=0
+    src_warn_skipped=0
     while IFS= read -r raw_line || [[ -n "$raw_line" ]]; do
         line_no=$((line_no + 1))
         [[ -z "$raw_line" ]] && continue
@@ -373,15 +431,26 @@ for src in "${sources[@]}"; do
             | jq -c --arg path "$src" --argjson ln "$line_no" \
                 '. + {_source_path: $path, _line: $ln}' \
                 2>/dev/null >> "$tmp_raw"; then
-            printf 'dogfood-digest: warn: skipping malformed row %s:%s\n' \
-                "$src" "$line_no" >&2
+            if [[ "$src_warn_emitted" -lt "$WARN_CAP" ]]; then
+                warn 'skipping malformed row %s:%s' "$src" "$line_no"
+                src_warn_emitted=$((src_warn_emitted + 1))
+            else
+                src_warn_skipped=$((src_warn_skipped + 1))
+            fi
         fi
     done < "$src"
+    # End-of-source summary line if any rows were folded. Stays `warn:`
+    # severity so it groups naturally with the verbatim lines under any
+    # severity-based filter.
+    if [[ "$src_warn_skipped" -gt 0 ]]; then
+        warn '%s more malformed rows skipped in %s (cap=%s)' \
+            "$src_warn_skipped" "$src" "$WARN_CAP"
+    fi
 done
 
 # Sort by ts ascending. Events without ts sort to the front (unlikely in practice).
 if ! jq -sc 'sort_by(.ts // "") | .[]' "$tmp_raw" > "${tmp_raw}.sorted"; then
-    printf 'dogfood-digest: sort pipeline failed\n' >&2
+    err 'sort pipeline failed'
     exit 1
 fi
 # Without this guard, an mv failure (e.g. disk full between sort and rename)
@@ -389,7 +458,7 @@ fi
 # return the last N rows by file order, not by timestamp — silent semantic
 # drift instead of a visible failure.
 if ! mv "${tmp_raw}.sorted" "$tmp_raw"; then
-    printf 'dogfood-digest: failed to swap sorted buffer into place\n' >&2
+    err 'failed to swap sorted buffer into place'
     exit 1
 fi
 
@@ -410,7 +479,7 @@ case "$window_mode" in
         # "no signal in window". The parse-time cap above already rejects
         # extreme values; this is defense-in-depth (issue #14).
         if ! tail -n "$window_last" "$tmp_raw"; then
-            printf 'dogfood-digest: tail failed for --last %s\n' "$window_last" >&2
+            err 'tail failed for --last %s' "$window_last"
             exit 1
         fi
         ;;
