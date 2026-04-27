@@ -39,6 +39,15 @@ input: |
                        (기본 3). 양의 정수, 최대 1_000_000.
                        범위 밖 / 비숫자는 exit 2 (PR #24 ce-review P1 — same
                        arithmetic-overflow surface as aggregator's --last).
+    --format markdown|json   기본 markdown. `json` 은 단일 구조화 객체를
+                       stdout 으로 emit (issue #19) — 에이전트 호출자가 jq 로
+                       파싱 가능. 알 수 없는 값(`jason` 등)은 exit 2.
+                       스키마: `{schema_version, frontmatter, sections[]}`,
+                       각 section 은 `{title, items[], note?}`. 각 item 은
+                       `type` discriminator (qa_distribution · axis_skip_freq ·
+                       pain_group · skip_reason · promo_group · promotion_gate)
+                       를 들고 있어 wrapper 가 위치 인덱스 대신 type 으로
+                       분기한다.
 
   입력 소스 (aggregator 가 resolve, renderer 는 stdin 만 읽음):
     로컬  `${CRUCIBLE_DOGFOOD_ROOT:-${PROJECT_ROOT}}/.claude/dogfood/log.jsonl`
@@ -48,6 +57,11 @@ output: |
   {window} ∈ { last{N}, since-{YYYY-MM-DD|Nd}, all }
   프론트매터(generated_at · window · scope · total_events · source_counts) + Markdown 본문 3섹션
   (Threshold Calibration · Protocol Improvements · Promotion Candidates).
+
+  Renderer `--format json` (issue #19): `.md` 대신 단일 JSON 객체를 stdout 으로
+  emit. 에이전트 호출자는 jq 로 파싱한다. 호출자가 redirect 하는 경로의
+  관례는 `.claude/plans/YYYY-MM-DD-dogfood-digest-{window}.json` 이지만
+  스크립트는 파일을 직접 쓰지 않는다 (Phase 4 와 동일).
 
   Stderr (issue #16): 모든 라인이 `<script>: <severity>: <msg>` 형식.
     severity ∈ {info, warn, error}. 에이전트가 자유 텍스트 파싱 없이

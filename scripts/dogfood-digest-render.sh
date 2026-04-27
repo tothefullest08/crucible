@@ -56,10 +56,10 @@ info() { local fmt="$1"; shift; printf "render: info: ${fmt}\\n" "$@" >&2; }
 
 print_help() {
     cat <<'USAGE'
-Usage: dogfood-digest-render.sh --window LABEL [--scope SCOPE] [--threshold-n N]
+Usage: dogfood-digest-render.sh --window LABEL [--scope SCOPE] [--threshold-n N] [--format FORMAT]
 
-Reads filtered dogfood JSONL on stdin and emits a 3-section Markdown proposal
-report on stdout.
+Reads filtered dogfood JSONL on stdin and emits a 3-section proposal report
+on stdout (Markdown by default; structured JSON when --format json).
 
 Flags:
   --window LABEL      window label used in frontmatter + filename (required)
@@ -69,10 +69,16 @@ Flags:
   --threshold-n N     positive integer in [1, 1000000]; minimum observation
                       count for threshold suggestions (default: 3; lower values
                       mean quieter logs still emit)
+  --format FORMAT     markdown | json (default markdown). `json` emits a single
+                      structured object on stdout with schema_version "1" — agent
+                      callers parse it with jq instead of regexing Markdown
+                      sections (issue #19). Schema:
+                        {schema_version, frontmatter, sections:[{title,items[],note?}]}
   -h | --help         print usage
 
 Constraints:
   --threshold-n is a positive integer in [1, 1000000]; out-of-range → exit 2.
+  --format must be one of {markdown, json}; typos like `jason` → exit 2.
   Each named flag may appear at most once (duplicate → exit 2).
 
 Stderr severity tagging:
@@ -94,6 +100,7 @@ USAGE
 window_label=""
 scope_label="both"
 threshold_n=3
+output_format="markdown"
 
 # Track per-flag occurrence so `--threshold-n 1 --threshold-n 99` no longer
 # silently overwrites the first value (issue #9). Mirrors the aggregator's
@@ -101,6 +108,7 @@ threshold_n=3
 saw_window=0
 saw_scope=0
 saw_threshold_n=0
+saw_format=0
 
 reject_duplicate() {
     err '%s passed more than once — pass it at most once' "$1"
@@ -129,6 +137,12 @@ while [[ $# -gt 0 ]]; do
             saw_threshold_n=1
             threshold_n="${2:-}"
             shift 2 || { err '--threshold-n requires a value'; exit 2; }
+            ;;
+        --format)
+            if [[ "$saw_format" -eq 1 ]]; then reject_duplicate --format; fi
+            saw_format=1
+            output_format="${2:-}"
+            shift 2 || { err '--format requires a value'; exit 2; }
             ;;
         -h|--help)
             print_help
@@ -169,6 +183,18 @@ case "$scope_label" in
     local|global|both) ;;
     *)
         err '--scope must be local, global, or both (got: %s)' "$scope_label"
+        exit 2
+        ;;
+esac
+
+# Validate --format. Default `markdown` keeps existing wrappers working
+# unchanged; `json` is the new agent-targeted surface (issue #19). Strict
+# whitelist so a typo like `--format jason` errors loudly instead of falling
+# through to either branch.
+case "$output_format" in
+    markdown|json) ;;
+    *)
+        err '--format must be markdown or json (got: %s)' "$output_format"
         exit 2
         ;;
 esac
@@ -264,9 +290,192 @@ source_counts_json="$(jq -sc '[.[]._source_path] | group_by(.) | map({(.[0]): le
 # ----- frontmatter -----------------------------------------------------------
 
 today="$(date -u +%Y-%m-%d)"
+generated_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+
+# ----- JSON output branch (issue #19) ---------------------------------------
+#
+# When `--format json` is set, emit a single structured JSON object on stdout
+# instead of the human-targeted Markdown report. Same input, same aggregates,
+# different shape — agent callers parse this with jq instead of regexing
+# Markdown sections.
+#
+# Schema (schema_version "1"):
+#   {
+#     "schema_version": "1",
+#     "frontmatter": { generated_at, window, scope, total_events,
+#                      source_counts, date },
+#     "sections": [ { "title", "items": [...], "note"? } x3 ]
+#   }
+#
+# Section order is fixed: Threshold Calibration, Protocol Improvements,
+# Promotion Candidates — mirrors the Markdown layout. Empty sections carry
+# `items: []` and a `note` string describing the no-signal condition; the
+# Markdown branch's `> no signal in window` line. Item objects carry a
+# `type` discriminator (qa_distribution, axis_skip_freq, pain_group,
+# skip_reason, promo_group, promotion_gate) so wrappers can switch on type
+# rather than positional index.
+#
+# All aggregate values reuse the *_json variables computed above so the
+# JSON and Markdown branches stay in lock-step on the same dataset; any
+# future fix to ingestion / filtering applies to both branches uniformly.
+if [[ "$output_format" == "json" ]]; then
+    # ---- Section 1: Threshold Calibration ----
+    if [[ "$qa_count" -lt "$threshold_n" && "$skip_count" -lt "$threshold_n" ]]; then
+        section1=$(jq -nc --argjson qa "$qa_count" --argjson sk "$skip_count" --argjson tn "$threshold_n" \
+            '{title:"Threshold Calibration", items:[],
+              note:"no signal in window (qa_judge n=\($qa), axis_skip n=\($sk), threshold-n=\($tn))"}')
+    else
+        s1_items='[]'
+        if [[ "$qa_count" -ge "$threshold_n" ]]; then
+            s1_qa_item=$(printf '%s' "$qa_json" | jq -c --argjson tn "$threshold_n" '
+                . as $rows
+                | ([.[] | select(.verdict=="promote")] | length) as $promote
+                | ([.[] | select(.verdict=="retry")] | length) as $retry
+                | ([.[] | select(.verdict=="reject")] | length) as $reject
+                | (if length == 0 then null
+                   else ([.[].score] | sort) as $s
+                       | ($s | length) as $n
+                       | $s[(($n - 1) / 2) | floor]
+                   end) as $p50
+                | (if length == 0 then null
+                   else ([.[].score] | sort) as $s
+                       | ($s | length) as $n
+                       | ((($n - 1) * 0.95 + 0.5) | floor) as $i
+                       | $s[if $i >= $n then $n - 1 else $i end]
+                   end) as $p95
+                | {type:"qa_distribution", n:length, p50:$p50, p95:$p95,
+                   verdicts:{promote:$promote, retry:$retry, reject:$reject},
+                   refs:[$rows[] | "\(._source_path):\(._line)"][0:3]}
+            ')
+            s1_items=$(jq -nc --argjson item "$s1_qa_item" '[$item]')
+        fi
+        if [[ "$skip_count" -ge "$threshold_n" ]]; then
+            s1_skip_item=$(printf '%s' "$skip_json" | jq -c '
+                . as $rows
+                | {type:"axis_skip_freq", n:length,
+                   histogram:([.[].axis] | group_by(.) | map({axis:.[0], n:length})),
+                   refs:[$rows[] | "\(._source_path):\(._line)"][0:3]}
+            ')
+            s1_items=$(printf '%s' "$s1_items" | jq -c --argjson item "$s1_skip_item" '. + [$item]')
+        fi
+        section1=$(jq -nc --argjson items "$s1_items" \
+            '{title:"Threshold Calibration", items:$items}')
+    fi
+
+    # ---- Section 2: Protocol Improvements ----
+    if [[ "$pain_count" -eq 0 && "$skip_count" -lt 2 ]]; then
+        section2=$(jq -nc '{title:"Protocol Improvements", items:[], note:"no signal in window"}')
+    else
+        s2_pain_items='[]'
+        s2_skip_items='[]'
+        if [[ "$pain_count" -gt 0 ]]; then
+            s2_pain_items=$(printf '%s' "$pain_json" | jq -c '
+                map({
+                    key: ((.text // "") | capture("(?<k>/crucible:[a-z0-9_-]+)"; "i").k // "general"),
+                    category: .category,
+                    text: (.text // ""),
+                    src: "\(._source_path):\(._line)"
+                })
+                | group_by(.key)
+                | map({
+                    type:"pain_group",
+                    key:.[0].key,
+                    n:length,
+                    cats:([.[].category] | unique | join("+")),
+                    sample:(.[0].text),
+                    refs:([.[].src][0:3])
+                })
+                | sort_by(-.n)
+                | .[0:5]
+            ')
+        fi
+        if [[ "$skip_count" -ge 2 ]]; then
+            s2_skip_items=$(printf '%s' "$skip_json" | jq -c '
+                [.[] | select(.reason != null) | {reason:.reason, src:"\(._source_path):\(._line)"}]
+                | group_by(.reason)
+                | map({type:"skip_reason", reason:.[0].reason, n:length, refs:([.[].src][0:3])})
+                | map(select(.n >= 2))
+                | .[0:3]
+            ')
+        fi
+        s2_items=$(jq -nc --argjson a "$s2_pain_items" --argjson b "$s2_skip_items" '$a + $b')
+        if [[ "$(printf '%s' "$s2_items" | jq 'length')" -eq 0 ]]; then
+            section2=$(jq -nc '{title:"Protocol Improvements", items:[], note:"no signal in window"}')
+        else
+            section2=$(jq -nc --argjson items "$s2_items" '{title:"Protocol Improvements", items:$items}')
+        fi
+    fi
+
+    # ---- Section 3: Promotion Candidates ----
+    if [[ "$promo_notes_count" -eq 0 && "$gate_count" -lt 2 ]]; then
+        section3=$(jq -nc '{title:"Promotion Candidates", items:[], note:"no signal in window"}')
+    else
+        s3_note_items='[]'
+        s3_gate_items='[]'
+        if [[ "$promo_notes_count" -gt 0 ]]; then
+            s3_note_items=$(printf '%s' "$promo_notes_json" | jq -c '
+                map({
+                    key: ((.text // "") | capture("(?<k>/crucible:[a-z0-9_-]+)"; "i").k // "general"),
+                    category: .category,
+                    text: (.text // ""),
+                    src: "\(._source_path):\(._line)"
+                })
+                | group_by(.key)
+                | map({
+                    type:"promo_group",
+                    key:.[0].key,
+                    n:length,
+                    cats:([.[].category] | unique | join("+")),
+                    sample:(.[0].text),
+                    refs:([.[].src][0:3])
+                })
+                | map(select(.n >= 1))
+                | sort_by(-.n)
+                | .[0:5]
+            ')
+        fi
+        if [[ "$gate_count" -ge 2 ]]; then
+            s3_gate_items=$(printf '%s' "$gate_json" | jq -c '
+                . as $rows
+                | [{type:"promotion_gate", n:length,
+                    refs:[$rows[] | "\(._source_path):\(._line)"][0:3]}]
+            ')
+        fi
+        s3_items=$(jq -nc --argjson a "$s3_note_items" --argjson b "$s3_gate_items" '$a + $b')
+        if [[ "$(printf '%s' "$s3_items" | jq 'length')" -eq 0 ]]; then
+            section3=$(jq -nc '{title:"Promotion Candidates", items:[], note:"no signal in window"}')
+        else
+            section3=$(jq -nc --argjson items "$s3_items" '{title:"Promotion Candidates", items:$items}')
+        fi
+    fi
+
+    jq -nc \
+        --arg generated_at "$generated_at" \
+        --arg window "$window_label" \
+        --arg scope "$scope_label" \
+        --argjson total_events "$total_events" \
+        --argjson source_counts "$source_counts_json" \
+        --arg date "$today" \
+        --argjson section1 "$section1" \
+        --argjson section2 "$section2" \
+        --argjson section3 "$section3" \
+        '{
+            schema_version: "1",
+            frontmatter: {
+                generated_at: $generated_at,
+                window: $window,
+                scope: $scope,
+                total_events: $total_events,
+                source_counts: $source_counts,
+                date: $date
+            },
+            sections: [$section1, $section2, $section3]
+        }'
+    exit 0
+fi
 
 printf -- '---\n'
-printf 'generated_at: "%s"\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+printf 'generated_at: "%s"\n' "$generated_at"
 printf 'window: "%s"\n' "$window_label"
 printf 'scope: "%s"\n' "$scope_label"
 printf 'total_events: %s\n' "$total_events"
