@@ -30,14 +30,29 @@
 # `--threshold-n 1 --threshold-n 99` would suppress signal a caller intended
 # to surface.
 #
-# Exit codes:
+# Stderr: every line carries `render: <severity>: <message>` where severity ∈
+# {info, warn, error} (issue #16). Symmetric with the aggregator so a wrapper
+# can keyword-match severity across both halves of the pipeline uniformly.
+#
+# Exit codes (issue #16 — arg vs system split):
 #   0  success (including empty or no-signal input)
-#   1  runtime failure (jq pipeline error, etc.)
-#   2  argument error (unknown flag, duplicate flag, bad value, mktemp failure)
+#   1  runtime data-pipeline failure (jq ingestion error)
+#   2  argument error (unknown flag, duplicate flag, bad value)
+#   3  system / environment failure (mktemp full disk, missing tools)
 #
 # Runtime: bash + jq. No Python / Node.
 
 set -uo pipefail
+
+# Severity-tagged stderr emitters (issue #16). Mirrors the aggregator's
+# helpers so both halves of the pipeline emit `<script>: <severity>: <msg>`
+# uniformly.
+# shellcheck disable=SC2059  # fmt is an internal format string, not user input
+err() { local fmt="$1"; shift; printf "render: error: ${fmt}\\n" "$@" >&2; }
+# shellcheck disable=SC2059
+warn() { local fmt="$1"; shift; printf "render: warn: ${fmt}\\n" "$@" >&2; }
+# shellcheck disable=SC2059
+info() { local fmt="$1"; shift; printf "render: info: ${fmt}\\n" "$@" >&2; }
 
 print_help() {
     cat <<'USAGE'
@@ -60,10 +75,19 @@ Constraints:
   --threshold-n is a positive integer in [1, 1000000]; out-of-range → exit 2.
   Each named flag may appear at most once (duplicate → exit 2).
 
-Exit codes:
-  0 — success (including empty or no-signal input)
-  1 — runtime failure (jq pipeline error, etc.)
-  2 — argument error
+Stderr severity tagging:
+  Every stderr line below the targeted error/warn/info helpers is prefixed
+  `render: <severity>: <msg>` where severity ∈ {info, warn, error}
+  (matches the aggregator's contract). Aggregator prefix is
+  `dogfood-digest: <severity>:` — for unified pipeline grep:
+      grep -E '^(dogfood-digest|render): (info|warn|error):'
+
+Exit codes (arg / runtime / system split, see issue #16):
+  0  success (including empty or no-signal input)
+  1  runtime data-pipeline failure (jq ingestion error)
+  2  argument error — fix the flag and retry
+  3  system/environment failure (mktemp full disk, missing tools) —
+     escalate, do not retry the same args
 USAGE
 }
 
@@ -79,7 +103,7 @@ saw_scope=0
 saw_threshold_n=0
 
 reject_duplicate() {
-    printf 'render: %s passed more than once — pass it at most once\n' "$1" >&2
+    err '%s passed more than once — pass it at most once' "$1"
     exit 2
 }
 
@@ -92,27 +116,32 @@ while [[ $# -gt 0 ]]; do
             if [[ "$saw_window" -eq 1 ]]; then reject_duplicate --window; fi
             saw_window=1
             window_label="${2:-}"
-            shift 2 || { printf 'render: --window requires a value\n' >&2; exit 2; }
+            shift 2 || { err '--window requires a value'; exit 2; }
             ;;
         --scope)
             if [[ "$saw_scope" -eq 1 ]]; then reject_duplicate --scope; fi
             saw_scope=1
             scope_label="${2:-}"
-            shift 2 || { printf 'render: --scope requires a value\n' >&2; exit 2; }
+            shift 2 || { err '--scope requires a value'; exit 2; }
             ;;
         --threshold-n)
             if [[ "$saw_threshold_n" -eq 1 ]]; then reject_duplicate --threshold-n; fi
             saw_threshold_n=1
             threshold_n="${2:-}"
-            shift 2 || { printf 'render: --threshold-n requires a value\n' >&2; exit 2; }
+            shift 2 || { err '--threshold-n requires a value'; exit 2; }
             ;;
         -h|--help)
             print_help
             exit 0
             ;;
         *)
-            printf 'render: unknown argument: %s\n' "$1" >&2
-            print_help >&2
+            err 'unknown argument: %s' "$1"
+            # Drop the unprefixed `print_help >&2` dump (~30 lines) — it
+            # bypassed the err/warn/info helpers and broke the
+            # `^render:` anchored-grep contract that issue #16 enabled.
+            # Mirror the aggregator: one actionable info line pointing
+            # at --help.
+            info 'for full usage: bash scripts/dogfood-digest-render.sh --help'
             exit 2
             ;;
     esac
@@ -130,7 +159,7 @@ done
 find "${TMPDIR:-/tmp}" -maxdepth 1 -name 'dogfood-digest-in.*' -mmin +60 -delete 2>/dev/null || true
 
 if [[ -z "$window_label" ]]; then
-    printf 'render: --window is required\n' >&2
+    err '--window is required'
     exit 2
 fi
 
@@ -139,13 +168,13 @@ fi
 case "$scope_label" in
     local|global|both) ;;
     *)
-        printf 'render: --scope must be local, global, or both (got: %s)\n' "$scope_label" >&2
+        err '--scope must be local, global, or both (got: %s)' "$scope_label"
         exit 2
         ;;
 esac
 
 if ! [[ "$threshold_n" =~ ^[0-9]+$ ]]; then
-    printf 'render: --threshold-n expects a positive integer (got: %s)\n' "$threshold_n" >&2
+    err '--threshold-n expects a positive integer (got: %s)' "$threshold_n"
     exit 2
 fi
 # Length-bound BEFORE arithmetic, mirroring the aggregator's --last guard
@@ -157,18 +186,20 @@ fi
 # close, just on a sibling flag. Cap is 1_000_000 (7 digits) to match the
 # aggregator's --last contract; both are observation-count knobs.
 if [[ ${#threshold_n} -gt 7 ]]; then
-    printf 'render: --threshold-n must be a positive integer <= 1000000 (got: %s)\n' "$threshold_n" >&2
+    err '--threshold-n must be a positive integer <= 1000000 (got: %s)' "$threshold_n"
     exit 2
 fi
 threshold_n=$((10#$threshold_n))
 if [[ "$threshold_n" -le 0 ]] || [[ "$threshold_n" -gt 1000000 ]]; then
-    printf 'render: --threshold-n must be a positive integer <= 1000000 (got: %s)\n' "$threshold_n" >&2
+    err '--threshold-n must be a positive integer <= 1000000 (got: %s)' "$threshold_n"
     exit 2
 fi
 
+# mktemp failure is a system / environment issue (issue #16) — exit 3 lets
+# retry-loop wrappers distinguish "fix the flag" (2) from "escalate" (3).
 tmp_in="$(mktemp -t dogfood-digest-in.XXXXXX)" || {
-    printf 'render: mktemp failed\n' >&2
-    exit 2
+    err 'mktemp failed (system error — escalate, do not retry)'
+    exit 3
 }
 # EXIT covers normal exit; INT/TERM/HUP cover SIGINT/SIGTERM/SIGHUP so the
 # tempfile does not leak when the renderer is interrupted mid-pipeline.
@@ -189,7 +220,7 @@ trap 'rm -f "$tmp_in"' EXIT INT TERM HUP
 # count would degrade to "no signal in window" with exit 0 — a "success
 # but wrong answer" failure mode. Surface jq errors instead of swallowing.
 if ! jq -c 'select(if .type == "skill_call" then (if (.skill | type) == "string" then ((.skill | ascii_downcase) | test("^/?crucible:dogfood-digest$"; "i") | not) else true end) else true end)' > "$tmp_in"; then
-    printf 'render: ingestion jq failed (malformed JSONL on stdin?)\n' >&2
+    err 'ingestion jq failed (malformed JSONL on stdin?)'
     exit 1
 fi
 

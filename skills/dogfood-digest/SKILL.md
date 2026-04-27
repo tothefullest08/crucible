@@ -20,6 +20,9 @@ input: |
     --home DIR         (CI/test only) $HOME 대신 사용할 글로벌 mirror 루트.
     env CRUCIBLE_DOGFOOD_ROOT  위 --project-root 보다 우선. 적용 시 stderr 에 info.
     env CRUCIBLE_DOGFOOD_HOME  위 --home 보다 우선. 적용 시 stderr 에 info.
+    env CRUCIBLE_DOGFOOD_QUIET_OVERRIDE=1  env-override info 라인 억제 (issue
+                       #18). CI 가 매 호출마다 위 두 env 를 set 하는 경우 stderr
+                       노이즈를 제거하기 위한 옵트인. error/warn 은 영향 없음.
   같은 플래그를 두 번 패스하면 exit 2 — wrapper 가 사용자 인자를 자기
   default 와 단순 concat 할 때 마지막 값이 조용히 이기는 footgun을 차단한다
   (issue #9).
@@ -46,11 +49,18 @@ output: |
   프론트매터(generated_at · window · scope · total_events · source_counts) + Markdown 본문 3섹션
   (Threshold Calibration · Protocol Improvements · Promotion Candidates).
 
-  Exit codes (aggregator + renderer 공통):
+  Stderr (issue #16): 모든 라인이 `<script>: <severity>: <msg>` 형식.
+    severity ∈ {info, warn, error}. 에이전트가 자유 텍스트 파싱 없이
+    severity 키워드만으로 분류 가능. 파일별 malformed-row warn 은 5건까지
+    verbatim emit 후 1줄 summary 로 fold (issue #17).
+
+  Exit codes (aggregator + renderer 공통, 3-way 분리 — issue #16):
     0  성공 (zero-source / zero-signal 포함)
-    1  런타임 실패 (jq/date/mv/tail pipeline 에러)
+    1  런타임 데이터 파이프라인 실패 (jq/mv/tail) — 입력 데이터 invariant 위반
     2  인자 오류 (unknown flag, duplicate flag, mutex 위반, 잘못된 값,
-                  --last 범위 위반, mktemp 실패)
+                  --last 범위 위반) — recoverable, 인자 고쳐 재시도
+    3  시스템/환경 실패 (mktemp full disk, missing tools) — escalate, 동일
+                  인자 재시도 금지
 validate_prompt: |
   /crucible:dogfood-digest 완료 시 자기검증 (Dogfood-Digest 4축):
   1. 산출 파일 경로가 `.claude/plans/YYYY-MM-DD-dogfood-digest-{window}.md` 규약을 만족하고 slug `[a-zA-Z0-9_-]` 화이트리스트 내인가?

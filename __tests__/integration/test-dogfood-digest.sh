@@ -835,16 +835,17 @@ if [[ "$i15_rc" -eq 2 ]]; then
 else
     faile "issue-15 exit code" "expected 2, got $i15_rc"
 fi
-# Anchor on the targeted-hint discriminator (`hint —` AND `render-time flag`)
-# so deleting the case "$1" in --window|--threshold-n) block in
+# Anchor on the targeted-hint discriminator (`info: hint:` AND `render-time
+# flag`) so deleting the case "$1" in --window|--threshold-n) block in
 # scripts/dogfood-digest.sh actually breaks this assertion. The bare string
 # "dogfood-digest-render.sh" was satisfied by the print_help cross-reference
 # alone (see codex review on pr #21) — the assertion would have stayed green
-# even with the targeted hint removed.
-if grep -q 'hint —' "$i15_stderr" && grep -q 'is a render-time flag' "$i15_stderr"; then
+# even with the targeted hint removed. Format updated to severity-prefix
+# scheme (issue #16): `info: hint:` replaces the old `hint —` em-dash.
+if grep -F -q -- 'info: hint:' "$i15_stderr" && grep -q 'is a render-time flag' "$i15_stderr"; then
     pass "aggregator stderr emits targeted misroute hint on --threshold-n"
 else
-    faile "issue-15 stderr hint" "expected 'hint —' and 'is a render-time flag' in stderr; got: $(tr '\n' '|' < "$i15_stderr")"
+    faile "issue-15 stderr hint" "expected 'info: hint:' and 'is a render-time flag' in stderr; got: $(tr '\n' '|' < "$i15_stderr")"
 fi
 # Hint must reference the renderer script by name so a naive agent can
 # self-recover without re-reading the help text.
@@ -1233,11 +1234,328 @@ else
 fi
 
 # ----------------------------------------------------------------------------
+# Issue #16 — exit-code split + uniform stderr severity tagging
+# Arg errors stay at exit 2 (recoverable, retry with fixed args). System
+# errors (mktemp on full /tmp, missing tools) move to exit 3 (escalate, do
+# not retry). Every stderr line is prefixed `<script>: <severity>: <msg>`
+# where severity ∈ {info, warn, error}. Without uniform tagging, agents
+# cannot keyword-match severity without parsing free-form prose.
+# ----------------------------------------------------------------------------
+
+printf 'ISSUE-16: severity prefixes + arg/system exit-code split\n'
+
+# (a) Every fatal stderr line carries `error:` severity.
+for case in '--bogus-flag' '--last 0' '--last 99999999999999999999' \
+            '--last 5 --since 7d' '--since 99999d' '--since 2099-01-01T00:00:00+09:00' \
+            '--scope bogus'; do
+    set +e
+    # shellcheck disable=SC2086
+    err_out=$("$aggregator" $case --project-root "$tmpproj" --home "$tmphome" 2>&1 >/dev/null)
+    set -e
+    if printf '%s' "$err_out" | grep -F -q -- 'dogfood-digest: error:'; then
+        pass "agg fatal stderr ($case) carries 'error:' severity prefix"
+    else
+        faile "agg severity prefix on $case" "stderr=$(tr '\n' '|' <<<"$err_out")"
+    fi
+done
+
+# Renderer fatal stderr also carries `error:` severity.
+for case in '--bogus-flag' '--threshold-n 0' '--threshold-n 99999999999999999999' \
+            '--scope bogus'; do
+    set +e
+    # shellcheck disable=SC2086
+    err_out=$(echo '' | "$renderer" --window t $case 2>&1 >/dev/null)
+    set -e
+    if printf '%s' "$err_out" | grep -F -q -- 'render: error:'; then
+        pass "render fatal stderr ($case) carries 'error:' severity prefix"
+    else
+        faile "render severity prefix on $case" "stderr=$(tr '\n' '|' <<<"$err_out")"
+    fi
+done
+
+# (b) mktemp failure routes to exit 3 (system error) instead of exit 2
+# (arg error). Force mktemp failure by pointing TMPDIR at a non-existent
+# directory and using a fixture that produces enough output to require
+# tempfile creation (otherwise zero-source path exits 0 before mktemp runs).
+mkdir_proj="$(mktemp -d -t dfd-mktemp.XXXXXX)"
+mkdir -p "$mkdir_proj/.claude/dogfood"
+cp "$fixture" "$mkdir_proj/.claude/dogfood/log.jsonl"
+
+set +e
+mktemp_err=$(TMPDIR=/no/such/dir/ever "$aggregator" --all --scope local \
+    --project-root "$mkdir_proj" --home "$tmphome" 2>&1 >/dev/null)
+mktemp_rc=$?
+set -e
+# Some shells/mktemp implementations may still succeed if /tmp is reachable
+# via a fallback. Accept exit 3 OR a clean run (rc=0) — but if it errors,
+# it MUST be exit 3, never exit 2. The latter would mean a system error
+# was misclassified as recoverable.
+if [[ "$mktemp_rc" -eq 3 ]]; then
+    pass "mktemp failure routes to exit 3 (system error)"
+    if printf '%s' "$mktemp_err" | grep -F -q -- 'system error'; then
+        pass "mktemp error message names 'system error' (escalation hint)"
+    else
+        faile "mktemp escalation hint" "stderr=$(tr '\n' '|' <<<"$mktemp_err")"
+    fi
+elif [[ "$mktemp_rc" -eq 2 ]]; then
+    faile "mktemp exit-code class" "got rc=2 (arg error) — expected rc=3 (system error)"
+else
+    pass "mktemp succeeded via fallback (rc=$mktemp_rc) — system path not exercised on this env"
+fi
+
+# Renderer mktemp also routes to exit 3.
+# CRITICAL: `TMPDIR=val cmd1 | cmd2` scopes TMPDIR to cmd1 only (bash
+# pipeline env-var rule). Putting it before `echo` would set TMPDIR for
+# echo, not the renderer, and the renderer would inherit the parent's
+# TMPDIR — never exercising the exit-3 path. Set it on the renderer side.
+set +e
+echo '' | TMPDIR=/no/such/dir/ever "$renderer" --window t --scope local >/dev/null 2>&1
+ren_mktemp_rc=$?
+set -e
+# Renderer always creates a tempfile, so this almost always exercises mktemp.
+if [[ "$ren_mktemp_rc" -eq 3 ]]; then
+    pass "render mktemp failure routes to exit 3"
+elif [[ "$ren_mktemp_rc" -eq 2 ]]; then
+    faile "render mktemp exit-code" "got rc=2 — expected rc=3 (system error)"
+else
+    pass "render mktemp succeeded via fallback (rc=$ren_mktemp_rc) — system path not exercised"
+fi
+
+rm -rf "$mkdir_proj"
+
+# (c) Arg-error sites still emit exit 2 (regression guard). The split must
+# only move mktemp; everything else stays at exit 2.
+for case in '--bogus-flag' '--last 0' '--last 99999999999999999999' \
+            '--scope bogus' '--last 5 --since 7d'; do
+    set +e
+    # shellcheck disable=SC2086
+    "$aggregator" $case --project-root "$tmpproj" --home "$tmphome" >/dev/null 2>&1
+    rc=$?
+    set -e
+    if [[ "$rc" -eq 2 ]]; then
+        pass "arg error ($case) stays at exit 2"
+    else
+        faile "arg-vs-system split on $case" "got rc=$rc want 2"
+    fi
+done
+
+# ----------------------------------------------------------------------------
+# Issue #17 — per-row malformed-line warn rate-limit
+# First 5 malformed rows per source emit verbatim `warn:` lines. Anything
+# beyond that gets folded into a single `N more malformed rows skipped`
+# summary line. Without the cap, a corrupted JSONL with thousands of bad
+# rows blew downstream agent context budgets and trained agents to ignore
+# stderr entirely.
+# ----------------------------------------------------------------------------
+
+printf 'ISSUE-17: warn rate-limit per source\n'
+
+# Derive WARN_CAP from the aggregator script so a future cap change in
+# scripts/dogfood-digest.sh doesn't silently break four hardcoded test
+# assertions (was: literal `5` and derived `7` baked across the block).
+WARN_CAP=$(grep -E '^readonly WARN_CAP=' "$aggregator" | head -1 | cut -d= -f2)
+if ! [[ "$WARN_CAP" =~ ^[0-9]+$ ]] || [[ "$WARN_CAP" -lt 1 ]]; then
+    faile "issue-17 setup" "WARN_CAP could not be derived from aggregator (got: $WARN_CAP)"
+    WARN_CAP=5  # fallback so subsequent assertions still execute
+fi
+
+flood_proj="$(mktemp -d -t dfd-flood.XXXXXX)"
+mkdir -p "$flood_proj/.claude/dogfood"
+# Generate (WARN_CAP + 7) malformed rows + 2 valid rows. With cap=5 by
+# default that's 12 bad / 2 valid; expect WARN_CAP verbatim warn lines
+# + 1 summary line naming the fold count (7 when cap=5).
+flood_bad_total=$((WARN_CAP + 7))
+flood_fold_count=$((flood_bad_total - WARN_CAP))
+{
+    for i in $(seq 1 7); do
+        echo "BAD_ROW_${i}_NOT_JSON"
+    done
+    echo '{"ts":"2026-04-25T00:00:00Z","type":"note","category":"pain","text":"valid"}'
+    for i in $(seq 8 "$flood_bad_total"); do
+        echo "BAD_ROW_${i}_NOT_JSON"
+    done
+    echo '{"ts":"2026-04-25T00:00:01Z","type":"note","category":"good","text":"valid"}'
+} > "$flood_proj/.claude/dogfood/log.jsonl"
+
+set +e
+flood_stderr=$("$aggregator" --all --scope local --project-root "$flood_proj" \
+    --home "$tmphome" 2>&1 >/dev/null)
+set -e
+
+verbatim_count=$(printf '%s\n' "$flood_stderr" | grep -c 'warn: skipping malformed row' || true)
+summary_count=$(printf '%s\n' "$flood_stderr" | grep -c 'more malformed rows skipped' || true)
+
+if [[ "$verbatim_count" -eq "$WARN_CAP" ]]; then
+    pass "warn cap honoured: exactly $WARN_CAP verbatim 'warn: skipping' lines (got $verbatim_count)"
+else
+    faile "warn cap" "got $verbatim_count verbatim warn lines, want $WARN_CAP"
+fi
+if [[ "$summary_count" -eq 1 ]]; then
+    pass "warn summary line emitted exactly once"
+else
+    faile "warn summary count" "got $summary_count summary lines, want 1"
+fi
+# (WARN_CAP + 7) bad rows total, WARN_CAP emitted verbatim → 7 folded.
+if printf '%s' "$flood_stderr" | grep -F -q -- "$flood_fold_count more malformed rows skipped"; then
+    pass "warn summary names the correct fold count ($flood_fold_count)"
+else
+    faile "warn summary count value" "expected '$flood_fold_count more malformed rows skipped', stderr=$(tr '\n' '|' <<<"$flood_stderr")"
+fi
+# Valid rows must still survive — the flood doesn't drop downstream data.
+flood_count=$("$aggregator" --all --scope local --project-root "$flood_proj" \
+    --home "$tmphome" 2>/dev/null | wc -l | tr -d ' ')
+if [[ "$flood_count" -eq 2 ]]; then
+    pass "warn rate-limit doesn't drop valid rows (2 valid survive flood of 12 bad)"
+else
+    faile "flood survivorship" "got $flood_count valid rows want 2"
+fi
+rm -rf "$flood_proj"
+
+# Below-cap case: (WARN_CAP - 2) bad rows emit (WARN_CAP - 2) verbatim
+# warn lines and zero summary line. Pins the boundary so a future
+# off-by-one regresses.
+under_bad_total=$((WARN_CAP - 2))
+if [[ "$under_bad_total" -lt 1 ]]; then
+    under_bad_total=1  # cap < 3 makes the boundary degenerate; floor at 1
+fi
+under_proj="$(mktemp -d -t dfd-under.XXXXXX)"
+mkdir -p "$under_proj/.claude/dogfood"
+{
+    for i in $(seq 1 "$under_bad_total"); do
+        echo "BAD_${i}"
+    done
+    echo '{"ts":"2026-04-25T00:00:00Z","type":"note","category":"pain","text":"a"}'
+} > "$under_proj/.claude/dogfood/log.jsonl"
+set +e
+under_stderr=$("$aggregator" --all --scope local --project-root "$under_proj" \
+    --home "$tmphome" 2>&1 >/dev/null)
+set -e
+under_verbatim=$(printf '%s\n' "$under_stderr" | grep -c 'warn: skipping malformed row' || true)
+under_summary=$(printf '%s\n' "$under_stderr" | grep -c 'more malformed rows skipped' || true)
+if [[ "$under_verbatim" -eq "$under_bad_total" && "$under_summary" -eq 0 ]]; then
+    pass "below-cap ($under_bad_total bad rows, cap=$WARN_CAP) emits $under_bad_total verbatim, 0 summary"
+else
+    faile "below-cap behavior" "verbatim=$under_verbatim summary=$under_summary want $under_bad_total/0"
+fi
+rm -rf "$under_proj"
+
+# Singular-noun boundary: when fold count == 1, summary must read
+# "1 more malformed row skipped" (singular "row"), not "1 more
+# malformed rows skipped" (plural noun + singular subject mismatch).
+# Construct (WARN_CAP + 1) bad rows so exactly 1 row is folded.
+singular_bad_total=$((WARN_CAP + 1))
+sing_proj="$(mktemp -d -t dfd-sing.XXXXXX)"
+mkdir -p "$sing_proj/.claude/dogfood"
+{
+    for i in $(seq 1 "$singular_bad_total"); do
+        echo "BAD_${i}"
+    done
+    echo '{"ts":"2026-04-25T00:00:00Z","type":"note","category":"pain","text":"a"}'
+} > "$sing_proj/.claude/dogfood/log.jsonl"
+set +e
+sing_stderr=$("$aggregator" --all --scope local --project-root "$sing_proj" \
+    --home "$tmphome" 2>&1 >/dev/null)
+set -e
+if printf '%s' "$sing_stderr" | grep -F -q -- '1 more malformed row skipped'; then
+    pass "warn summary uses singular 'row' when fold count == 1"
+elif printf '%s' "$sing_stderr" | grep -F -q -- '1 more malformed rows skipped'; then
+    faile "warn summary plural-noun bug" "got '1 more malformed rows skipped' (plural noun + singular subject)"
+else
+    faile "warn summary singular case" "no '1 more malformed' line in: $(tr '\n' '|' <<<"$sing_stderr")"
+fi
+rm -rf "$sing_proj"
+
+# ----------------------------------------------------------------------------
+# Issue #18 — CRUCIBLE_DOGFOOD_QUIET_OVERRIDE suppresses env-override info
+# CI runs that legitimately set CRUCIBLE_DOGFOOD_ROOT/HOME on every
+# invocation can opt into silence so the info-line noise doesn't push
+# agents toward "ignore stderr entirely" (masking the warn/error lines
+# that DO matter).
+# ----------------------------------------------------------------------------
+
+printf 'ISSUE-18: CRUCIBLE_DOGFOOD_QUIET_OVERRIDE\n'
+
+# Default behavior: env override produces a stderr info line.
+default_stderr=$(CRUCIBLE_DOGFOOD_ROOT="$tmpproj" "$aggregator" --all --scope local \
+    --project-root "/some/other/path" --home "$tmphome" 2>&1 >/dev/null)
+if printf '%s' "$default_stderr" | grep -F -q -- 'info: CRUCIBLE_DOGFOOD_ROOT='; then
+    pass "default: env-override info line emitted"
+else
+    faile "default info emit" "stderr=$(tr '\n' '|' <<<"$default_stderr")"
+fi
+
+# Opt-in: CRUCIBLE_DOGFOOD_QUIET_OVERRIDE=1 suppresses the info line.
+quiet_stderr=$(CRUCIBLE_DOGFOOD_ROOT="$tmpproj" CRUCIBLE_DOGFOOD_QUIET_OVERRIDE=1 \
+    "$aggregator" --all --scope local --project-root "/some/other/path" --home "$tmphome" 2>&1 >/dev/null)
+if ! printf '%s' "$quiet_stderr" | grep -F -q -- 'CRUCIBLE_DOGFOOD_ROOT'; then
+    pass "QUIET_OVERRIDE=1 suppresses env-override info line"
+else
+    faile "QUIET_OVERRIDE suppression" "stderr should be empty on info, got: $(tr '\n' '|' <<<"$quiet_stderr")"
+fi
+
+# QUIET_OVERRIDE must NOT suppress warn or error severity. A bad-flag
+# invocation under QUIET_OVERRIDE=1 must still emit the error line —
+# otherwise the opt-in would silently mask real failures.
+quiet_err_stderr=$(CRUCIBLE_DOGFOOD_QUIET_OVERRIDE=1 "$aggregator" --bogus-flag 2>&1 >/dev/null || true)
+if printf '%s' "$quiet_err_stderr" | grep -F -q -- 'error: unknown argument'; then
+    pass "QUIET_OVERRIDE=1 does NOT suppress error: severity (error still emitted)"
+else
+    faile "QUIET_OVERRIDE error scope" "stderr=$(tr '\n' '|' <<<"$quiet_err_stderr")"
+fi
+
+# QUIET_OVERRIDE=0 (explicit) behaves like default — info still emits.
+explicit0_stderr=$(CRUCIBLE_DOGFOOD_ROOT="$tmpproj" CRUCIBLE_DOGFOOD_QUIET_OVERRIDE=0 \
+    "$aggregator" --all --scope local --project-root "/some/other/path" --home "$tmphome" 2>&1 >/dev/null)
+if printf '%s' "$explicit0_stderr" | grep -F -q -- 'info: CRUCIBLE_DOGFOOD_ROOT='; then
+    pass "QUIET_OVERRIDE=0 keeps default behavior (info emitted)"
+else
+    faile "QUIET_OVERRIDE=0" "stderr=$(tr '\n' '|' <<<"$explicit0_stderr")"
+fi
+
+# QUIET_OVERRIDE must apply symmetrically to the HOME branch, not just
+# ROOT. Without this, a future refactor splitting the two guards could
+# silently leak HOME info while ROOT stays suppressed.
+home_default_stderr=$(CRUCIBLE_DOGFOOD_HOME="$tmphome" "$aggregator" --all \
+    --scope local --project-root "$tmpproj" --home "/some/other/home" 2>&1 >/dev/null)
+if printf '%s' "$home_default_stderr" | grep -F -q -- 'info: CRUCIBLE_DOGFOOD_HOME='; then
+    pass "default: HOME env-override info line emitted"
+else
+    faile "default HOME info" "stderr=$(tr '\n' '|' <<<"$home_default_stderr")"
+fi
+home_quiet_stderr=$(CRUCIBLE_DOGFOOD_HOME="$tmphome" CRUCIBLE_DOGFOOD_QUIET_OVERRIDE=1 \
+    "$aggregator" --all --scope local --project-root "$tmpproj" --home "/some/other/home" 2>&1 >/dev/null)
+if ! printf '%s' "$home_quiet_stderr" | grep -F -q -- 'CRUCIBLE_DOGFOOD_HOME'; then
+    pass "QUIET_OVERRIDE=1 suppresses HOME env-override info line (symmetric with ROOT)"
+else
+    faile "QUIET_OVERRIDE HOME suppression" "stderr should be empty on info, got: $(tr '\n' '|' <<<"$home_quiet_stderr")"
+fi
+
+# QUIET_OVERRIDE=1 must NOT suppress warn: severity. The PR contract
+# states 'warn: and error: always emit'. Only the error: passthrough was
+# previously verified — add a malformed-row source under QUIET_OVERRIDE=1
+# and assert the warn: line still surfaces. A future refactor widening
+# the QUIET guard to also wrap warn() would land green without this.
+warn_quiet_proj="$(mktemp -d -t dfd-warnq.XXXXXX)"
+mkdir -p "$warn_quiet_proj/.claude/dogfood"
+{
+    echo 'BAD_ROW_NOT_JSON'
+    echo '{"ts":"2026-04-25T00:00:00Z","type":"note","category":"pain","text":"valid"}'
+} > "$warn_quiet_proj/.claude/dogfood/log.jsonl"
+warn_quiet_stderr=$(CRUCIBLE_DOGFOOD_QUIET_OVERRIDE=1 "$aggregator" --all \
+    --scope local --project-root "$warn_quiet_proj" --home "$tmphome" 2>&1 >/dev/null)
+if printf '%s' "$warn_quiet_stderr" | grep -F -q -- 'warn: skipping malformed row'; then
+    pass "QUIET_OVERRIDE=1 does NOT suppress warn: severity (warn still emitted)"
+else
+    faile "QUIET_OVERRIDE warn scope" "expected 'warn: skipping malformed row', stderr=$(tr '\n' '|' <<<"$warn_quiet_stderr")"
+fi
+rm -rf "$warn_quiet_proj"
+
+# ----------------------------------------------------------------------------
 # Summary
 # ----------------------------------------------------------------------------
 
 if [[ "$fail" -eq 0 ]]; then
-    printf '\ntest-dogfood-digest: ALL PASS (SC-1~7 + recursion filter + ADV-003/006/007/008 + issue-9/14/15 + 14-mirror + help-constraints)\n'
+    printf '\ntest-dogfood-digest: ALL PASS (SC-1~7 + recursion filter + ADV-003/006/007/008 + issue-9/14/15/16/17/18 + 14-mirror + help-constraints)\n'
     exit 0
 else
     printf '\ntest-dogfood-digest: FAIL\n'
