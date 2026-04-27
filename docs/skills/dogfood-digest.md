@@ -12,6 +12,8 @@ English · [한국어](./dogfood-digest.ko.md)
 
 Input: any combination of local `.claude/dogfood/log.jsonl` and global mirror `~/.claude/dogfood/crucible/{slug}-{hash}/log.jsonl`, filtered by one of `--last N` (default 10), `--since DATE|Nd`, or `--all`, and scoped via `--scope local|global|both` (default both). Output: a single Markdown file saved to `.claude/plans/`, never overwriting any other tracked file.
 
+Output format is selectable via `--format markdown|json` (default markdown). The JSON branch emits a single schema-versioned object on stdout (`schema_version: "1"` — JSON string, compare with `.schema_version == "1"`) with the same three fixed sections, so agent consumers parse with `jq` instead of regexing the Markdown report. Each item carries a `type` discriminator so wrappers switch on `type` rather than positional index. Discriminators: `qa_distribution`, `axis_skip_freq`, `pain_group`, `skip_reason`, `promo_group`, `promotion_gate`.
+
 Every emitted JSONL line is augmented in-memory with `_source_path` and `_line` (1-based) so each suggestion in the report cites the originating event. The report is designed to read top-down:
 
 | Section | Source events | Heuristic |

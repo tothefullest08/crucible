@@ -12,6 +12,8 @@
 
 입력: 로컬 `.claude/dogfood/log.jsonl` 과 글로벌 mirror `~/.claude/dogfood/crucible/{slug}-{hash}/log.jsonl` 의 조합. `--last N`(기본 10) / `--since DATE|Nd` / `--all` 중 하나로 window, `--scope local|global|both`(기본 both) 로 scope 를 선택합니다. 출력: `.claude/plans/` 안의 Markdown 1건 — 그 외 추적 파일은 절대 건드리지 않습니다.
 
+출력 형식은 `--format markdown|json`(기본 markdown) 로 선택. `json` 분기는 `schema_version: "1"`(JSON 문자열 — `.schema_version == "1"` 로 비교) 이 박힌 단일 객체를 stdout 으로 emit, 같은 3섹션 구조를 유지해 에이전트 호출자가 Markdown 정규식 대신 jq 로 파싱합니다. 각 item 은 `type` 디스크리미네이터를 들고 있어 wrapper 가 위치 인덱스 대신 type 으로 분기합니다. 디스크리미네이터: `qa_distribution`, `axis_skip_freq`, `pain_group`, `skip_reason`, `promo_group`, `promotion_gate`.
+
 모든 JSONL 라인은 메모리 상에서 `_source_path` + `_line`(1-based) 이 주입되므로 리포트의 각 제안이 원본 이벤트를 인용할 수 있습니다. 리포트는 위에서 아래로 읽도록 설계돼 있습니다:
 
 | 섹션 | 소스 이벤트 | 휴리스틱 |

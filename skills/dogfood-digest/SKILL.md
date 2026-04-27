@@ -39,6 +39,15 @@ input: |
                        (기본 3). 양의 정수, 최대 1_000_000.
                        범위 밖 / 비숫자는 exit 2 (PR #24 ce-review P1 — same
                        arithmetic-overflow surface as aggregator's --last).
+    --format markdown|json   기본 markdown. `json` 은 단일 구조화 객체를
+                       stdout 으로 emit (issue #19) — 에이전트 호출자가 jq 로
+                       파싱 가능. 알 수 없는 값(`jason` 등)은 exit 2.
+                       스키마: `{schema_version, frontmatter, sections[]}`,
+                       각 section 은 `{title, items[], note?}`. 각 item 은
+                       `type` discriminator (qa_distribution · axis_skip_freq ·
+                       pain_group · skip_reason · promo_group · promotion_gate)
+                       를 들고 있어 wrapper 가 위치 인덱스 대신 type 으로
+                       분기한다.
 
   입력 소스 (aggregator 가 resolve, renderer 는 stdin 만 읽음):
     로컬  `${CRUCIBLE_DOGFOOD_ROOT:-${PROJECT_ROOT}}/.claude/dogfood/log.jsonl`
@@ -48,6 +57,31 @@ output: |
   {window} ∈ { last{N}, since-{YYYY-MM-DD|Nd}, all }
   프론트매터(generated_at · window · scope · total_events · source_counts) + Markdown 본문 3섹션
   (Threshold Calibration · Protocol Improvements · Promotion Candidates).
+
+  Renderer `--format json` (issue #19): `.md` 대신 단일 JSON 객체를 stdout 으로
+  emit. 에이전트 호출자는 jq 로 파싱한다. 호출자가 redirect 하는 경로의
+  관례는 `.claude/plans/YYYY-MM-DD-dogfood-digest-{window}.json` 이지만
+  스크립트는 파일을 직접 쓰지 않는다 (Phase 4 와 동일).
+
+  schema_version 은 **JSON STRING** (`"1"`, 숫자 1 아님). 호출자는 반드시
+  `.schema_version == "1"` 로 비교해야 하며, 정수 비교 (`== 1`) 는 미래
+  bump 시점에 silent miss 한다.
+
+  item type 별 필드 contract — wrapper 가 type 으로 분기 후 안전하게
+  pin 할 수 있는 키 집합 (이 contract 를 깨는 변경은 schema_version bump
+  를 요구한다):
+
+  | type | required fields | optional fields |
+  |------|-----------------|-----------------|
+  | qa_distribution | n (int), p50 (number\|null), p95 (number\|null), verdicts.{promote,retry,reject} (int), refs (array of "path:line" strings) | — |
+  | axis_skip_freq | n (int), histogram (array of {axis,n}), refs (array) | — |
+  | pain_group | type, key, n, cats (string), sample (string), refs (array) | — |
+  | skip_reason | type, reason (string), n, refs (array) | — |
+  | promo_group | type, key, n, cats (string), sample (string), refs (array) | — |
+  | promotion_gate | type, n, refs (array) | — |
+
+  refs 는 현재 `"path:line"` 문자열 배열로 직렬화된다. 향후 객체 배열
+  (`[{path,line}]`) 로 옮길 가능성은 schema_version bump 의 후보.
 
   Stderr (issue #16): 모든 라인이 `<script>: <severity>: <msg>` 형식.
     severity ∈ {info, warn, error}. 에이전트가 자유 텍스트 파싱 없이
@@ -163,6 +197,23 @@ Do **not** use when:
 5. 프론트매터에 `generated_at · window · scope · total_events · source_counts · date` 기재.
 
 **출력**: Markdown 문자열 (stdout).
+
+`--format json` 을 사용하는 경우 stdout 은 단일 JSON 객체다. 최상위 구조는 `{schema_version, frontmatter, sections[]}` 이고, 섹션 순서는 Threshold Calibration → Protocol Improvements → Promotion Candidates 로 고정된다. 각 section 은 `{title, items[]}` 이며, `note` 필드는 **`items` 가 비어 있을 때만 반드시 존재하고, `items` 가 1건 이상이면 반드시 부재한다** — 이 불변식은 `__tests__/integration/test-dogfood-digest.sh` ISSUE-19 블록이 강제하고 있다.
+
+> **`schema_version` 비교 주의**: `schema_version` 은 JSON **STRING** 이다 (`"1"`, 숫자 `1` 아님). 반드시 `.schema_version == "1"` (문자열 비교) 로 확인해야 하며, `.schema_version == 1` (정수 비교) 는 항상 `false` 를 반환해 wrapper 가 잘못된 fallback 경로로 흘러간다.
+
+각 item 은 `type` discriminator 를 들고 있다. 아래는 type 별 보장 필드 목록이다 (이 contract 를 깨는 변경은 `schema_version` bump 를 요구한다):
+
+| type | 보장 필드 |
+|------|-----------|
+| `qa_distribution` | `n` (int) · `p50` (number\|null) · `p95` (number\|null) · `verdicts.promote` / `.retry` / `.reject` (int) · `refs` (array of `"path:line"`) |
+| `axis_skip_freq` | `n` (int) · `histogram` (array of `{axis, n}`) · `refs` |
+| `pain_group` | `key` (string) · `n` (int) · `cats` (string) · `sample` (string) · `refs` |
+| `skip_reason` | `reason` (string) · `n` (int) · `refs` |
+| `promo_group` | `key` (string) · `n` (int) · `cats` (string) · `sample` (string) · `refs` |
+| `promotion_gate` | `n` (int) · `refs` |
+
+`refs` 는 `"<source_path>:<line>"` 문자열 배열로 직렬화된다 (최대 3건). 향후 객체 배열(`[{path,line}]`) 로 변경될 경우 `schema_version` bump 대상이다.
 
 **실패 시 fallback**: 섹션 휴리스틱이 모든 관측수 하한 미만 → 빈 섹션 대신 명시적 안내. jq 파이프 실패 → stderr 경고 후 섹션을 `> no signal in window` 로 채워 리포트 완결.
 
